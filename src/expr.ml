@@ -19,8 +19,7 @@ type builtin =
   | Cup
     (* modal *)
   | Prime | StrongPrime | Leadsto | ENABLED | UNCHANGED | Cdot
-  | Actplus | Box of bool (* the bool indicates an applitcation of the Box to a
-  non-temporal formula and is added in a post processing step JEK: not sure that's still neccessary *) | Diamond
+  | Actplus | Box | Diamond
     (* arithmetic *)
   | Nat | Int | Real | Plus | Minus | Uminus
   | Times | Ratio | Quotient | Remainder | Exp
@@ -64,11 +63,11 @@ type expr =
   | Case    of (expr * expr) list * expr option
 
 (* binders: lambda and quantifiers:  *)
-  | Lambda of varID list * expr (* JEK: lamdas don't come with bounds, right? *)
+  | Lambda of varID list * expr 
   | Exists of bound list * expr
   | Forall of bound list * expr
-  | Choose of bound * expr (* JEK: is it legal to chose more than one thing at a time? if so, this needs to be a bound list, too *)
-  | TempExists of varID list * expr (* JEK: temporal quantifiers don't come with bounds *)
+  | Choose of bound * expr
+  | TempExists of varID list * expr 
   | TempForall of varID list * expr 
 
 
@@ -89,13 +88,14 @@ type expr =
   except for functions - e.g. [f EXCEPT ![e1] = e2, ![e3] = e4],
   except for records   - e.g. [r EXCEPT !["x"] = e1, !["y"] = e2] *)
   | FunDef of bound list * expr
-  | FunApp of expr * expr list (* JEK: should the first argument be a special function id or a string? *)
+  | FunApp of expr * expr list
   | FunTyp of expr * expr
   | Record of (string * expr) list
   | Dot    of expr * string
-  | FunExcept of expr * (expr * expr ) list  (* JEK: again, if function ids are not just exprs, the first argument needs to be changed. Also, is the expr in the first component of the pair too liberal? *)
+  | RecordTyp of (string * expr) list
+  | FunExcept of expr * (expr * expr ) list  (* JEK: see email => brainstorm *)
   | RecExcept of expr * (string * expr) list
-(* JEK: e_t.ml in v1 has a constructor Rect of (string * expr) - what is that for? *)
+
 
 (* definitions: operators, recursive defns, instances  *)
   | LetOp   of string * expr list * expr 
@@ -103,12 +103,11 @@ type expr =
   | LetInst of string * 
 
 (* modal and fairness expressions *)
-  | Sub of modal_op * expr * expr (* JEK: so here we're sticking to either tuple or single variable? *)
+  | BoxSub of expr * expr             (* e.g. [A]_e *)
+  | DiaSub of expr * expr             (* e.g. <A>_e *)
 (* JEK: e_t.ml in v1 has a constructor temporal Sub here - what is that for? *)
-  | Fair of fairness_op * expr * expr
-
-
-
+  | WeakFair   of expr * expr
+  | StrongFair of expr * expr
 
 
 (* JEK: Questions:
@@ -116,11 +115,9 @@ type expr =
   Constructors in v1 that I don't know what they represent:
    - Num of string * string
    - At of book
-   - Parens of expr * pform
 
-  If Bang is taken care of by Sany, we don't need it here?
-    
   I'm not sure how to go about Assume-Proofs, what was sequents in v1...
+=> brainstorm
  *)
 
 
@@ -135,9 +132,6 @@ and tup_bound_domain =
   | TupDomain of Product
   | Ditto 
 
-
-and modal_op = Box | Diamond
-and fairness_op = Weak | Strong
 
 
 
