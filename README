@@ -1,0 +1,4 @@
+This project is managed by ocaml oasis. In order to build it, install oasis and type:
+oasis setup -setup-update dynamic
+./configure
+make
