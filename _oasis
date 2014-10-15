@@ -1,16 +1,13 @@
-Name: FooBar
-Version: 0.1
-Synopsis: A library about Foo and Bar.
-Authors: Me <me@myhost.com>
-License: LGPL with OCaml linking exception
-
-Description: FooBar allows to combine foo and bar efficiently. It also allows to interface with baz.
-Homepage: http://foobar.org
-
 OASISFormat: 0.3
-BuildTools: ocamlbuild
-Plugins: META (0.4), DevFiles (0.4)
+Name:        TLAPM
+Version:     0.1
+Synopsis:    V2 of tlapm
+Authors:     Damien Doligez, Tomer Libal
+License:     BSD3
+Plugins:     META (0.3)
 
-Executable "tlapm"
-  Path: src
-  MainIs: tlapm.ml
+Executable tlapm
+  Path:       src
+  BuildTools: ocamlbuild
+  MainIs:     tlapm.ml
+
