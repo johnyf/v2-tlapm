@@ -10,4 +10,7 @@ Executable "tlapm"
   Path:       src
   BuildTools: ocamlbuild
   MainIs:     tlapm.ml
-  BuildDepends: xmlm
+  BuildDepends: xmlm,
+                str,
+                unix,
+                sysconf_nprocs

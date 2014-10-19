@@ -308,3 +308,5 @@ and mule = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
+
+let import_xml ic = ()
