@@ -6,8 +6,8 @@ Authors:     Damien Doligez, Tomer Libal
 License:     BSD3
 Plugins:     META (0.3)
 
-Executable tlapm
+Executable "tlapm"
   Path:       src
   BuildTools: ocamlbuild
   MainIs:     tlapm.ml
-
+  BuildDepends: xmlm
