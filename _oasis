@@ -12,5 +12,4 @@ Executable "tlapm"
   MainIs:     tlapm.ml
   BuildDepends: xmlm,
                 str,
-                unix,
-                sysconf_nprocs
+                unix
