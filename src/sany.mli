@@ -309,4 +309,4 @@ and mule = {
   theorems          : theorem list ;
 }
 
-val import_xml : Pervasives.in_channel -> mule
+val import_xml : Pervasives.in_channel -> mule list
