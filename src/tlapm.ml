@@ -41,9 +41,9 @@ module Clocks = struct
 
 end
 
-let java_cmd library_path input_files = "java -jar lib/sany.jar -I " ^ library_path ^ " " ^
-  (String.concat " " input_files)
-
+let java_cmd search_path input_files = "java -jar lib/sany.jar" ^
+  (if (List.length search_path > 0) then " -I " ^ (String.concat " -I " search_path)
+  else "") ^ " " ^ (String.concat " " input_files)
 
 let handle_abort _ =
   if !Params.verbose then
@@ -61,8 +61,8 @@ let main fs =
     end [Sys.sigint ; Sys.sigabrt ; Sys.sigterm] in
   let () = Format.pp_set_max_indent Format.std_formatter 2_000_000 in
   (* import the xml *)
-  let () = print_string (java_cmd Params.library_path !Params.input_files) in
-  let ic, _ (* for reporting errors from SANY *) = Unix.open_process (java_cmd Params.library_path !Params.input_files) in
+  let () = print_string (java_cmd !Params.rev_search_path fs) in
+  let ic, _ (* for reporting errors from SANY *) = Unix.open_process (java_cmd !Params.rev_search_path fs) in
   let md = import_xml ic in
   ()
 
