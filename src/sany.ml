@@ -309,4 +309,4 @@ and mule = {
   theorems          : theorem list ;
 }
 
-let import_xml ic = ()
+let import_xml ic = assert false

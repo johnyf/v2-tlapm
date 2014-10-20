@@ -5,6 +5,8 @@
  * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
  *)
 
+(* TODO eliminate this file *)
+
 (** Heterogeneous properties.
 
     Heavily influenced by a similar design in the MLton compiler. The
