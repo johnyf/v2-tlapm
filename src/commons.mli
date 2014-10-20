@@ -29,3 +29,12 @@ type level =
   | ActionLevel
   | TemporalLevel
 
+type op_decl_kind =
+  | ConstantDecl
+  | VariableDecl
+  | BoundSymbol
+  | NewConstant
+  | NewVariable
+  | NewState
+  | NewAction
+  | NewTemporal

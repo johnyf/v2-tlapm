@@ -10,18 +10,11 @@ Revision.f "$Rev: 34291 $";;
 
 (* stubs, the code below should be fixed *)
 
-(* backend/isabelle.ml *)
-let toolbox_print = assert false
+let toolbox_print ob ?(temp=false) status prover meth timeout already print_ob reason
+                  warnings time_used = ()
 
-(* backend/prep.ml *)
-let print_new_res = assert false
-let print_message = assert false
-
-let print_old_res = assert false
-
-(* tlapm.ml *)
-let print_ob_number = assert false
-let print_message_url = assert false
+let print_new_res ob st warns time_used = ()
+let print_old_res ob st really_print = ()
 
 (*
  * TODO fix the code below to use new obligations, locations, etc.
@@ -155,7 +148,7 @@ let print_old_res ob st really_print =
                  None
 
 (* FIXME obsolete these functions *)
-
+*)
 let print_message msg =
   if !Params.toolbox then Toolbox_msg.print_warning msg;
 ;;
@@ -168,4 +161,3 @@ let print_ob_number n =
   if !Params.toolbox then Toolbox_msg.print_obligationsnumber n;
 ;;
 
-*)
