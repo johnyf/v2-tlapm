@@ -61,9 +61,10 @@ let main fs =
     end [Sys.sigint ; Sys.sigabrt ; Sys.sigterm] in
   let () = Format.pp_set_max_indent Format.std_formatter 2_000_000 in
   (* import the xml *)
-  let () = print_string (java_cmd !Params.rev_search_path fs) in
-  let ic, _ (* for reporting errors from SANY *) = Unix.open_process (java_cmd !Params.rev_search_path fs) in
-  let md = import_xml ic in
+  let cmd = java_cmd !Params.rev_search_path fs in
+  let () = print_string cmd in
+  let ic, oc = Unix.open_process cmd in
+  let mds = import_xml ic in
   ()
 
 let init () =

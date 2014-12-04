@@ -1,6 +1,7 @@
 (* Copyright (C) 2014 MSR-INRIA
  *
  * SANY expressions
+ * This file should be broken into xml utilities, sany ds and sany export
  *
  * Author: TL
  *)
@@ -308,5 +309,127 @@ and mule = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
+(*
+ * if context is given, then we check both tg and tg^"Ref"
+ * and if there is Ref, we get the item from the context.
+ * We need to remember to use mk functions for term sharing
+ * TODO in SANY, move the context element to be appended first in the tree (before, location, name, etc.)
+ *)
+let rec get_children ?context:(con=None) i tg f =
+  match (peek i) with
+  | `El_start tag when (snd (fst tag) = tg) ->
+      let child =  f i in
+      child :: (get_children ~context:con i tg f)
+  | `El_start tag -> []
+  | `El_end -> []
+  | _ -> failwith "Illegal XML element"
 
-let import_xml ic = assert false
+let get_child ?context:(con=None) i tg f =
+  let chldn = get_children ~context:con i tg f in
+  assert (List.length chldn = 1);
+  List.hd chldn
+
+let open_tag i tg =  match (input i) with
+  | `El_start tag when (snd (fst tag) = tg) -> ()
+  | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ " expected: " ^ tg)
+  | _ -> failwith "Illegal XML element"
+
+let close_tag i = match (input i) with
+  | `El_end -> ()
+  | `El_start d -> failwith ("Illegal end tag, got start tag: " ^ (snd(fst d)))
+  | _ -> failwith "Illegal XML element"
+
+let get_children_in ?context:(con=None) i tg_par tg_chdrn f =
+  open_tag i tg_par;
+  let ret = get_children ~context:con i tg_chdrn f in
+  close_tag i;
+  ret
+
+let get_child_in ?context:(con=None) i tg_par tg_chd f =
+  let chldn = get_children_in ~context:con i tg_par tg_chd f in
+  assert (List.length chldn = 1);
+  List.hd chldn
+
+let get_data_in i tg f =
+  open_tag i tg;
+  let ret = f i in
+  close_tag i;
+  ret
+
+let read_int i = match (input i) with
+  | `Data d -> int_of_string d
+  | _ -> failwith "expected data element"
+
+let read_string i = match (input i) with
+  | `Data d -> d
+  | _ -> failwith "expected data element"
+
+let read_entry i = assert false
+let init_context_map ls = assert false
+
+let read_location i =
+  open_tag i "location";
+  open_tag i "column";
+  let cb = get_data_in i "begin" read_int in
+  let ce = get_data_in i "end" read_int in
+  close_tag i;
+  open_tag i "line";
+  let lb = get_data_in i "begin" read_int in
+  let le = get_data_in i "end" read_int in
+  close_tag i;
+  let fname = get_data_in i "filename" read_string in
+  close_tag i;
+  { column = {rbegin = cb; rend = ce};
+    line = {rbegin = lb; rend = le};
+    filename = fname }
+
+let read_name i = assert false
+let read_op_decl i = assert false
+let read_op_def i = assert false
+let read_assume i = assert false
+let read_theorem i = assert false
+
+let read_module i =
+  open_tag i "ModuleNode";
+  let loc = get_child i "location" read_location in
+  (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
+  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in
+  let name = get_data_in i "uniquename" read_string in
+  print_string name;
+  let ret = {
+    location = loc;
+    name = name;
+    constants = get_children_in ~context:con i "constants" "OpDeclNode" read_op_decl;
+    variables = get_children_in ~context:con i "variables" "OpDeclNode" read_op_decl;
+    definitions = get_children_in ~context:con i "definitions" "OpDefNode" read_op_def;
+    assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume;
+    theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem;
+  } in
+  close_tag i;
+  ret
+
+
+let read_modules i =
+  open_tag i "modules";
+  let ret = get_children i "ModuleNode" read_module in
+  close_tag i;
+  ret
+
+let read_header i =
+  input i (* first symbol is dtd *)
+
+  (*while true do match (input i) with
+  | `Data d -> print_string ("data: " ^ d ^ "\n")
+  | `Dtd d -> print_string "dtd\n"
+  | `El_start d -> print_string ("start: " ^ (snd(fst d)) ^ "\n")
+  | `El_end -> print_string "end\n"
+  done*)
+
+let import_xml ic =
+  let i = Xmlm.make_input (`Channel ic) in
+  let _ = read_header i in
+  read_modules i
+  (*while not (Xmlm.eoi i) do match (Xmlm.input i) with
+  done;
+  assert false*)
+
