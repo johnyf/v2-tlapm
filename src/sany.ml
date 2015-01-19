@@ -329,20 +329,21 @@ let get_child ?context:(con=None) i tg f =
   assert (List.length chldn = 1);
   List.hd chldn
 
-let open_tag i tg =  match (input i) with
+let open_tag i tg = match (input i) with
   | `El_start tag when (snd (fst tag) = tg) -> ()
   | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ " expected: " ^ tg)
   | _ -> failwith "Illegal XML element"
 
-let close_tag i = match (input i) with
-  | `El_end -> ()
-  | `El_start d -> failwith ("Illegal end tag, got start tag: " ^ (snd(fst d)))
+let close_tag i tg = match (input i) with
+  | `El_end -> () (* can we check that we expect the end to be </tg>? *)
+  | `El_start d -> failwith ("Illegal tag encountered: expecting end tag for: " ^ tg ^
+				", but got start tag for: " ^ (snd(fst d)))
   | _ -> failwith "Illegal XML element"
 
 let get_children_in ?context:(con=None) i tg_par tg_chdrn f =
   open_tag i tg_par;
   let ret = get_children ~context:con i tg_chdrn f in
-  close_tag i;
+  close_tag i tg_par;
   ret
 
 let get_child_in ?context:(con=None) i tg_par tg_chd f =
@@ -353,7 +354,7 @@ let get_child_in ?context:(con=None) i tg_par tg_chd f =
 let get_data_in i tg f =
   open_tag i tg;
   let ret = f i in
-  close_tag i;
+  close_tag i tg;
   ret
 
 let read_int i = match (input i) with
@@ -372,13 +373,13 @@ let read_location i =
   open_tag i "column";
   let cb = get_data_in i "begin" read_int in
   let ce = get_data_in i "end" read_int in
-  close_tag i;
+  close_tag i "column";
   open_tag i "line";
   let lb = get_data_in i "begin" read_int in
   let le = get_data_in i "end" read_int in
-  close_tag i;
+  close_tag i "line";
   let fname = get_data_in i "filename" read_string in
-  close_tag i;
+  close_tag i "location";
   { column = {rbegin = cb; rend = ce};
     line = {rbegin = lb; rend = le};
     filename = fname }
@@ -405,14 +406,14 @@ let read_module i =
     assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume;
     theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem;
   } in
-  close_tag i;
+  close_tag i "ModuleNode";
   ret
 
 
 let read_modules i =
   open_tag i "modules";
   let ret = get_children i "ModuleNode" read_module in
-  close_tag i;
+  close_tag i "modules";
   ret
 
 let read_header i =

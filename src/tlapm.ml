@@ -15,7 +15,6 @@ module Clocks = struct
   let fp_saving = new_clock "fp_saving"
   let fp_compute = new_clock "fp_compute"
 
-
   let pad_left md str = Printf.sprintf "%*s" md str
 
   let report () =
