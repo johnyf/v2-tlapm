@@ -3,7 +3,7 @@ Name:        TLAPM
 Version:     0.1
 Synopsis:    V2 of tlapm
 Authors:     Damien Doligez, Tomer Libal
-License:     BSD3
+License:     BSD-3-clause
 Plugins:     META (0.3)
 
 Executable "tlapm"

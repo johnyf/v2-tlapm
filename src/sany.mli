@@ -17,6 +17,12 @@ type node =
   | N_instance of instance
   | N_new_symb of new_symb
   | N_proof of proof
+(*
+ * A FormalParamNode represents a formal parameter in a user
+ * definition--for example, p and q in
+ *
+ *    Foo(p, q(_)) == expr
+ *)
   | N_formal_param of formal_param
   | N_module of mule
   | N_op_decl of op_decl
@@ -144,8 +150,8 @@ and op_arg = {
 }
 
 and formal_param = {
-  location          : location;
-  level             : level;
+  (*  location          : location; *)
+  (*  level             : level;    *)
   name              : string;
   arity             : int
 }

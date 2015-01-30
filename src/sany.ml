@@ -145,8 +145,8 @@ and op_arg = {
 }
 
 and formal_param = {
-  location          : location;
-  level             : level;
+  (*  location          : location; *)
+  (*  level             : level; *)
   name              : string;
   arity             : int
 }
@@ -309,21 +309,31 @@ and mule = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
+
+(* this map represents the context, mapping UIDs to formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume *)
+module ContextMap =  Map.Make(struct type t = int let compare : int -> int -> int = compare end) (* Map.Make(Integer) *)
+
 (*
  * if context is given, then we check both tg and tg^"Ref"
  * and if there is Ref, we get the item from the context.
+ * MRI: that only works if the referenced item has been parsed first: current plan is parse with ref, then insert refs
  * We need to remember to use mk functions for term sharing
  * TODO in SANY, move the context element to be appended first in the tree (before, location, name, etc.)
+ * TODO: After resolving refs, the data structure may be cyclic. No dereferencing for now?
  *)
+(* processes children (left to right) of the current node. return a list of children having the name tg and
+   maps the function f on each of them. processing stops after the first child not named tg  
+*)
 let rec get_children ?context:(con=None) i tg f =
   match (peek i) with
   | `El_start tag when (snd (fst tag) = tg) ->
       let child =  f i in
       child :: (get_children ~context:con i tg f)
-  | `El_start tag -> []
+  | `El_start tag (* otherwise *) -> []
   | `El_end -> []
   | _ -> failwith "Illegal XML element"
 
+    
 let get_child ?context:(con=None) i tg f =
   let chldn = get_children ~context:con i tg f in
   assert (List.length chldn = 1);
@@ -331,7 +341,7 @@ let get_child ?context:(con=None) i tg f =
 
 let open_tag i tg = match (input i) with
   | `El_start tag when (snd (fst tag) = tg) -> ()
-  | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ " expected: " ^ tg)
+  | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ ". expected: " ^ tg ^ ".")
   | _ -> failwith "Illegal XML element"
 
 let close_tag i tg = match (input i) with
@@ -340,6 +350,9 @@ let close_tag i tg = match (input i) with
 				", but got start tag for: " ^ (snd(fst d)))
   | _ -> failwith "Illegal XML element"
 
+(* expects a node named tg_par and returns the all the children with tag tg_chdren. 
+   remark: tag is closed afterwards, cannot process any remaining children
+  *)
 let get_children_in ?context:(con=None) i tg_par tg_chdrn f =
   open_tag i tg_par;
   let ret = get_children ~context:con i tg_chdrn f in
@@ -365,9 +378,39 @@ let read_string i = match (input i) with
   | `Data d -> d
   | _ -> failwith "expected data element"
 
-let read_entry i = assert false
-let init_context_map ls = assert false
 
+
+let init_context_map ls = assert false
+  
+let read_formal_param con i =
+  open_tag i "FormalParamNode";
+  open_tag i "uniquename";
+  let un = get_data_in i "uniquename" read_string in
+  close_tag i "uniquename";
+  open_tag i "arity";
+  let ar = get_data_in i "arity" read_int in
+  close_tag i "FormalParamNode";
+  { arity = ar;
+    name = un;
+  }
+
+(* should be a map of entries *)
+let rec read_entry con i =
+   let uid = get_data_in i "UID" read_int in
+   let name = match (peek i) with 
+     | `El_start ((_, name),_ ) -> name
+     | _ -> failwith "We expect symbol opening tag in an entry."
+   in 
+   let symbol = match name with 
+     | "FormalParamNode" -> read_formal_param con i
+     | _ -> failwith ("Unhandled context node " ^ name)
+   in
+   open_tag i "entry";
+   let ret = read_entry (ContextMap.add uid symbol con) i in
+   close_tag i "entry";
+   ret
+
+  
 let read_location i =
   open_tag i "location";
   open_tag i "column";
@@ -412,6 +455,9 @@ let read_module i =
 
 let read_modules i =
   open_tag i "modules";
+  open_tag i "context"; 
+  let con = read_context ContextMap.empty i in 
+  close_tag i "context"; 
   let ret = get_children i "ModuleNode" read_module in
   close_tag i "modules";
   ret

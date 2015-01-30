@@ -6,8 +6,6 @@
  *)
 
 
-
-
 (** The TLA+ builtin operators
 JEK: carried over from v1.builtin.ml
 
