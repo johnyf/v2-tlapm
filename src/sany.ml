@@ -380,9 +380,9 @@ let read_string i = match (input i) with
 
 
 
-let init_context_map ls = assert false
+let init_context_map ls = ContextMap.empty
   
-let read_formal_param con i =
+let read_formal_param i =
   open_tag i "FormalParamNode";
   open_tag i "uniquename";
   let un = get_data_in i "uniquename" read_string in
@@ -395,20 +395,17 @@ let read_formal_param con i =
   }
 
 (* should be a map of entries *)
-let rec read_entry con i =
+let rec read_entry i =
    let uid = get_data_in i "UID" read_int in
    let name = match (peek i) with 
      | `El_start ((_, name),_ ) -> name
      | _ -> failwith "We expect symbol opening tag in an entry."
    in 
    let symbol = match name with 
-     | "FormalParamNode" -> read_formal_param con i
+     | "FormalParamNode" -> read_formal_param i
      | _ -> failwith ("Unhandled context node " ^ name)
-   in
-   open_tag i "entry";
-   let ret = read_entry (ContextMap.add uid symbol con) i in
-   close_tag i "entry";
-   ret
+   in (uid, symbol)
+
 
   
 let read_location i =
@@ -433,11 +430,11 @@ let read_op_def i = assert false
 let read_assume i = assert false
 let read_theorem i = assert false
 
-let read_module i =
+let read_module con i =
   open_tag i "ModuleNode";
   let loc = get_child i "location" read_location in
   (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
-  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in
+  (*  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in *)
   let name = get_data_in i "uniquename" read_string in
   print_string name;
   let ret = {
@@ -456,9 +453,9 @@ let read_module i =
 let read_modules i =
   open_tag i "modules";
   open_tag i "context"; 
-  let con = read_context ContextMap.empty i in 
+  let con = (init_context_map (get_children_in i "context" "entry" read_entry) ) in 
   close_tag i "context"; 
-  let ret = get_children i "ModuleNode" read_module in
+  let ret = get_children i "ModuleNode" (read_module (Some con)) in
   close_tag i "modules";
   ret
 
