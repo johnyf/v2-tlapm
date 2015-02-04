@@ -6,10 +6,25 @@ Authors:     Damien Doligez, Tomer Libal
 License:     BSD-3-clause
 Plugins:     META (0.3)
 
-Executable "tlapm"
+Executable tlapm
   Path:       src
   BuildTools: ocamlbuild
   MainIs:     tlapm.ml
   BuildDepends: xmlm,
                 str,
                 unix
+
+Executable test
+  Install: false
+  Path: src
+  MainIs: tests.ml
+  BuildTools: ocamlbuild, tlapm
+  BuildDepends: xmlm,
+                str,
+                unix,
+                kaputt
+
+Test "test-runner"
+  Type: Custom (0.0.1)
+  Command: $test
+
