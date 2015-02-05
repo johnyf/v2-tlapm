@@ -451,7 +451,6 @@ let rec read_entry i =
 
 
   
-
 let read_name i = assert false
 let read_op_decl i = assert false
 let read_op_def i = assert false
@@ -465,14 +464,19 @@ let read_module con i =
   (*  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in *)
   let name = get_data_in i "uniquename" read_string in
   print_string name;
+  let constants = get_children_in ~context:con i "constants" "OpDeclNode" read_op_decl in
+  let variables = get_children_in ~context:con i "variables" "OpDeclNode" read_op_decl in
+  let definitions = get_children_in ~context:con i "definitions" "OpDefNode" read_op_def in
+  let assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume in
+  let theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem in
   let ret = {
     location = loc;
     name = name;
-    constants = get_children_in ~context:con i "constants" "OpDeclNode" read_op_decl;
-    variables = get_children_in ~context:con i "variables" "OpDeclNode" read_op_decl;
-    definitions = get_children_in ~context:con i "definitions" "OpDefNode" read_op_def;
-    assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume;
-    theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem;
+    constants    =  constants;
+    variables    =  variables;
+    definitions  =  definitions;
+    assumptions  =  assumptions;
+    theorems     =  theorems;
   } in
   close_tag i "ModuleNode";
   ret
