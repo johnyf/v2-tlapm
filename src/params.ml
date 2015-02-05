@@ -292,6 +292,8 @@ let set_default_method meths =
 ;;
 
 let verbose = ref false
+(* signals a lack of internet connection. at the moment, only xml validation is not performed. *)
+let offline_mode = ref false
 
 let ob_flatten = ref true
 let () =

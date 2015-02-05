@@ -149,6 +149,8 @@ let init () =
     "-N", Arg.Set suppress_all, " do not run any backend verifiers" ;
     "-C", Arg.Set check, " check proofs in Isabelle/TLA+" ;
     blank;
+    "-o", Arg.Set offline_mode, " offline mode";
+    blank;
     "--threads", Arg.Int set_max_threads,
                  "<int> set number of worker threads to <int>" ;
     "--method", Arg.String set_default_method,

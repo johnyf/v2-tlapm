@@ -11,6 +11,7 @@ val notl : bool ref;;
 
 (* proof/gen.ml *)
 val verbose : bool ref;;
+val offline_mode : bool ref;;
 
 (* backend/isabelle.ml *)
 val check : bool ref;;

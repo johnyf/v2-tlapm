@@ -40,9 +40,10 @@ module Clocks = struct
 
 end
 
-let java_cmd search_path input_files = "java -jar lib/sany.jar" ^
-  (if (List.length search_path > 0) then " -I " ^ (String.concat " -I " search_path)
-  else "") ^ " " ^ (String.concat " " input_files)
+let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
+  (if !offline then " -o " else "") ^ (* add offline flag, if neccessary *)
+  (if (List.length search_path > 0) then " -I " ^ (String.concat " -I " search_path) (* add include directories*)
+   else "") ^ " " ^ (String.concat " " input_files) (* add input file *)
 
 let handle_abort _ =
   if !Params.verbose then
@@ -60,7 +61,7 @@ let main fs =
     end [Sys.sigint ; Sys.sigabrt ; Sys.sigterm] in
   let () = Format.pp_set_max_indent Format.std_formatter 2_000_000 in
   (* import the xml *)
-  let cmd = java_cmd !Params.rev_search_path fs in
+  let cmd = java_cmd Params.offline_mode !Params.rev_search_path fs in
   let () = print_string cmd in
   let ic, oc = Unix.open_process cmd in
   let mds = import_xml ic in
