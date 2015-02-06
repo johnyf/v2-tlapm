@@ -40,6 +40,7 @@ module Clocks = struct
 
 end
 
+(** Creates the command line string used to invoke the sany parser *)
 let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
   (if !offline then " -o " else "") ^ (* add offline flag, if neccessary *)
   (if (List.length search_path > 0) then " -I " ^ (String.concat " -I " search_path) (* add include directories*)
@@ -62,7 +63,7 @@ let main fs =
   let () = Format.pp_set_max_indent Format.std_formatter 2_000_000 in
   (* import the xml *)
   let cmd = java_cmd Params.offline_mode !Params.rev_search_path fs in
-  let () = print_string cmd in
+  (*  let () = print_string cmd in *)
   let ic, oc = Unix.open_process cmd in
   let mds = import_xml ic in
   ()

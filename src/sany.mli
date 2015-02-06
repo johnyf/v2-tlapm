@@ -114,17 +114,29 @@ and new_symb = {
 }
 
 and op_def =
+  | OPD_ref of int
+  | OPD of op_def_
+    
+and op_def_ =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
   | O_builtin_op of builtin_op
 
-and module_instance = {
+and module_instance =
+  | MI_ref of int
+  | MI of module_instance_
+      
+and module_instance_ = {
   location          : location;
   level             : level;
   name              : string
 }
 
-and user_defined_op = {
+and user_defined_op =
+  | UOP_ref of int
+  | UOP of user_defined_op_
+
+and user_defined_op_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -134,7 +146,11 @@ and user_defined_op = {
   recursive         : bool
 }
 
-and builtin_op = {
+and builtin_op =
+  | BOP_ref of int
+  | BOP of builtin_op_
+  
+and builtin_op_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -149,14 +165,23 @@ and op_arg = {
   arity             : int
 }
 
-and formal_param = {
-  (*  location          : location; *)
-  (*  level             : level;    *)
-  name              : string;
-  arity             : int
+
+and formal_param =
+   | FP_ref of int
+   | FP of formal_param_
+
+and formal_param_ = {
+     (*  location          : location; *)
+     (*  level             : level; *)
+     name              : string;
+     arity             : int
 }
 
-and op_decl = {
+and op_decl =
+   | OPD_ref of int
+   | OPD of op_decl_
+      
+and op_decl_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -305,7 +330,11 @@ and bounded_bound_symbol = {
 }
 
 (* modules *)
-and mule = {
+and mule =
+  | MOD_ref of int
+  | MOD of mule_
+
+and mule_ = {
   name              : string;
   location          : location;
   constants         : op_decl list;

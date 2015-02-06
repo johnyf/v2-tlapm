@@ -109,17 +109,29 @@ and new_symb = {
 }
 
 and op_def =
+  | OPD_ref of int
+  | OPD of op_def_
+    
+and op_def_ =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
   | O_builtin_op of builtin_op
 
-and module_instance = {
+and module_instance =
+  | MI_ref of int
+  | MI of module_instance_
+
+and module_instance_ = {
   location          : location;
   level             : level;
   name              : string
 }
 
-and user_defined_op = {
+and user_defined_op =
+  | UOP_ref of int
+  | UOP of user_defined_op_
+
+and user_defined_op_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -129,7 +141,11 @@ and user_defined_op = {
   recursive         : bool
 }
 
-and builtin_op = {
+and builtin_op =
+  | BOP_ref of int
+  | BOP of builtin_op_
+
+and builtin_op_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -144,14 +160,22 @@ and op_arg = {
   arity             : int
 }
 
-and formal_param = {
-  (*  location          : location; *)
-  (*  level             : level; *)
-  name              : string;
-  arity             : int
+and formal_param =
+   | FP_ref of int
+   | FP of formal_param_
+
+and formal_param_ = {
+     (*  location          : location; *)
+     (*  level             : level; *)
+     name              : string;
+     arity             : int
 }
 
-and op_decl = {
+and op_decl =
+   | OPD_ref of int
+   | OPD of op_decl_
+      
+and op_decl_ = {
   location          : location;
   level             : level;
   name              : string;
@@ -300,7 +324,11 @@ and bounded_bound_symbol = {
 }
 
 (* modules *)
-and mule = {
+and mule =
+  | MOD_ref of int
+  | MOD of mule_
+    
+and mule_ = {
   name              : string;
   location          : location;
   constants         : op_decl list;
@@ -309,6 +337,8 @@ and mule = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
+
+  
 
 (* this map represents the context, mapping UIDs to formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume *)
 module ContextMap =  Map.Make(struct type t = int let compare : int -> int -> int = compare end) (* Map.Make(Integer) *)
@@ -385,6 +415,13 @@ let read_string i = match (input i) with
 
 let init_context_map ls = ContextMap.empty
 
+let mkLevel i = match i with
+  | 0 -> ConstantLevel
+  | 1 -> VariableLevel
+  | 2 -> ActionLevel
+  | 3 -> TemporalLevel
+  | _ -> Errors.bug ("XML Parser error: unknown level " ^ (string_of_int i) ^ " (expected 0-3).")
+  
 (** Parses a location node, returning a record with line and column *)
 let read_location i =
   open_tag i "location";
@@ -409,10 +446,35 @@ let read_formal_param i =
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
   close_tag i "FormalParamNode";
-  { arity = ar;
+  FP { arity = ar;
     name = un;
   }
 
+(** gets the UID number of the reference node "name" *)    
+let read_ref i name f =
+  open_tag i name;
+  open_tag i "UID";
+  let str = read_int i in
+  close_tag i "UID";
+  close_tag i name;
+  f str
+
+(** handles the leibnizparam tag *)
+let read_param i =
+  open_tag i "leibnizparam";
+  let wrap_fp x = FP_ref x in
+  let fpref = read_ref i "FormalParamNodeRef" wrap_fp in
+  let nonempty l = (List.length l) <> 0 in
+  let read_leibnizflag x = open_tag i "leibniz";close_tag i "leibniz"; true in
+  let is_leibniz = nonempty (get_children i "leibniz" read_leibnizflag)  in
+  let ret = (fpref, is_leibniz) in
+  close_tag i "leibnizparam";
+  ret
+    
+let read_params i =
+  get_children_in i "params" "leibnizparam" read_param
+  
+ 
 (** Parses the BuiltinKind within context/entry *)
 let read_builtin_kind i =
   open_tag i "BuiltInKind";
@@ -422,10 +484,14 @@ let read_builtin_kind i =
   close_tag i "level";
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
-  (* TODO: params *)
+  let params = get_children i "params" read_params in
   close_tag i "BuiltInKind";
-  { arity = ar;
+  BOP {
+    location = loc;
+    arity = ar;
     name = un;
+    params = List.flatten params;
+    level = mkLevel level;
   }
 
 let read_module_instance_kind i = assert false
@@ -439,12 +505,12 @@ let rec read_entry i =
      | `El_start ((_, name),_ ) -> name
      | _ -> failwith "We expect symbol opening tag in an entry."
    in 
-   let symbol = Printf.printf "symbol\n"; match name with 
-     | "FormalParamNode" -> read_formal_param i
+   let symbol = match name with 
+     | "FormalParamNode"    -> FMOTA_formal_param (read_formal_param i)
      (* Operator definition nodes: ModuleInstanceKind, UserDefinedOpKind, BuiltinKind *)
-     | "UserDefinedOpKind" -> read_userdefinedop_kind i (* TODO *) 
-     | "ModuleInstanceKind" -> read_module_instance_kind i (* TODO *)
-     | "BuiltInKind" -> read_builtin_kind i
+     | "UserDefinedOpKind"  -> FMOTA_op_def (OPD (O_user_defined_op (read_userdefinedop_kind i))) (* TODO *) 
+     | "ModuleInstanceKind" -> FMOTA_op_def (OPD (O_module_instance (read_module_instance_kind i))) (* TODO *)
+     | "BuiltInKind"        -> FMOTA_op_def (OPD (O_builtin_op (read_builtin_kind i)))
      | _ -> failwith ("Unhandled context node " ^ name)
    in let _ = close_tag i "entry";
    in  (uid, symbol)
@@ -463,13 +529,13 @@ let read_module con i =
   (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
   (*  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in *)
   let name = get_data_in i "uniquename" read_string in
-  print_string name;
+  (* print_string name; *)
   let constants = get_children_in ~context:con i "constants" "OpDeclNode" read_op_decl in
   let variables = get_children_in ~context:con i "variables" "OpDeclNode" read_op_decl in
   let definitions = get_children_in ~context:con i "definitions" "OpDefNode" read_op_def in
   let assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume in
   let theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem in
-  let ret = {
+  let ret = MOD {
     location = loc;
     name = name;
     constants    =  constants;
