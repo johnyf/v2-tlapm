@@ -38,3 +38,7 @@ type op_decl_kind =
   | NewState
   | NewAction
   | NewTemporal
+
+
+val mkDummyRange : int_range
+val mkDummyLocation : location

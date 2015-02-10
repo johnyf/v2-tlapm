@@ -83,13 +83,21 @@ and subst = {
   expr              : expr_or_op_arg
 }
 
-and assume = {
+and assume =
+| ASSUME_ref of int
+| ASSUME of assume_
+
+and assume_ = {
   location          : location;
   level             : level;
   expr              : expr
 }
 
-and theorem = {
+and theorem =
+| THM_ref of int
+| THM of theorem_
+  
+and theorem_ = {
   location          : location;
   level             : level;
   expr              : expr_or_assume_prove;
@@ -114,8 +122,8 @@ and new_symb = {
 }
 
 and op_def =
-  | OPD_ref of int
-  | OPD of op_def_
+  | OPDef_ref of int
+  | OPDef of op_def_
     
 and op_def_ =
   | O_module_instance of module_instance
@@ -171,8 +179,8 @@ and formal_param =
    | FP of formal_param_
 
 and formal_param_ = {
-     (*  location          : location; *)
-     (*  level             : level; *)
+     location          : location;
+     level             : level;
      name              : string;
      arity             : int
 }

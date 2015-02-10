@@ -38,3 +38,6 @@ type op_decl_kind =
   | NewState
   | NewAction
   | NewTemporal
+
+let mkDummyRange = { rbegin = 0; rend = 0 }
+let mkDummyLocation = { column = mkDummyRange ; line = mkDummyRange; filename = "Dummy" }
