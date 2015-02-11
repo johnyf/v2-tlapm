@@ -130,7 +130,3 @@ and tup_bound_domain =
   | TupDomain of Product
   | Ditto 
 
-
-
-
-
