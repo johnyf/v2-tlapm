@@ -41,18 +41,31 @@ let read_location i : location =
     filename = fname
   }
 
-  
+(** Parses a location, if there is one *)
+let read_optlocation i : location option =
+  match get_optchild i "location" read_location with
+  | [] -> None
+  | [x] -> Some x
+  | x -> failwith ("Implementation error in XML parsing: the reader for 0 or 1 elements returned multiple elements")
+
+(** Parses an optional level node *)    
+let get_optlevel i =
+  match get_optchild i "level" (fun i -> get_data_in i "level" read_int) with
+  | [] -> None
+  | [x] -> Some (mkLevel x)
+  | x -> failwith ("Implementation error in XML parsing: the reader for 0 or 1 elements returned multiple elements")
+    
 (** Parses the FormalParamNode within context/entry *)
 let read_formal_param i : formal_param =
   open_tag i "FormalParamNode";
-  let loc = read_location i in
-  let level = get_data_in i "level" read_int in
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
   close_tag i "FormalParamNode";
   FP {
     location = loc;
-    level = mkLevel level;
+    level = level;
     arity = ar;
     name = un;
   }
@@ -60,14 +73,14 @@ let read_formal_param i : formal_param =
 (** Parses the OpArgNode *)
 let read_oparg i : op_arg =
   open_tag i "OpArgNode";
-  let loc = read_location i in
-  let level = get_data_in i "level" read_int in
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
   close_tag i "OpArgNode";
   {
     location = loc;
-    level = mkLevel level;
+    level = level;
     arity = ar;
     name = un;
   }
@@ -123,8 +136,8 @@ let read_params i =
 (** Parses the BuiltinKind within context/entry *)
 let read_builtin_kind i =
   open_tag i "BuiltInKind";
-  let loc = read_location i in
-  let level = get_data_in i "level" read_int in
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
   let params = get_children i "params" read_params in
@@ -134,7 +147,7 @@ let read_builtin_kind i =
     arity = ar;
     name = un;
     params = List.flatten params;
-    level = mkLevel level;
+    level = level;
   }
 
 let read_module_instance_kind i = assert false
@@ -168,18 +181,15 @@ and read_let i	  	= assert false
 and read_numeral i	= assert false  
 and read_opappl i	=
   open_tag i "OpApplNode";
-  let loc = read_location i in
-  let level = get_data_in i "level" read_int in
-  open_tag i "operator";
-  let opref = read_opref i in
-  close_tag i "operator";
-  open_tag i "operands";
-  let operands = get_children_choice i [
-    ((=) "OpArgNode", (fun i -> EO_op_arg (read_oparg i)));
-    ((fun x -> true), (fun i -> EO_expr (read_expr i)) )
-  ]
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
+  let opref = get_data_in i "operator" read_opref in
+  let operands = get_data_in i "operands" (fun i ->
+    get_children_choice i [
+      ((=) "OpArgNode", (fun i -> EO_op_arg (read_oparg i)));
+      ((fun x -> true), (fun i -> EO_expr (read_expr i)) )
+    ])
   in
-  close_tag i "operands";
   let bound_symbols = match (peek i) with
     | `El_start ((_,name), _) ->
       open_tag i "boundSymbols";
@@ -193,7 +203,7 @@ and read_opappl i	=
   in
   let ret =  {
     location = loc;
-    level = mkLevel level;
+    level = level;
     operator = opref;
     operands = operands;
     bound_symbols = bound_symbols;
@@ -259,13 +269,11 @@ let read_recursive i =
 (** reads the definition of a user defined operator within context/entry *)
 let read_userdefinedop_kind i  =
   open_tag i "UserDefinedOpKind";
-  let loc = read_location i in
-  let level = get_data_in i "level" read_int in
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
-  open_tag i "body";
-  let body = read_expr i in
-  close_tag i "body";
+  let body = get_data_in i "body" read_expr in
   let params = List.flatten
     (get_optchild i "params" read_params) in
   let recursive = List.length (get_optchild i "recursive" read_recursive) > 0 in
@@ -273,7 +281,7 @@ let read_userdefinedop_kind i  =
     location = loc;
     arity = ar;
     name = un;
-    level = mkLevel level;
+    level = level;
     body = body;
     params = params;
     recursive = recursive;
@@ -308,7 +316,7 @@ let read_theorem i = assert false
 
 let read_module con i =
   open_tag i "ModuleNode";
-  let loc = get_child i "location" read_location in
+  let loc = get_child i "location" read_optlocation in
   (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
   (*  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in *)
   let name = get_data_in i "uniquename" read_string in

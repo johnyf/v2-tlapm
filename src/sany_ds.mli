@@ -41,30 +41,30 @@ and  new_symb_or_expr_or_assume_prove =
   | NEA_assume_prove of assume_prove
 
 and ap_subst_in = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   substs            : subst list;
   body              : node
 }
 
 and subst_in = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   substs            : subst list;
   body              : expr
 }
 
 and instance = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   substs            : subst list;
   params            : formal_param list
 }
 
 and subst = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   op                : op_decl;
   expr              : expr_or_op_arg
 }
@@ -74,8 +74,8 @@ and assume =
 | ASSUME of assume_
 
 and assume_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   expr              : expr
 }
 
@@ -84,16 +84,16 @@ and theorem =
 | THM of theorem_
 
 and theorem_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   expr              : expr_or_assume_prove;
   proof             : proof;
   suffices          : bool
 }
 
 and assume_prove = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   assumes           : new_symb_or_expr_or_assume_prove list;
   prove             : expr;
   suffices          : bool;
@@ -101,8 +101,8 @@ and assume_prove = {
 }
 
 and new_symb = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   op_decl           : op_decl;
   set               : expr
 }
@@ -121,8 +121,8 @@ and module_instance =
   | MI of module_instance_
 
 and module_instance_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string
 }
 
@@ -131,8 +131,8 @@ and user_defined_op =
   | UOP of user_defined_op_
 
 and user_defined_op_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   arity             : int;
   body              : expr;
@@ -145,16 +145,16 @@ and builtin_op =
   | BOP of builtin_op_
 
 and builtin_op_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   arity             : int;
   params            : (formal_param * bool (*is leibniz*)) list
 }
 
 and op_arg = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   arity             : int
 }
@@ -164,8 +164,8 @@ and formal_param =
    | FP of formal_param_
 
 and formal_param_ = {
-     location          : location;
-     level             : level; 
+     location          : location option;
+     level             : level option; 
      name              : string;
      arity             : int
 }
@@ -175,8 +175,8 @@ and op_decl =
    | OPD of op_decl_
       
 and op_decl_ = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   arity             : int;
   kind              : op_decl_kind
@@ -189,13 +189,13 @@ and proof =
   | P_steps of steps
 
 and omitted = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
 }
 
 and obvious = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
 }
 
 and expr_or_module_or_module_instance =
@@ -210,16 +210,16 @@ and user_defined_op_or_module_instance_or_theorem_or_assume =
   | UMTA_assume of assume
 
 and by = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   facts             : expr_or_module_or_module_instance list;
   defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
   only              : bool
 }
 
 and steps = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   steps             : step list
 }
 
@@ -230,14 +230,14 @@ and step =
   | S_theorem of theorem
 
 and def_step = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   defs              : op_def list
 }
 
 and use_or_hide = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   facts             : expr_or_module_or_module_instance list;
   defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
   only              : bool;
@@ -245,22 +245,22 @@ and use_or_hide = {
 }
 
 and at = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   except            : op_appl;
   except_component  : op_appl
 }
 
 and decimal = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   mantissa          : int;
   exponent          : int
 }
 
 and label = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   name              : string;
   arity             : int;
   body              : expr_or_assume_prove;
@@ -273,21 +273,21 @@ and op_def_or_theorem_or_assume =
   | OTA_assume of assume
 
 and let_in = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   body              : expr;
   op_defs           : op_def_or_theorem_or_assume list
 }
 
 and numeral = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   value             : int
 }
 
 and strng = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   value             : string
 }
 
@@ -300,8 +300,8 @@ and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume =
   | FMOTA_assume of assume
 
 and op_appl = {
-  location          : location;
-  level             : level;
+  location          : location option;
+  level             : level option;
   operator          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume;
   operands          : expr_or_op_arg list;
   bound_symbols     : bound_symbol list
@@ -329,7 +329,7 @@ and mule =
     
 and mule_ = {
   name              : string;
-  location          : location;
+  location          : location option;
   constants         : op_decl list;
   variables         : op_decl list;
   definitions       : op_def list ;
