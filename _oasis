@@ -18,7 +18,7 @@ Executable test
   Install: false
   Path: src
   MainIs: tests.ml
-  BuildTools: ocamlbuild, tlapm
+  BuildTools: ocamlbuild
   BuildDepends: xmlm,
                 str,
                 unix,
