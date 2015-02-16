@@ -122,9 +122,7 @@ let read_param i =
   open_tag i "leibnizparam";
   let wrap_fp x = FP_ref x in
   let fpref = read_ref i "FormalParamNodeRef" wrap_fp in
-  let nonempty l = (List.length l) <> 0 in
-  let read_leibnizflag x = open_tag i "leibniz";close_tag i "leibniz"; true in
-  let is_leibniz = nonempty (get_children i "leibniz" read_leibnizflag)  in
+  let is_leibniz = read_flag i "leibniz"  in
   let ret = (fpref, is_leibniz) in
   close_tag i "leibnizparam";
   ret
@@ -258,13 +256,15 @@ and read_expr_or_oparg i =
   in
   ret
 *)
+
+let expr_nodes =
+  ["AtNode"      ;   "DecimalNode" ;   "LabelNode"   ;
+   "LetInNode"   ;   "NumeralNode" ;   "OpApplNode"  ;
+   "StringNode"  ;   "SubstInNode" ]
+
+    
 (* --- end of mutual recursive expression parsing --- *)
 
-(** consumes the recursive flag and returns true *)
-let read_recursive i =
-  open_tag i "recursive";
-  close_tag i "recursive";
-  true
   
 (** reads the definition of a user defined operator within context/entry *)
 let read_userdefinedop_kind i  =
@@ -276,7 +276,7 @@ let read_userdefinedop_kind i  =
   let body = get_data_in i "body" read_expr in
   let params = List.flatten
     (get_optchild i "params" read_params) in
-  let recursive = List.length (get_optchild i "recursive" read_recursive) > 0 in
+  let recursive = read_flag i "recursive" in
   let ret = UOP {
     location = loc;
     arity = ar;
@@ -308,11 +308,59 @@ let rec read_entry i =
 
 
   
-let read_name i = assert false
-let read_op_decl i = assert false
-let read_op_def i = assert false
-let read_assume i = assert false
-let read_theorem i = assert false
+let read_assume i =
+  open_tag i "AssumeNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let expr = read_expr i in 
+  close_tag i "AssumeNode";
+  ASSUME {
+    location = location;
+    level    = level;
+    expr     = expr;
+  }
+
+let read_assume_prove i =
+  open_tag i "AssumeProveNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let assumes = [] in
+  open_tag i "prove"; 
+  let prove = read_expr i  in
+  close_tag i "prove";
+  let suffices = read_flag i "suffices" in
+  let boxed = read_flag i "boxed" in
+  close_tag i "AssumeProveNode";
+  {
+    location = location;
+    level    = level;
+    assumes  = assumes; (* TODO *)
+    prove    = prove;   (* TODO *)
+    suffices = suffices;
+    boxed    = boxed;
+  }
+  
+let read_proof i = assert false
+  
+let read_theorem i =
+  open_tag i "TheoremNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let expr = get_child_choice i [
+    ((=) "AssumeProveNode", (fun i -> EA_assume_prove (read_assume_prove i)));
+    ((fun name -> List.mem name expr_nodes) , (fun i -> EA_expr (read_expr i)));
+  ] in
+  let proof = read_proof i  in
+  let suffices = read_flag i "suffices" in
+  close_tag i "TheoremNode";
+  THM {
+    location = location;
+    level    = level;
+    expr     = expr;
+    proof    = proof;
+    suffices = suffices;
+  }
+
 
 let read_module con i =
   open_tag i "ModuleNode";
@@ -320,11 +368,23 @@ let read_module con i =
   (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
   (*  let con = Some (init_context_map (get_children_in i "context" "entry" read_entry)) in *)
   let name = get_data_in i "uniquename" read_string in
+  let read_varconst_ref i = read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x ) in
+  let mkOpdefrefHandler name i = read_ref i name (fun x -> OPDef_ref x) in
+  let mkAssumerefHandler name i = read_ref i name (fun x -> ASSUME_ref x) in
   (* print_string name; *)
-  let constants = get_children_in ~context:con i "constants" "OpDeclNode" read_op_decl in
-  let variables = get_children_in ~context:con i "variables" "OpDeclNode" read_op_decl in
-  let definitions = get_children_in ~context:con i "definitions" "OpDefNode" read_op_def in
-  let assumptions = get_children_in ~context:con i "assumptions" "AssumeNode" read_assume in
+  let constants = get_children_in ~context:con i "constants" "OpDeclNodeRef" read_varconst_ref in
+  let variables = get_children_in ~context:con i "variables" "OpDeclNodeRef" read_varconst_ref in
+  let definitions = get_children_choice_in ~context:con i "definitions" [
+    ((=) "ModuleNodeRef",        mkOpdefrefHandler "ModuleNodeRef") ;
+    ((=) "UserDefinedOpKindRef", mkOpdefrefHandler "UserDefinedOpKindRef")  ;
+    ((=) "BuiltInKindRef",       mkOpdefrefHandler "BuiltInKindRef")  ;
+  ]
+  in
+  let assumptions = get_children_choice_in ~context:con i "assumptions" [
+    ((=) "AssumeNode", read_assume);
+    ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
+  ]
+  in
   let theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem in
   let ret = MOD {
     location     = loc;

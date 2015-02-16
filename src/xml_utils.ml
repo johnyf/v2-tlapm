@@ -8,6 +8,43 @@ let formatSignal (i : signal) = match i with
   | `Dtd t -> "dtd"
   | `Data str -> "Data:" ^ str 
 
+let open_tag i tg = let signal = (input i) in match signal  with
+  | `El_start tag when (snd (fst tag) = tg) -> ()
+  | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ ". expected: " ^ tg ^ ".")
+  | `El_end -> failwith ("Illegal tag encountered: expecting start tag for: " ^ tg ^
+				", but got end tag.")
+  | _ -> failwith ("Illegal XML element, expecting open tag: " ^ (formatSignal signal))
+
+let close_tag i tg = match (input i) with
+  | `El_end -> () (* can we check that we expect the end to be </tg>? *)
+  | `El_start d -> failwith ("Illegal tag encountered: expecting end tag for: " ^ tg ^
+				", but got start tag for: " ^ (snd(fst d)))
+  | _ -> failwith ("Illegal XML element, expecting close tag: " ^ (formatSignal (peek i)))
+    
+
+let read_flag i tg = match (peek i) with
+  | `El_start ((_,tg),_) ->
+    open_tag i tg;
+    close_tag i tg;
+    true
+  | _ ->
+    false
+    
+let get_data_in i tg f =
+  open_tag i tg;
+  let ret = f i in
+  close_tag i tg;
+  ret
+
+let read_int i = match (input i) with
+  | `Data d -> int_of_string d
+  | _ -> failwith "expected data element"
+
+let read_string i = match (input i) with
+  | `Data d -> d
+  | _ -> failwith "expected data element"
+
+    
 (* TODO: cleanup these comments
  * if context is given, then we check both tg and tg^"Ref"
  * and if there is Ref, we get the item from the context.
@@ -65,19 +102,6 @@ let get_child ?context:(con=None) i tg f =
   assert (List.length chldn = 1);
   List.hd chldn
 
-let open_tag i tg = let signal = (input i) in match signal  with
-  | `El_start tag when (snd (fst tag) = tg) -> ()
-  | `El_start tag -> failwith ("Illegal XML start tag: " ^ (snd(fst tag)) ^ ". expected: " ^ tg ^ ".")
-  | `El_end -> failwith ("Illegal tag encountered: expecting start tag for: " ^ tg ^
-				", but got end tag.")
-  | _ -> failwith ("Illegal XML element, expecting open tag: " ^ (formatSignal signal))
-
-let close_tag i tg = match (input i) with
-  | `El_end -> () (* can we check that we expect the end to be </tg>? *)
-  | `El_start d -> failwith ("Illegal tag encountered: expecting end tag for: " ^ tg ^
-				", but got start tag for: " ^ (snd(fst d)))
-  | _ -> failwith ("Illegal XML element, expecting close tag: " ^ (formatSignal (peek i)))
-
 (* expects a node named tg_par and returns the all the children with tag tg_chdren. 
    remark: tag is closed afterwards, cannot process any remaining children
   *)
@@ -87,22 +111,11 @@ let get_children_in ?context:(con=None) i tg_par tg_chdrn f =
   close_tag i tg_par;
   ret
 
+let get_children_choice_in ?context:(con=None) i tg_par tgs_funs =
+  get_data_in i tg_par (fun i -> get_children_choice ~context:con i tgs_funs)
+    
 let get_child_in ?context:(con=None) i tg_par tg_chd f =
   let chldn = get_children_in ~context:con i tg_par tg_chd f in
   assert (List.length chldn = 1);
   List.hd chldn
-
-let get_data_in i tg f =
-  open_tag i tg;
-  let ret = f i in
-  close_tag i tg;
-  ret
-
-let read_int i = match (input i) with
-  | `Data d -> int_of_string d
-  | _ -> failwith "expected data element"
-
-let read_string i = match (input i) with
-  | `Data d -> d
-  | _ -> failwith "expected data element"
 

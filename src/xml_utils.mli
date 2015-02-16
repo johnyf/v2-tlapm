@@ -35,6 +35,9 @@ val get_child : ?context:('b ContextMap.t)option -> input -> string -> (input ->
 (** function composition of get_children and get_data_in  *)
 val get_children_in : ?context:('b ContextMap.t)option -> input -> string -> string -> (input -> 'a) -> 'a list
 
+(** function composition of get_children_choice and get_data_in  *)
+val get_children_choice_in : ?context:('b ContextMap.t)option -> input -> string -> ((string-> bool) * (input -> 'a)) list -> 'a list
+  
 (** function composition of get_child and get_data_in  *)
 val get_child_in : ?context:('b ContextMap.t)option -> input -> string -> string -> (input -> 'a) -> 'a
 
@@ -53,3 +56,5 @@ val read_int : input -> int
 (** processes an xml data entry and returns it directly *)
 val read_string : input -> string
 
+(** checks if a leaf node of the given name is present. if it is, then the leaf node is consumed. *)
+val read_flag : input -> string -> bool
