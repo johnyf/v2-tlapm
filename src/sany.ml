@@ -148,7 +148,7 @@ let read_builtin_kind i =
     level = level;
   }
 
-let read_module_instance_kind i = assert false
+let read_module_instance i = assert false
 
 (* --- expressions parsing is mutually recursive (e.g. OpApplNode Expr) ) --- *)
 let rec read_expr i =
@@ -176,7 +176,18 @@ and read_at i           = assert false
 and read_decimal i 	= assert false
 and read_label i	= assert false  
 and read_let i	  	= assert false
-and read_numeral i	= assert false  
+and read_numeral i : numeral =
+  open_tag i "NumeralNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let value = get_data_in i "IntValue" read_int in
+  close_tag i "NumeralNode";
+  {
+    location = location;
+    level = level;
+    value = value;
+  }
+    
 and read_opappl i	=
   open_tag i "OpApplNode";
   let loc = read_optlocation i in
@@ -210,7 +221,18 @@ and read_opappl i	=
   close_tag i "OpApplNode";
   ret
   
-and read_stringnode i	= assert false  
+and read_stringnode i : strng	=
+  open_tag i "StringNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let value = get_data_in i "StringValue" read_string in
+  close_tag i "StringNode";
+  {
+    location = location;
+    level = level;
+    value = value;
+  }
+
 and read_substinnode i	= assert false
 and read_tuple i : bool = match (peek i) with
   | `El_start ((_,"tuple"), _) ->
@@ -300,7 +322,7 @@ let rec read_entry i =
      | "FormalParamNode"    -> FMOTA_formal_param (read_formal_param i)
      (* Operator definition nodes: ModuleInstanceKind, UserDefinedOpKind, BuiltinKind *)
      | "UserDefinedOpKind"  -> FMOTA_op_def (OPDef (O_user_defined_op (read_userdefinedop_kind i))) 
-     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance_kind i))) (* TODO *)
+     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance i))) (* TODO *)
      | "BuiltInKind"        -> FMOTA_op_def (OPDef (O_builtin_op (read_builtin_kind i)))
      | _ -> failwith ("Unhandled context node " ^ name)
    in let _ = close_tag i "entry";
@@ -320,11 +342,18 @@ let read_assume i =
     expr     = expr;
   }
 
-let read_assume_prove i =
+let read_newsymb i = assert false
+
+(* untested *)    
+let rec read_assume_prove i =
   open_tag i "AssumeProveNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let assumes = [] in
+  let assumes = get_children_choice i [
+    ((=) "AssumeProveNode", (fun i -> NEA_assume_prove (read_assume_prove i)));
+    ((=) "NewSymbNode", (fun i -> NEA_new_symb (read_newsymb i)));
+    ((fun name -> List.mem name expr_nodes) , (fun i -> NEA_expr (read_expr i)));
+  ] in
   open_tag i "prove"; 
   let prove = read_expr i  in
   close_tag i "prove";
@@ -334,13 +363,71 @@ let read_assume_prove i =
   {
     location = location;
     level    = level;
-    assumes  = assumes; (* TODO *)
-    prove    = prove;   (* TODO *)
+    assumes  = assumes;
+    prove    = prove;   
     suffices = suffices;
     boxed    = boxed;
   }
-  
-let read_proof i = assert false
+
+let read_omitted i : omitted =
+  open_tag i "omitted";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  close_tag i "omitted";
+  {
+    location = location;
+    level = level;
+  }
+
+let read_obvious i : obvious =
+  open_tag i "obvious";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  close_tag i "obvious";
+  {
+    location = location;
+    level = level;
+  }
+
+let read_by i =
+  open_tag i "by";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let id = (fun x -> x) in
+  let facts = get_children_choice_in i "facts" [
+    ((=) "ModuleNodeRef", (fun i -> EMM_module (MOD_ref (read_ref i "ModuleNodeRef" id))));
+    ((=) "ModuleInstanceKind", (fun i -> EMM_module_instance (MI (read_module_instance i))));
+    ((fun name -> List.mem name expr_nodes), (fun i -> EMM_expr (read_expr i)));
+  ] in
+  let defs = get_children_choice_in i "defs" [
+    ((=) "UserDefinedOpKindRef", (fun i -> UMTA_user_defined_op (UOP_ref (read_ref i "UserDefinedOpKindRef" id) )));
+    ((=) "ModuleInstanceKindRef", (fun i -> UMTA_module_instance (MI_ref (read_ref i "ModuleInstanceKindRef" id) ) ));
+    ((=) "TheoremNodeRef", (fun i -> UMTA_theorem (THM_ref (read_ref i "TheoremNodeRef" id) )));
+    ((=) "AssumeNodeRef", (fun i -> UMTA_assume (ASSUME_ref (read_ref i "AssumeNodeRef" id) )));
+  ]
+  in
+  let only = read_flag i "only"
+  in
+  close_tag i "by";
+  {
+    location = location;
+    level = level;
+    facts = facts;
+    defs = defs;
+    only = only;
+  }
+
+let read_steps i = assert false
+    
+let read_proof i =
+  let ret = get_child_choice i [
+    ((=) "omitted", (fun i -> P_omitted (read_omitted i)));
+    ((=) "obvious", (fun i -> P_obvious (read_obvious i)));
+    ((=) "by",      (fun i -> P_by (read_by i)));
+    ((=) "steps",   (fun i -> P_steps (read_steps i)));
+  ] in
+  ret
+
   
 let read_theorem i =
   open_tag i "TheoremNode";

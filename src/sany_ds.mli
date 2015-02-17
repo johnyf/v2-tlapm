@@ -204,7 +204,7 @@ and expr_or_module_or_module_instance =
   | EMM_module_instance of module_instance
 
 and user_defined_op_or_module_instance_or_theorem_or_assume =
-  | UMTA_user_definewd_op of user_defined_op
+  | UMTA_user_defined_op of user_defined_op
   | UMTA_module_instance of module_instance
   | UMTA_theorem of theorem
   | UMTA_assume of assume
