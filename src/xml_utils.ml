@@ -80,7 +80,8 @@ let get_optchild_choice ?context:(con=None) i tgs_funs =
 let get_child_choice ?context:(con=None) i tgs_funs =
   match get_children_choice ~context:con i tgs_funs with
   | [x] -> x
-  | l   -> failwith ("We expected exactly one matching child in " ^ (formatSignal (peek i)) ^
+  | l   -> failwith ("We expected exactly one matching child in " ^
+			(formatSignal (peek i)) ^
 			" but got " ^ (string_of_int (List.length l)))
     
 (** processes children (left to right) of the current node. return a list of children having the name tg and
@@ -99,8 +100,11 @@ let get_optchild ?context:(con=None) i tg f =
 
 let get_child ?context:(con=None) i tg f =
   let chldn = get_children ~context:con i tg f in
-  assert (List.length chldn = 1);
-  List.hd chldn
+  match  List.length chldn with
+  | 1 -> List.hd chldn
+  | n -> failwith ("Expexting exactly one child matching tag "^tg^
+		   " but found "^(string_of_int n) ^ ". Next input is " ^
+                   (formatSignal (peek i)) )
 
 (* expects a node named tg_par and returns the all the children with tag tg_chdren. 
    remark: tag is closed afterwards, cannot process any remaining children
@@ -116,6 +120,7 @@ let get_children_choice_in ?context:(con=None) i tg_par tgs_funs =
     
 let get_child_in ?context:(con=None) i tg_par tg_chd f =
   let chldn = get_children_in ~context:con i tg_par tg_chd f in
-  assert (List.length chldn = 1);
-  List.hd chldn
+  match List.length chldn with
+  | 1 ->  List.hd chldn
+  | n -> failwith ("Expexting exactly one child but found "^(string_of_int n) ^ ".")
 

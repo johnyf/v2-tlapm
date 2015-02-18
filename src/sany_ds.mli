@@ -87,7 +87,7 @@ and theorem_ = {
   location          : location option;
   level             : level option;
   expr              : expr_or_assume_prove;
-  proof             : proof;
+  proof             : proof option;
   suffices          : bool
 }
 
@@ -104,7 +104,7 @@ and new_symb = {
   location          : location option;
   level             : level option;
   op_decl           : op_decl;
-  set               : expr
+  set               : expr option;
 }
 
 and op_def =

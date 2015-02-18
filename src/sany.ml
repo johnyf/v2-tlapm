@@ -245,7 +245,8 @@ and read_tuple i : bool = match (peek i) with
   
 and read_bounded_param i : bounded_bound_symbol =
   open_tag i "bound";
-  let params = get_children i "FormalParamNode" read_formal_param in
+  let params = get_children i "FormalParamNodeRef"
+    (fun i -> read_ref i "FormalParamNodeRef" (fun x -> FP_ref x)) in
   let tuple = read_tuple i in
   let domain = read_expr i in
   let ret =  {
@@ -258,7 +259,7 @@ and read_bounded_param i : bounded_bound_symbol =
    
 and read_unbounded_param i : unbounded_bound_symbol =
   open_tag i "unbound";
-  let params = read_formal_param i in
+  let params = read_ref i "FormalParamNodeRef" (fun x -> FP_ref x) in
   let tuple = read_tuple i in
   let ret =  {
     param = params;
@@ -266,24 +267,13 @@ and read_unbounded_param i : unbounded_bound_symbol =
   } in
   close_tag i "unbound";
   ret
-(*
-and read_expr_or_oparg i =
-  let name = match (peek i) with 
-    | `El_start ((_, name),_ ) -> name
-    | _ -> failwith "We expect symbol opening tag in an entry."
-  in
-  let ret = match name with
-    | "OpArgNode" -> EO_op_arg (read_oparg i)
-    | _           -> EO_expr (read_expr i) (* all the others are handled by expr *)
-  in
-  ret
-*)
 
 let expr_nodes =
   ["AtNode"      ;   "DecimalNode" ;   "LabelNode"   ;
    "LetInNode"   ;   "NumeralNode" ;   "OpApplNode"  ;
    "StringNode"  ;   "SubstInNode" ]
 
+let is_expr_node name = List.mem name expr_nodes
     
 (* --- end of mutual recursive expression parsing --- *)
 
@@ -310,26 +300,36 @@ let read_userdefinedop_kind i  =
   } in
   close_tag i "UserDefinedOpKind";
   ret
+
+
+let opdeclkind_from_int i = match i with
+  | 2 -> ConstantDecl
+  | 3 -> VariableDecl
+  | 4 -> BoundSymbol
+  | 24 -> NewConstant
+  | 25 -> NewVariable
+  | 26 -> NewState
+  | 27 -> NewAction
+  | 28 -> NewTemporal
+  | n -> failwith ("Conversion from int to operator declaration type failed. The number " ^ (string_of_int n) ^ " does not represent a proepr declaration.")
+ 
+let read_op_decl i =
+  open_tag i "OpDeclNode";
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
+  let un = get_data_in i "uniquename" read_string in
+  let ar = get_data_in i "arity" read_int in
+  let kind = opdeclkind_from_int (get_data_in i "kind" read_int) in
+  close_tag i "OpDeclNode";
+  OPD {
+    location = loc;
+    level = level;
+    name = un;
+    arity = ar;
+    kind = kind;
+  }
     
-let rec read_entry i =
-   let _ = open_tag i "entry" in 
-   let uid = get_data_in i "UID" read_int in
-   let name = match (peek i) with 
-     | `El_start ((_, name),_ ) -> name
-     | _ -> failwith "We expect symbol opening tag in an entry."
-   in 
-   let symbol = match name with 
-     | "FormalParamNode"    -> FMOTA_formal_param (read_formal_param i)
-     (* Operator definition nodes: ModuleInstanceKind, UserDefinedOpKind, BuiltinKind *)
-     | "UserDefinedOpKind"  -> FMOTA_op_def (OPDef (O_user_defined_op (read_userdefinedop_kind i))) 
-     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance i))) (* TODO *)
-     | "BuiltInKind"        -> FMOTA_op_def (OPDef (O_builtin_op (read_builtin_kind i)))
-     | _ -> failwith ("Unhandled context node " ^ name)
-   in let _ = close_tag i "entry";
-   in  (uid, symbol)
-
-
-  
+ 
 let read_assume i =
   open_tag i "AssumeNode";
   let location = read_optlocation i in
@@ -342,20 +342,38 @@ let read_assume i =
     expr     = expr;
   }
 
-let read_newsymb i = assert false
+let read_newsymb i =
+  open_tag i "NewSymbNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let op_decl = OPD_ref (read_ref i "OpDeclNodeRef" (fun x->x)) in
+  let exprl = get_optchild_choice i [
+    (is_expr_node, read_expr);
+  ] in
+  let set = match exprl with
+    | [e] -> Some e
+    | [] -> None
+    | _ -> failwith "An option expression returned more than 1 result."
+  in
+  close_tag i "NewSymbNode";
+  {
+  location = location;
+  level    = level;
+  op_decl  = op_decl;
+  set      = set;
+  }
 
-(* untested *)    
 let rec read_assume_prove i =
   open_tag i "AssumeProveNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let assumes = get_children_choice i [
+  let assumes = get_children_choice_in i "assumes"  [
     ((=) "AssumeProveNode", (fun i -> NEA_assume_prove (read_assume_prove i)));
     ((=) "NewSymbNode", (fun i -> NEA_new_symb (read_newsymb i)));
-    ((fun name -> List.mem name expr_nodes) , (fun i -> NEA_expr (read_expr i)));
+    (is_expr_node , (fun i -> NEA_expr (read_expr i)));
   ] in
   open_tag i "prove"; 
-  let prove = read_expr i  in
+  let prove = get_child_choice i [(is_expr_node, read_expr)] in
   close_tag i "prove";
   let suffices = read_flag i "suffices" in
   let boxed = read_flag i "boxed" in
@@ -397,7 +415,7 @@ let read_by i =
   let facts = get_children_choice_in i "facts" [
     ((=) "ModuleNodeRef", (fun i -> EMM_module (MOD_ref (read_ref i "ModuleNodeRef" id))));
     ((=) "ModuleInstanceKind", (fun i -> EMM_module_instance (MI (read_module_instance i))));
-    ((fun name -> List.mem name expr_nodes), (fun i -> EMM_expr (read_expr i)));
+    (is_expr_node, (fun i -> EMM_expr (read_expr i)));
   ] in
   let defs = get_children_choice_in i "defs" [
     ((=) "UserDefinedOpKindRef", (fun i -> UMTA_user_defined_op (UOP_ref (read_ref i "UserDefinedOpKindRef" id) )));
@@ -428,6 +446,7 @@ let read_proof i =
   ] in
   ret
 
+let is_proof_node name = List.mem name ["omitted"; "obvious"; "by"; "steps"]
   
 let read_theorem i =
   open_tag i "TheoremNode";
@@ -435,9 +454,13 @@ let read_theorem i =
   let level = get_optlevel i in
   let expr = get_child_choice i [
     ((=) "AssumeProveNode", (fun i -> EA_assume_prove (read_assume_prove i)));
-    ((fun name -> List.mem name expr_nodes) , (fun i -> EA_expr (read_expr i)));
+    (is_expr_node , (fun i -> EA_expr (read_expr i)));
   ] in
-  let proof = read_proof i  in
+  let proofl = get_optchild_choice i [(is_proof_node, read_proof)] in
+  let proof = match proofl with
+    | [p] -> Some p
+    | _   -> None
+  in
   let suffices = read_flag i "suffices" in
   close_tag i "TheoremNode";
   THM {
@@ -449,7 +472,7 @@ let read_theorem i =
   }
 
 
-let read_module con i =
+let read_module i =
   open_tag i "ModuleNode";
   let loc = get_child i "location" read_optlocation in
   (* we need to read the context first and pass it for the symbols (thm, const, etc.*)
@@ -459,20 +482,20 @@ let read_module con i =
   let mkOpdefrefHandler name i = read_ref i name (fun x -> OPDef_ref x) in
   let mkAssumerefHandler name i = read_ref i name (fun x -> ASSUME_ref x) in
   (* print_string name; *)
-  let constants = get_children_in ~context:con i "constants" "OpDeclNodeRef" read_varconst_ref in
-  let variables = get_children_in ~context:con i "variables" "OpDeclNodeRef" read_varconst_ref in
-  let definitions = get_children_choice_in ~context:con i "definitions" [
+  let constants = get_children_in  i "constants" "OpDeclNodeRef" read_varconst_ref in
+  let variables = get_children_in  i "variables" "OpDeclNodeRef" read_varconst_ref in
+  let definitions = get_children_choice_in i "definitions" [
     ((=) "ModuleNodeRef",        mkOpdefrefHandler "ModuleNodeRef") ;
     ((=) "UserDefinedOpKindRef", mkOpdefrefHandler "UserDefinedOpKindRef")  ;
     ((=) "BuiltInKindRef",       mkOpdefrefHandler "BuiltInKindRef")  ;
   ]
   in
-  let assumptions = get_children_choice_in ~context:con i "assumptions" [
+  let assumptions = get_children_choice_in i "assumptions" [
     ((=) "AssumeNode", read_assume);
     ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
   ]
   in
-  let theorems = get_children_in ~context:con i "theorems" "TheoremNode" read_theorem in
+  let theorems = get_children_in i "theorems" "TheoremNode" read_theorem in
   let ret = MOD {
     location     = loc;
     name         = name;
@@ -486,10 +509,32 @@ let read_module con i =
   ret
 
 
+let rec read_entry i =
+   let _ = open_tag i "entry" in 
+   let uid = get_data_in i "UID" read_int in
+   let name = match (peek i) with 
+     | `El_start ((_, name),_ ) -> name
+     | _ -> failwith "We expect symbol opening tag in an entry."
+   in 
+   let symbol = match name with 
+     | "FormalParamNode"    -> FMOTA_formal_param (read_formal_param i)
+     (* Operator definition nodes: ModuleInstanceKind, UserDefinedOpKind, BuiltinKind *)
+     | "UserDefinedOpKind"  -> FMOTA_op_def (OPDef (O_user_defined_op (read_userdefinedop_kind i))) 
+     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance i))) (* TODO *)
+     | "BuiltInKind"        -> FMOTA_op_def (OPDef (O_builtin_op (read_builtin_kind i)))
+     | "ModuleNode"         -> FMOTA_module  (read_module i)
+     | "OpDeclNode"         -> FMOTA_op_decl (read_op_decl i)
+     | "TheoremNode"        -> FMOTA_theorem (read_theorem i)
+     | "AssumeNode"         -> FMOTA_assume  (read_assume i)
+     | _ -> failwith ("Unhandled context node " ^ name)
+   in let _ = close_tag i "entry";
+   in  (uid, symbol)
+    
+
 let read_modules i =
   open_tag i "modules";
   let con = (init_context_map (get_children_in i "context" "entry" read_entry) ) in 
-  let ret = get_children i "ModuleNode" (read_module (Some con)) in
+  let ret = get_children i "ModuleNode" read_module in
   close_tag i "modules";
   ret
 
