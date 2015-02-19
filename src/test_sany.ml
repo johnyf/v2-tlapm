@@ -35,6 +35,7 @@ let files = List.map addpath [
   "tuples";
   "Choose";
   "Euclid" ; 
+  "pharos" ; 
 ]
 let get_tests = List.map test_xml files
 
