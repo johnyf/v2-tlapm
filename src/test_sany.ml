@@ -34,7 +34,7 @@ let files = List.map addpath [
   "UserDefOp";
   "tuples";
   "Choose";
-  (* "Euclid" ;  not working yet *)
+  "Euclid" ; 
 ]
 let get_tests = List.map test_xml files
 

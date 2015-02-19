@@ -148,7 +148,18 @@ let read_builtin_kind i =
     level = level;
   }
 
-let read_module_instance i = assert false
+(* untested *)    
+let read_module_instance i : module_instance =
+  open_tag i "ModuleInstanceKind";
+  let loc = read_optlocation i in
+  let level = get_optlevel i in
+  let un = get_data_in i "uniquename" read_string in
+  close_tag i "ModuleInstanceKind";
+  MI {
+    location = loc;
+    level    = level;
+    name     = un;
+  }
 
 (* --- expressions parsing is mutually recursive (e.g. OpApplNode Expr) ) --- *)
 let rec read_expr i =
@@ -407,25 +418,31 @@ let read_obvious i : obvious =
     level = level;
   }
 
-let read_by i =
-  open_tag i "by";
-  let location = read_optlocation i in
-  let level = get_optlevel i in
+let read_facts i =
   let id = (fun x -> x) in
-  let facts = get_children_choice_in i "facts" [
+  get_children_choice_in i "facts" [
     ((=) "ModuleNodeRef", (fun i -> EMM_module (MOD_ref (read_ref i "ModuleNodeRef" id))));
-    ((=) "ModuleInstanceKind", (fun i -> EMM_module_instance (MI (read_module_instance i))));
+    ((=) "ModuleInstanceKind", (fun i -> EMM_module_instance (read_module_instance i)));
     (is_expr_node, (fun i -> EMM_expr (read_expr i)));
-  ] in
-  let defs = get_children_choice_in i "defs" [
+  ]
+
+let read_defs i =
+  let id = (fun x -> x) in
+  get_children_choice_in i "defs" [
     ((=) "UserDefinedOpKindRef", (fun i -> UMTA_user_defined_op (UOP_ref (read_ref i "UserDefinedOpKindRef" id) )));
     ((=) "ModuleInstanceKindRef", (fun i -> UMTA_module_instance (MI_ref (read_ref i "ModuleInstanceKindRef" id) ) ));
     ((=) "TheoremNodeRef", (fun i -> UMTA_theorem (THM_ref (read_ref i "TheoremNodeRef" id) )));
     ((=) "AssumeNodeRef", (fun i -> UMTA_assume (ASSUME_ref (read_ref i "AssumeNodeRef" id) )));
   ]
-  in
-  let only = read_flag i "only"
-  in
+ 
+let read_by i =
+  open_tag i "by";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let id = (fun x -> x) in
+  let facts = read_facts i in
+  let defs = read_defs i in
+  let only = read_flag i "only"  in
   close_tag i "by";
   {
     location = location;
@@ -435,9 +452,49 @@ let read_by i =
     only = only;
   }
 
-let read_steps i = assert false
+let read_defstep i   = assert false
+
+let read_useorhide i : use_or_hide =
+  open_tag i "UseOrHideNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let facts = read_facts i in
+  let defs = read_defs i in
+  let only = read_flag i "only" in
+  let hide = read_flag i "hide" in
+  close_tag i "UseOrHideNode";
+  {
+    location = location;
+    level    = level;
+    facts    = facts;
+    defs     = defs;
+    only     = only;
+    hide     = hide;
+  }
+  
+let read_instance i  = assert false
+
+  
+let rec read_steps i =
+  open_tag i "steps";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let id = fun x -> x in
+  let steps = get_children_choice i [
+    ((=) "DefStepNode",    (fun i -> S_def_step (read_defstep i)));
+    ((=) "UseOrHideNode",  (fun i -> S_use_or_hide (read_useorhide i)));
+    ((=) "InstanceNode",   (fun i -> S_instance (read_instance i)));
+    ((=) "TheoremNodeRef", (fun i -> S_theorem (THM_ref (read_ref i "TheoremNodeRef" id))));
+    ((=) "TheoremNode",    (fun i -> S_theorem (read_theorem i)));
+  ] in 
+  close_tag i "steps";
+  {
+    location = location;
+    level = level;
+    steps = steps;
+  }
     
-let read_proof i =
+and read_proof i =
   let ret = get_child_choice i [
     ((=) "omitted", (fun i -> P_omitted (read_omitted i)));
     ((=) "obvious", (fun i -> P_obvious (read_obvious i)));
@@ -446,9 +503,9 @@ let read_proof i =
   ] in
   ret
 
-let is_proof_node name = List.mem name ["omitted"; "obvious"; "by"; "steps"]
+and is_proof_node name = List.mem name ["omitted"; "obvious"; "by"; "steps"]
   
-let read_theorem i =
+and read_theorem i : theorem =
   open_tag i "TheoremNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
@@ -495,7 +552,11 @@ let read_module i =
     ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
   ]
   in
-  let theorems = get_children_in i "theorems" "TheoremNode" read_theorem in
+  let theorems = get_children_choice_in i "theorems" [
+    ((=) "TheoremNode", read_theorem);
+    ((=) "TheoremNodeRef", fun i -> read_ref i "TheoremNodeRef" (fun x -> THM_ref x) );
+  ]
+  in
   let ret = MOD {
     location     = loc;
     name         = name;
@@ -520,7 +581,7 @@ let rec read_entry i =
      | "FormalParamNode"    -> FMOTA_formal_param (read_formal_param i)
      (* Operator definition nodes: ModuleInstanceKind, UserDefinedOpKind, BuiltinKind *)
      | "UserDefinedOpKind"  -> FMOTA_op_def (OPDef (O_user_defined_op (read_userdefinedop_kind i))) 
-     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance i))) (* TODO *)
+     | "ModuleInstanceKind" -> FMOTA_op_def (OPDef (O_module_instance (read_module_instance i)))
      | "BuiltInKind"        -> FMOTA_op_def (OPDef (O_builtin_op (read_builtin_kind i)))
      | "ModuleNode"         -> FMOTA_module  (read_module i)
      | "OpDeclNode"         -> FMOTA_op_decl (read_op_decl i)
