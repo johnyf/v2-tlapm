@@ -34,8 +34,14 @@ let files = List.map addpath [
   "UserDefOp";
   "tuples";
   "Choose";
+  "at" ; 
+  "expr" ; 
   "Euclid" ; 
-  "pharos" ; 
+(*    "pharos" ; (* commented out, takes 10s to load *) *)
+  "exec" ; 
+  "priming_stephan" ; 
 ]
+
+  
 let get_tests = List.map test_xml files
 

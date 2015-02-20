@@ -197,10 +197,54 @@ let rec read_expr i =
    in
    expr
 
- 
-and read_at i           = assert false
-and read_decimal i 	= assert false
-and read_label i	= assert false  
+(* this is different from the xsd file which allows expression and oparg nodes. the java at node code has only opapp (which are expressions) children though. *) 
+and read_at i           = 
+  open_tag i "AtNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let except = read_opappl i  in
+  let except_component = read_opappl i in
+  close_tag i "AtNode";
+  {
+    location          = location;
+    level             = level;
+    except            = except;
+    except_component  = except_component;
+  }
+  
+and read_decimal i 	=
+  open_tag i "DecimalNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let mantissa = get_data_in i "mantissa" read_int in
+  let exponent = get_data_in i "exponent" read_int in
+  close_tag i "DecimalNode";
+  {
+    location  = location;
+    level     = level;
+    mantissa  = mantissa;
+    exponent  = exponent;
+  }
+(* untested *)    
+and read_label i	=
+  open_tag i "LabelNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let name = get_data_in i "uniquename" read_string in
+  let arity = get_data_in i "arity" read_int in
+  let body = read_expr_or_assumeprove i in
+  let params = get_children i "params" (fun i -> read_ref i "FormalParamNodeRef" (fun x -> FP_ref x)) in
+  close_tag i "LabelNode";
+  {
+    location  = location;
+    level     = level;
+    name      = name;
+    arity     = arity;
+    body      = body;
+    params    = params;
+  }
+
+(* untested *)  
 and read_let i :let_in	=
   open_tag i "LetInNode";
   let location = read_optlocation i in
@@ -226,6 +270,7 @@ and read_let i :let_in	=
     body     = body;
     op_defs  = op_defs;
   }
+
 and read_numeral i : numeral =
   open_tag i "NumeralNode";
   let location = read_optlocation i in
@@ -275,7 +320,11 @@ and read_stringnode i : strng	=
   open_tag i "StringNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let value = get_data_in i "StringValue" read_string in
+  open_tag i "StringValue";
+  let value = match (peek i) with
+    | `El_end -> ""  (* we accept empty strings as string values *)
+    | _       -> read_string i in
+  close_tag i "StringValue";
   close_tag i "StringNode";
   {
     location = location;
@@ -284,6 +333,7 @@ and read_stringnode i : strng	=
   }
 
 and read_substinnode i	= assert false
+
 and read_tuple i : bool = match (peek i) with
   | `El_start ((_,"tuple"), _) ->
   (* if tag is present, consume tag and return true*)
@@ -547,15 +597,18 @@ and read_proof i =
   ret
 
 and is_proof_node name = List.mem name ["omitted"; "obvious"; "by"; "steps"]
+
+and read_expr_or_assumeprove i =
+  get_child_choice i [
+    ((=) "AssumeProveNode", (fun i -> EA_assume_prove (read_assume_prove i)));
+    (is_expr_node , (fun i -> EA_expr (read_expr i)));
+  ]  
   
 and read_theorem i : theorem =
   open_tag i "TheoremNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let expr = get_child_choice i [
-    ((=) "AssumeProveNode", (fun i -> EA_assume_prove (read_assume_prove i)));
-    (is_expr_node , (fun i -> EA_expr (read_expr i)));
-  ] in
+  let expr = read_expr_or_assumeprove i in
   let proofl = get_optchild_choice i [(is_proof_node, read_proof)] in
   let proof = match proofl with
     | [p] -> Some p
