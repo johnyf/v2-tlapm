@@ -332,7 +332,73 @@ and read_stringnode i : strng	=
     value = value;
   }
 
-and read_substinnode i	= assert false
+  
+and read_subst i =
+  open_tag i "Subst";
+  let op = read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x) in
+  let expr = get_child_choice i [
+    (is_expr_node, (fun i -> EO_expr (read_expr i)));
+    ((=)"OpArgNode", (fun i -> EO_op_arg (read_oparg i)));
+  ] in
+  close_tag i "Subst";
+  {
+    op = op;
+    expr = expr;
+  }
+
+(* untested *)    
+and read_substinnode i : subst_in =
+  open_tag i "SubstInNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let substs = get_children_in i "substs" "Subst" read_subst in
+  let body = read_expr i in 
+  close_tag i "SubstInNode";
+  {
+    location = location;
+    level    = level;
+    substs   = substs;
+    body     = body;
+  }
+
+(* untested *)    
+and read_instance i  = 
+  open_tag i "InstanceNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let name  = get_data_in i "uniquename" read_string in
+  let substs = get_children_in i "substs" "Subst" read_subst in
+  let params = get_children_in i "params" "FormalParamNodeRef"
+    (fun i-> read_ref i "FormalParamNodeRef" (fun x -> FP_ref x))
+  in 
+  close_tag i "InstanceNode";
+  {
+    location = location;
+    level    = level;
+    name     = name;
+    substs   = substs;
+    params   = params;
+  }
+
+and is_node name = assert false
+and read_node i = assert false
+(* untested *)    
+and read_apsubstinnode i : ap_subst_in = 
+  open_tag i "APSubstInNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let substs = get_children_in i "substs" "Subst" read_subst in
+  open_tag i "body";
+  let body = get_child_choice i [(is_node, read_node)] in
+  close_tag i "body";
+  close_tag i "APSubstInNode";
+  {
+    location = location;
+    level    = level;
+    substs   = substs;
+    body = body;
+  }
+    
 
 and read_tuple i : bool = match (peek i) with
   | `El_start ((_,"tuple"), _) ->
@@ -548,8 +614,6 @@ and read_useorhide i : use_or_hide =
     hide     = hide;
   }
   
-and read_instance i  = assert false
-
   
 and read_steps i =
   open_tag i "steps";

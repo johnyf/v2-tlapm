@@ -63,8 +63,8 @@ and instance = {
 }
 
 and subst = {
-  location          : location option;
-  level             : level option;
+  (*  location          : location option; *)
+  (*  level             : level option;    *)
   op                : op_decl;
   expr              : expr_or_op_arg
 }
