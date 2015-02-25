@@ -38,6 +38,7 @@ let files = List.map addpath [
   "expr" ; 
   "Euclid" ; 
 (*    "pharos" ; (* commented out, takes 10s to load *) *)
+  "instanceA" ; 
   "exec" ; 
   "priming_stephan" ; 
 ]

@@ -2,14 +2,14 @@ OASISFormat: 0.3
 Name:        TLAPM
 Version:     0.1
 Synopsis:    V2 of tlapm
-Authors:     Damien Doligez, Tomer Libal
+Authors:     Damien Doligez, Tomer Libal, Martin Riener
 License:     BSD-3-clause
 Plugins:     META (0.3)
 
 Executable tlapm
   Path:       src
   BuildTools: ocamlbuild
-#  CompiledObject: native
+  CompiledObject: native
   MainIs:     tlapm.ml
   BuildDepends: xmlm,
                 str,
@@ -20,7 +20,7 @@ Executable test
   Path: src
   MainIs: tests.ml
   BuildTools: ocamlbuild
-#  CompiledObject: native
+  CompiledObject: native
   BuildDepends: xmlm,
                 str,
                 unix,
