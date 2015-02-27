@@ -40,7 +40,7 @@ type varID = string (* for now... *)
 
 (* an expression is: *)
 type expr = 
-(* variables, builtins, tuples, products and generic apply-construct (e.g. for operators and builtins *)*)
+(* variables, builtins, tuples, products and generic apply-construct (e.g. for operators and builtins *)
   | Var     of varID 
   | Builtin of builtin
   | Tuple   of expr list  (*JEK: maybe for the purpose of quantifying over tuples, there should be a special Tuple of varIDs ? *)

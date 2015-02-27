@@ -1,5 +1,6 @@
 open Commons
 
+(* type declarations *)
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove
@@ -336,8 +337,8 @@ and mule_ = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
-
-
+(* end of type declarations *)
+  
 class ['a] visitor :
 object
   method location     : 'a -> location option -> 'a
@@ -351,3 +352,54 @@ object
   method ea           : 'a -> expr_or_op_arg -> 'a
   method bound_symbol : 'a -> bound_symbol -> 'a
 end
+ = object(self)
+(*
+  method node acc = function
+  | N_ap_subst_in -> self#ap_subst_in acc
+  | N_assume_prove -> 
+  | N_def_step -> 
+  | N_expr -> 
+  | N_op_arg -> 
+  | N_instance -> 
+  | N_new_symb -> 
+  | N_pro-> 
+  | N_formal_param -> 
+  | N_module -> 
+  | N_op_decl -> 
+  | N_op_def -> 
+  | N_assume -> 
+  | N_theorem -> 
+  | N_use_or_hide -> 
+*)
+
+  (* parts of expressions *)
+   method location acc l : 'a = acc
+   method level acc l : 'a = acc
+
+  (* non-recursive expressions *) 
+   method decimal acc d = acc
+   method numeral acc n = acc
+   method strng acc s = acc
+
+(* recursive expressions *)
+   method at acc0 {location; level; except; except_component} : 'a =
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = self#op_appl acc2 except in
+     let acc = self#op_appl acc3 except_component in
+     acc
+
+   method op_appl acc0 {location; level; operator; operands; bound_symbols} : 'a=
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = self#fmota acc2 operator in
+     let acc4 = List.fold_left self#ea acc3 operands in
+     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in 
+     acc
+
+       
+   method bound_symbol acc x = acc
+   method ea acc x = acc
+   method fmota acc x = acc
+end
+  
