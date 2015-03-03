@@ -380,8 +380,34 @@ and read_instance i  =
     params   = params;
   }
 
-and is_node name = assert false
-and read_node i = assert false
+and is_node name = is_expr_node name || is_proof_node name || (List.mem name
+  ["APSubstInNode"; "AssumeProveNode"; "DefStepNode";
+   "OpArgNode"; "InstanceNode"; "NewSymbNode"; 
+   "FormalParamNodeRef"; "ModuleNodeRef"; "OpDeclNodeRef";
+   "ModuleInstanceKindRef"; "UserDefinedOpKindRef"; "BuiltInKindRef";
+   "AssumeNodeRef"; "TheoremNodeRef"; "UseOrHideNode"; ])
+   
+and read_node i = get_child_choice i [
+  ((=) "APSubstInNode",         fun i -> N_ap_subst_in (read_apsubstinnode i));
+  ((=) "AssumeProveNode",       fun i -> N_assume_prove (read_assume_prove i));
+  ((=) "DefStepNode",           fun i -> N_def_step (read_defstep i));
+  (is_expr_node,                fun i -> N_expr (read_expr i));
+  ((=) "InstanceNode",          fun i -> N_instance (read_instance i));
+  ((=) "NewSymbNode",           fun i -> N_new_symb (read_newsymb i));
+  (is_proof_node,               fun i -> N_proof (read_proof i));
+  ((=) "FormalParamNodeRef",    fun i -> N_formal_param (read_ref i "FormalParamNodeRef" (fun x -> FP_ref x)));
+  ((=) "ModuleNodeRef",         fun i -> N_module (read_ref i "ModuleNodeRef" (fun x -> MOD_ref x)));
+  ((=) "OpDeclNodeRef",         fun i -> N_op_decl (read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x)));
+  ((=) "ModuleInstanceKindRef", fun i -> N_op_def (read_ref i "ModuleInstanceKindRef" (fun x -> OPDef_ref x)));
+  ((=) "UserDefinedOpKindRef",  fun i -> N_op_def (read_ref i "UserDefinedOpKindRef" (fun x -> OPDef_ref x)));
+  ((=) "BuiltInKindRef",        fun i -> N_op_def (read_ref i "BuiltInKindRef" (fun x -> OPDef_ref x)));
+  ((=) "AssumeNodeRef",         fun i -> N_assume (read_ref i "AssumeNodeRef" (fun x -> ASSUME_ref x)));
+  ((=) "TheoremNodeRef",        fun i -> N_theorem (read_ref i "TheoremNodeRef" (fun x -> THM_ref x)));
+  ((=) "UseOrHideNode",         fun i -> N_use_or_hide (read_useorhide i));    
+]
+
+
+  
 (* untested *)    
 and read_apsubstinnode i : ap_subst_in = 
   open_tag i "APSubstInNode";
