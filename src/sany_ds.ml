@@ -426,8 +426,12 @@ end
    | MOD_ref i -> acc0
    | MOD {name; location; constants; variables; definitions; assumptions; theorems; } ->
      let acc1 = self#location acc0 location in
-     let acc2 = List.fold_left acc0 self#op_def in
-     acc2
+     let acc2 = List.fold_left self#op_decl acc1 constants in
+     let acc3 = List.fold_left self#op_decl acc2 variables in
+     let acc4 = List.fold_left self#op_def acc3 definitions in
+     let acc5 = List.fold_left self#assume acc4 assumptions in
+     let acc = List.fold_left self#theorem acc5 theorems in
+     acc
      
    method op_decl acc x = acc
    method op_def acc x = acc
