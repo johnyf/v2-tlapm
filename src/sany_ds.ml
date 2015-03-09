@@ -351,6 +351,12 @@ object
   method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume -> 'a
   method ea           : 'a -> expr_or_op_arg -> 'a
   method bound_symbol : 'a -> bound_symbol -> 'a
+  method mule         : 'a -> mule -> 'a
+  method formal_param : 'a -> formal_param -> 'a
+  method op_decl      : 'a -> op_decl -> 'a
+  method op_def       : 'a -> op_def -> 'a
+  method theorem      : 'a -> theorem -> 'a
+  method assume       : 'a -> assume -> 'a
 end
  = object(self)
 (*
@@ -400,6 +406,33 @@ end
        
    method bound_symbol acc x = acc
    method ea acc x = acc
-   method fmota acc x = acc
+   method fmota acc = function
+   | FMOTA_formal_param x -> self#formal_param acc x
+   | FMOTA_module  x -> self#mule acc x
+   | FMOTA_op_decl x -> self#op_decl acc x
+   | FMOTA_op_def  x -> self#op_def acc x
+   | FMOTA_theorem x -> self#theorem acc x
+   | FMOTA_assume  x -> self#assume acc x
+
+   method formal_param acc0 = function
+   | FP_ref i -> acc0
+   | FP { location; level; name; arity; } ->
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     (* name and arity are basic fields. override formal_param id you need them *)
+     acc2
+     
+   method mule acc0 = function
+   | MOD_ref i -> acc0
+   | MOD {name; location; constants; variables; definitions; assumptions; theorems; } ->
+     let acc1 = self#location acc0 location in
+     let acc2 = List.fold_left acc0 self#op_def in
+     acc2
+     
+   method op_decl acc x = acc
+   method op_def acc x = acc
+   method theorem acc x = acc
+   method assume acc x = acc
+
 end
   

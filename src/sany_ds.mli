@@ -350,4 +350,10 @@ object
   method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume -> 'a
   method ea           : 'a -> expr_or_op_arg -> 'a
   method bound_symbol : 'a -> bound_symbol -> 'a
+  method mule         : 'a -> mule -> 'a
+  method formal_param : 'a -> formal_param -> 'a
+  method op_decl      : 'a -> op_decl -> 'a
+  method op_def       : 'a -> op_def -> 'a
+  method theorem      : 'a -> theorem -> 'a
+  method assume       : 'a -> assume -> 'a
 end
