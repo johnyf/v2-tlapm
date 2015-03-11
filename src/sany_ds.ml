@@ -342,29 +342,32 @@ and mule_ = {
   
 class ['a] visitor :
 object
-  method expr         : 'a -> expr -> 'a
-  method location     : 'a -> location option -> 'a
-  method level        : 'a -> level option -> 'a
-  method decimal      : 'a -> decimal -> 'a
-  method numeral      : 'a -> numeral -> 'a
-  method strng        : 'a -> strng -> 'a
-  method at           : 'a -> at -> 'a
-  method op_appl      : 'a -> op_appl -> 'a
-  method op_arg       : 'a -> op_arg -> 'a
-  method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a
-  method ea           : 'a -> expr_or_assume_prove -> 'a
-  method eo           : 'a -> expr_or_op_arg -> 'a
-  method bound_symbol : 'a -> bound_symbol -> 'a
+  method expr            : 'a -> expr -> 'a
+  method location        : 'a -> location option -> 'a
+  method level           : 'a -> level option -> 'a
+  method decimal         : 'a -> decimal -> 'a
+  method numeral         : 'a -> numeral -> 'a
+  method strng           : 'a -> strng -> 'a
+  method at              : 'a -> at -> 'a
+  method op_appl         : 'a -> op_appl -> 'a
+  method op_arg          : 'a -> op_arg -> 'a
+  method fmota           : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a
+  method ea              : 'a -> expr_or_assume_prove -> 'a
+  method eo              : 'a -> expr_or_op_arg -> 'a
+  method bound_symbol    : 'a -> bound_symbol -> 'a
   method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
-  method mule         : 'a -> mule -> 'a
-  method formal_param : 'a -> formal_param -> 'a
-  method op_decl      : 'a -> op_decl -> 'a
-  method op_def       : 'a -> op_def -> 'a
-  method theorem      : 'a -> theorem -> 'a
-  method assume       : 'a -> assume -> 'a
-  method assume_prove : 'a -> assume_prove -> 'a
-  method ap_subst_in  : 'a -> ap_subst_in -> 'a
+  method mule            : 'a -> mule -> 'a
+  method formal_param    : 'a -> formal_param -> 'a
+  method op_decl         : 'a -> op_decl -> 'a
+  method op_def          : 'a -> op_def -> 'a
+  method theorem         : 'a -> theorem -> 'a
+  method assume          : 'a -> assume -> 'a
+  method assume_prove    : 'a -> assume_prove -> 'a
+  method ap_subst_in     : 'a -> ap_subst_in -> 'a
+  method module_instance : 'a -> module_instance -> 'a
+  method builtin_op      : 'a -> builtin_op -> 'a
+  method user_defined_op : 'a -> user_defined_op -> 'a
 end
  = object(self)
 (*
@@ -456,14 +459,29 @@ end
      let acc = List.fold_left self#theorem acc5 theorems in
      acc
      
-   method op_arg  acc x = acc
-   method op_decl acc x = acc
-   method op_def acc x = acc
-   method theorem acc x = acc
+   method op_arg  acc x = acc (* terminal node *)
+   method op_decl acc x = acc (* terminal node *)
+   method op_def acc = function
+   | OPDef_ref x -> acc
+   | OPDef (O_module_instance x) -> self#module_instance acc x
+   | OPDef (O_builtin_op x)      -> self#builtin_op acc x
+   | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
+       
+   method theorem acc0 = function
+   | THM_ref x -> acc0
+   | THM {location; level; expr; proof; suffices } ->
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     (* todo: finish*)
+     acc2
+     
    method assume acc x = acc
    method assume_prove acc x = acc
    method expr acc x = acc
    method ap_subst_in acc x = acc
+   method module_instance acc x = acc
+   method builtin_op acc x = acc
+   method user_defined_op acc x = acc
 
 end
   

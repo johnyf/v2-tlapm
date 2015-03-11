@@ -364,4 +364,7 @@ object
   method assume       : 'a -> assume -> 'a
   method assume_prove : 'a -> assume_prove -> 'a
   method ap_subst_in  : 'a -> ap_subst_in -> 'a
+  method module_instance : 'a -> module_instance -> 'a
+  method builtin_op      : 'a -> builtin_op -> 'a
+  method user_defined_op : 'a -> user_defined_op -> 'a
 end
