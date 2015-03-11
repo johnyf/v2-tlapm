@@ -299,7 +299,7 @@ and read_opappl i	=
       open_tag i "boundSymbols";
       let bs = get_children_choice i [
 	((=) "unbound", (fun i -> B_unbounded_bound_symbol (read_unbounded_param i)) );
-	((=) "bound",   (fun i -> B_bound_bound_symbol (read_bounded_param i)) )
+	((=) "bound",   (fun i -> B_bounded_bound_symbol (read_bounded_param i)) )
       ] in
       close_tag i "boundSymbols";
       bs
@@ -774,6 +774,7 @@ and read_entry i =
      ((=)  "OpDeclNode"     , (fun i ->  FMOTA_op_decl (read_op_decl i)));
      ((=)  "TheoremNode"    , (fun i ->  FMOTA_theorem (read_theorem i)));
      ((=)  "AssumeNode"     , (fun i ->  FMOTA_assume  (read_assume i)));
+     ((=)  "APSubstInNode"  , (fun i ->  FMOTA_ap_subst_in  (read_apsubstinnode i)));
    ]
    in let _ = close_tag i "entry";
    in  (uid, symbol)

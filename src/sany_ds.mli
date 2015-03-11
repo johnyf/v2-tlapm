@@ -291,25 +291,26 @@ and strng = {
   value             : string
 }
 
-and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume =
+and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst =
   | FMOTA_formal_param of formal_param
   | FMOTA_module of mule
   | FMOTA_op_decl of op_decl
   | FMOTA_op_def of op_def
   | FMOTA_theorem of theorem
   | FMOTA_assume of assume
+  | FMOTA_ap_subst_in of ap_subst_in
 
 and op_appl = {
   location          : location option;
   level             : level option;
-  operator          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume;
+  operator          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
   operands          : expr_or_op_arg list;
   bound_symbols     : bound_symbol list
 }
 
 and bound_symbol =
   | B_unbounded_bound_symbol of unbounded_bound_symbol
-  | B_bound_bound_symbol of bounded_bound_symbol
+  | B_bounded_bound_symbol of bounded_bound_symbol
 
 and unbounded_bound_symbol = {
   param             : formal_param;
@@ -340,6 +341,7 @@ and mule_ = {
 
 class ['a] visitor :
 object
+  method expr         : 'a -> expr -> 'a
   method location     : 'a -> location option -> 'a
   method level        : 'a -> level option -> 'a
   method decimal      : 'a -> decimal -> 'a
@@ -347,13 +349,19 @@ object
   method strng        : 'a -> strng -> 'a
   method at           : 'a -> at -> 'a
   method op_appl      : 'a -> op_appl -> 'a
-  method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume -> 'a
-  method ea           : 'a -> expr_or_op_arg -> 'a
+  method op_arg       : 'a -> op_arg -> 'a
+  method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a
+  method ea           : 'a -> expr_or_assume_prove -> 'a
+  method eo           : 'a -> expr_or_op_arg -> 'a
   method bound_symbol : 'a -> bound_symbol -> 'a
+  method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
+  method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
   method mule         : 'a -> mule -> 'a
   method formal_param : 'a -> formal_param -> 'a
   method op_decl      : 'a -> op_decl -> 'a
   method op_def       : 'a -> op_def -> 'a
   method theorem      : 'a -> theorem -> 'a
   method assume       : 'a -> assume -> 'a
+  method assume_prove : 'a -> assume_prove -> 'a
+  method ap_subst_in  : 'a -> ap_subst_in -> 'a
 end

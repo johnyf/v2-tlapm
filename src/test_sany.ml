@@ -41,6 +41,7 @@ let files = List.map addpath [
   "instanceA" ; 
   "exec" ; 
   "priming_stephan" ; 
+  "withsubmodule" ; 
 ]
 
   
