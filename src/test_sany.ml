@@ -42,6 +42,7 @@ let files = List.map addpath [
   "exec" ; 
   "priming_stephan" ; 
   "withsubmodule" ; 
+  "OneBit" ; 
 ]
 
   
