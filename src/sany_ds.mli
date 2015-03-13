@@ -87,7 +87,7 @@ and theorem_ = {
   location          : location option;
   level             : level option;
   expr              : expr_or_assume_prove;
-  proof             : proof option;
+  proof             : proof;
   suffices          : bool
 }
 
@@ -187,6 +187,7 @@ and proof =
   | P_obvious of obvious
   | P_by of by
   | P_steps of steps
+  | P_noproof (* if the theorem has no proof -- should be treated like omitted *)
 
 and omitted = {
   location          : location option;
@@ -351,8 +352,6 @@ object
   method op_appl      : 'a -> op_appl -> 'a
   method op_arg       : 'a -> op_arg -> 'a
   method fmota        : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a
-  method ea           : 'a -> expr_or_assume_prove -> 'a
-  method eo           : 'a -> expr_or_op_arg -> 'a
   method bound_symbol : 'a -> bound_symbol -> 'a
   method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
@@ -367,4 +366,13 @@ object
   method module_instance : 'a -> module_instance -> 'a
   method builtin_op      : 'a -> builtin_op -> 'a
   method user_defined_op : 'a -> user_defined_op -> 'a
+  method expr_or_assume_prove : 'a -> expr_or_assume_prove -> 'a
+  method expr_or_op_arg  : 'a -> expr_or_op_arg -> 'a
+  method proof        : 'a -> proof -> 'a
+  method step            : 'a -> step -> 'a
+  method use_or_hide     : 'a -> use_or_hide -> 'a
+  method instance        : 'a -> instance -> 'a
+  method subst           : 'a -> subst -> 'a
+  method expr_or_module_or_module_instance                       : 'a -> expr_or_module_or_module_instance -> 'a
+  method user_defined_op_or_module_instance_or_theorem_or_assume : 'a -> user_defined_op_or_module_instance_or_theorem_or_assume -> 'a
 end

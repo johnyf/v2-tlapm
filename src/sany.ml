@@ -699,10 +699,10 @@ and read_theorem i : theorem =
   let location = read_optlocation i in
   let level = get_optlevel i in
   let expr = read_expr_or_assumeprove i in
-  let proofl = get_optchild_choice i [(is_proof_node, read_proof)] in
+  let proofl = get_optchild_choice i [(is_proof_node, read_proof)]  in
   let proof = match proofl with
-    | [p] -> Some p
-    | _   -> None
+    | [p] -> p
+    | _   -> P_noproof
   in
   let suffices = read_flag i "suffices" in
   close_tag i "TheoremNode";

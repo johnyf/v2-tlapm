@@ -88,7 +88,7 @@ and theorem_ = {
   location          : location option;
   level             : level option;
   expr              : expr_or_assume_prove;
-  proof             : proof option;
+  proof             : proof;
   suffices          : bool
 }
 
@@ -188,6 +188,7 @@ and proof =
   | P_obvious of obvious
   | P_by of by
   | P_steps of steps
+  | P_noproof  
 
 and omitted = {
   location          : location option;
@@ -352,8 +353,7 @@ object
   method op_appl         : 'a -> op_appl -> 'a
   method op_arg          : 'a -> op_arg -> 'a
   method fmota           : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a
-  method ea              : 'a -> expr_or_assume_prove -> 'a
-  method eo              : 'a -> expr_or_op_arg -> 'a
+  method expr_or_op_arg  : 'a -> expr_or_op_arg -> 'a
   method bound_symbol    : 'a -> bound_symbol -> 'a
   method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
@@ -368,6 +368,14 @@ object
   method module_instance : 'a -> module_instance -> 'a
   method builtin_op      : 'a -> builtin_op -> 'a
   method user_defined_op : 'a -> user_defined_op -> 'a
+  method expr_or_assume_prove : 'a -> expr_or_assume_prove -> 'a
+  method proof           : 'a -> proof -> 'a
+  method step            : 'a -> step -> 'a
+  method instance        : 'a -> instance -> 'a
+  method use_or_hide     : 'a -> use_or_hide -> 'a
+  method subst           : 'a -> subst -> 'a
+  method expr_or_module_or_module_instance                       : 'a -> expr_or_module_or_module_instance -> 'a
+  method user_defined_op_or_module_instance_or_theorem_or_assume : 'a -> user_defined_op_or_module_instance_or_theorem_or_assume -> 'a
 end
  = object(self)
 (*
@@ -410,7 +418,7 @@ end
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#fmota acc2 operator in
-     let acc4 = List.fold_left self#eo acc3 operands in
+     let acc4 = List.fold_left self#expr_or_op_arg acc3 operands in
      let acc = List.fold_left self#bound_symbol acc4 bound_symbols in 
      acc
 
@@ -422,11 +430,11 @@ end
    method bounded_bound_symbol acc x = acc
    method unbounded_bound_symbol acc x = acc
 
-   method ea acc = function
+   method expr_or_assume_prove acc = function
    | EA_assume_prove ap -> self#assume_prove acc ap
    | EA_expr e          -> self#expr acc e
 
-   method eo acc = function
+   method expr_or_op_arg acc = function
    | EO_op_arg oa -> self#op_arg acc oa
    | EO_expr e -> self#expr acc e
 
@@ -469,19 +477,73 @@ end
        
    method theorem acc0 = function
    | THM_ref x -> acc0
-   | THM {location; level; expr; proof; suffices } ->
+   | THM { location; level; expr; proof; suffices } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
+     let acc3 = self#expr_or_assume_prove acc2 expr in
+     let acc4 = self#proof acc3 proof  in
      (* todo: finish*)
-     acc2
+     acc4
      
-   method assume acc x = acc
+   method assume acc0  = function
+   | ASSUME_ref x -> acc0
+   | ASSUME {location; level; expr; } ->
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc = self#expr acc2 expr in
+     acc
+       
+   method proof acc0 = function
+   | P_omitted location -> acc0
+   | P_obvious location -> acc0
+   | P_by { location; level; facts; defs; only} ->
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = List.fold_left self#expr_or_module_or_module_instance acc2 facts in
+     let acc = List.fold_left self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
+     (* skip the only tag *)
+     acc
+   | P_steps { location; level; steps; } ->
+     List.fold_left self#step acc0 steps
+   | P_noproof -> acc0
+
+   method step acc0 = function
+   | S_def_step { location; level; defs } ->
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc = List.fold_left self#op_def acc2 defs in
+     acc
+   | S_use_or_hide x -> self#use_or_hide acc0 x
+   | S_instance i -> self#instance acc0 i
+   | S_theorem t -> self#theorem acc0 t
+
+   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = List.fold_left self#expr_or_module_or_module_instance acc2 facts in
+     let acc = List.fold_left self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
+     acc
+     
+   method instance acc0 {location; level; name; substs; params; } =
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = List.fold_left self#subst acc2 substs in
+     let acc = List.fold_left self#formal_param acc3 params in
+     acc
+
+   method subst acc0 { op; expr } =
+     let acc1 = self#op_decl acc0 op in
+     let acc = self#expr_or_op_arg acc1 expr in
+     acc
+       
    method assume_prove acc x = acc
    method expr acc x = acc
    method ap_subst_in acc x = acc
    method module_instance acc x = acc
    method builtin_op acc x = acc
    method user_defined_op acc x = acc
+   method expr_or_module_or_module_instance acc x = acc
+   method user_defined_op_or_module_instance_or_theorem_or_assume acc x = acc
 
 end
   
