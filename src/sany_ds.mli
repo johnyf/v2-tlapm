@@ -362,6 +362,7 @@ object
   method theorem      : 'a -> theorem -> 'a
   method assume       : 'a -> assume -> 'a
   method assume_prove : 'a -> assume_prove -> 'a
+  method new_symb        : 'a -> new_symb -> 'a
   method ap_subst_in  : 'a -> ap_subst_in -> 'a
   method module_instance : 'a -> module_instance -> 'a
   method builtin_op      : 'a -> builtin_op -> 'a
@@ -372,7 +373,15 @@ object
   method step            : 'a -> step -> 'a
   method use_or_hide     : 'a -> use_or_hide -> 'a
   method instance        : 'a -> instance -> 'a
+  method label           : 'a -> label -> 'a
+  method let_in          : 'a -> let_in -> 'a
+  method subst_in        : 'a -> subst_in -> 'a
   method subst           : 'a -> subst -> 'a
+  method node            : 'a -> node -> 'a
+  method def_step        : 'a -> def_step -> 'a
+
   method expr_or_module_or_module_instance                       : 'a -> expr_or_module_or_module_instance -> 'a
   method user_defined_op_or_module_instance_or_theorem_or_assume : 'a -> user_defined_op_or_module_instance_or_theorem_or_assume -> 'a
+  method new_symb_or_expr_or_assume_prove                        : 'a -> new_symb_or_expr_or_assume_prove -> 'a
+  method op_def_or_theorem_or_assume                             : 'a -> op_def_or_theorem_or_assume -> 'a
 end
