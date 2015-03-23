@@ -9,7 +9,7 @@ Plugins:     META (0.3)
 Executable tlapm
   Path:       src
   BuildTools: ocamlbuild
-  CompiledObject: native
+#  CompiledObject: native
   MainIs:     tlapm.ml
   BuildDepends: xmlm,
                 str,
@@ -20,7 +20,7 @@ Executable test
   Path: src
   MainIs: tests.ml
   BuildTools: ocamlbuild
-  CompiledObject: native
+#  CompiledObject: native
   BuildDepends: xmlm,
                 str,
                 unix,

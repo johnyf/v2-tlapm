@@ -54,8 +54,9 @@ LEMMA Init /\ TypeOK /\ (I("a") \/ I("b")) => LemmaInv
 
 Inv == [](NOCC(h0,m,"a") \/ NOCC(h1,m,"b"))
 
+LEMMA ASSUME NEW CONSTANT P(_), NEW VARIABLE v PROVE []( [(ENABLED P(v))']_v)
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Feb 18 10:43:46 CET 2015 by marty
+\* Last modified Fri Mar 20 14:49:26 CET 2015 by marty
 \* Created Tue Jan 06 11:16:11 CET 2015 by marty

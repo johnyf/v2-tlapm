@@ -86,3 +86,23 @@ val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
     Adds to [cleanup] the action of calling [fn argument] before doing
     whatever was in [cleanup] already.
 *)
+
+
+(** { 4 general stuff } *)
+
+val find_ordering : ('a * 'a) list -> 'a list
+(** given a list of pairs, where the first argument is considered as less 
+    than the second argument, find an ordering of the elements which
+   satisfies the transitive closure of the less then relation input.
+*)
+
+  
+val ( @$ ) : ('a -> 'b) -> 'a -> 'b
+(** 
+Right-associative function application. You can write 'hd @$ tl @$ tl @$ [1;2;3;4;5]' instead of 'hd ( tl ( tl ( [1;2;3;4;5] )))'. Taken from http://blog.0branch.com/posts/2012-04-17-haskell-application-ocaml.html.
+*)
+
+
+(** string utils *)
+
+val mkString : ?front:string -> ?middle:string -> ?back:string  -> ( 'a -> string) -> 'a list -> string

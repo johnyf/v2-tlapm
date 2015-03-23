@@ -343,6 +343,7 @@ and mule_ = {
 class ['a] visitor :
 object
   method expr         : 'a -> expr -> 'a
+  method name         : 'a -> string -> 'a
   method location     : 'a -> location option -> 'a
   method level        : 'a -> level option -> 'a
   method decimal      : 'a -> decimal -> 'a

@@ -344,6 +344,7 @@ and mule_ = {
 class ['a] visitor :
 object
   method expr            : 'a -> expr -> 'a
+  method name            : 'a -> string -> 'a
   method location        : 'a -> location option -> 'a
   method level           : 'a -> level option -> 'a
   method decimal         : 'a -> decimal -> 'a
@@ -444,8 +445,9 @@ end
    | FP { location; level; name; arity; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     (* name and arity are basic fields. override formal_param id you need them *)
-     acc2
+     let acc3 = self#name acc2 name in
+     (* arity skipped *)
+     acc3
      
    method mule acc0 = function
    | MOD_ref i -> acc0
@@ -528,8 +530,9 @@ end
    method instance acc0 {location; level; name; substs; params; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#subst acc2 substs in
-     let acc = List.fold_left self#formal_param acc3 params in
+     let acc3 = self#name acc2 name in     
+     let acc4 = List.fold_left self#subst acc3 substs in
+     let acc = List.fold_left self#formal_param acc4 params in
      acc
 
    method subst acc0 { op; expr } =
@@ -571,9 +574,10 @@ end
    method label acc0 ({location; level; name; arity; body; params } : label) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     (* skip name and arity *)
-     let acc3 = self#expr_or_assume_prove acc2 body in
-     let acc = List.fold_left self#formal_param acc3 params in
+     let acc3 = self#name acc2 name in
+     (* skip arity *)
+     let acc4 = self#expr_or_assume_prove acc3 body in
+     let acc = List.fold_left self#formal_param acc4 params in
      acc     
        
    method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
@@ -594,17 +598,18 @@ end
    | MI {location; level; name} ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     (* skip name *)
-     acc2
+     let acc = self#name acc2 name in
+     acc
      
    method builtin_op acc = function
    | BOP_ref x -> acc
    | BOP {location; level; name; arity; params } ->
      let acc1 = self#location acc location in
      let acc2 = self#level acc1 level in
-   (* skip name and arity *)
-     let acc3 = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc2 params
-     in acc3
+     let acc3 = self#name acc2 name in
+   (* skip arity *)
+     let acc = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc3 params
+     in acc
      
    method user_defined_op acc0 = function
    | UOP_ref x -> acc0
@@ -612,12 +617,14 @@ end
 	   body ; params ; recursive ; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-   (* skip name and arity *)
-     let acc3 = self#expr acc2 body in
-     let acc4 = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc2 params in
+     let acc3 = self#name acc2 name in
+   (* arity *)
+     let acc4 = self#expr acc3 body in
+     let acc = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc4 params in
    (* skip recursive flag *)
-     acc4
+     acc
 
+   method name acc x = acc
 
    (* pure disjunction types *)
    method expr acc = function

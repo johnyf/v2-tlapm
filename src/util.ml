@@ -182,3 +182,72 @@ let temp_file (clean_hook : (unit -> unit) ref) suffix =
   add_hook clean_hook f ();
   (fname, chan)
 ;;
+
+(* some general fomratting utils *)
+let fmtPair left right (x,y) = "(" ^ (left x) ^ "," ^ (right y) ^ ")"
+
+let rec mkString_ ?middle:(m=";") fmt = function
+  | [] -> ""
+  | [x] -> fmt x
+  | x::xs -> (fmt x) ^ m ^ (mkString_ ~middle:m fmt xs)
+
+let mkString ?front:(f="[") ?middle:(m=";") ?back:(b="]") fmt lst =
+  f ^ (mkString_ ~middle:m fmt lst) ^ b
+
+let fmt_dependencylist = mkString (fmtPair string_of_int (mkString string_of_int))
+
+(* right-associative function application just like Haskell's $ *)
+let (  @$ ) f x = f x;;
+
+
+(* given a list of key * dependeny pairs, create a list of key * dependency list, where all
+   dependencies of a key is contained in the dependency list  *)
+let rec collect_dependencies  keys_dependencies = function
+  | (x,y)::xs -> (
+    (* look at the first key-dependency pair, check if the key has already dependencies and 
+       add the dependency to the list, if necessary *)
+    match List.partition (fun kd -> x = fst kd) keys_dependencies with
+    | ([], rest) -> (* if key does not have a list associated, make a new entry *)
+      collect_dependencies  ((x,[y]) :: rest) xs
+    | ([(_, dependencies)], rest) when List.mem y dependencies ->
+      (* y is already in the dependencies, don't add it twice *)
+      collect_dependencies  keys_dependencies xs
+    | ([(_, dependencies)], rest) (* when not List.mem y dependencies *) ->
+      collect_dependencies  ((x, y::dependencies) :: rest) xs
+    | _ -> failwith "Implementation error in dependency calculation / finding an ordering!"
+  )
+  | [] -> keys_dependencies
+  
+
+let rec add_missing list = function
+  | x::xs when List.mem x list -> add_missing list xs
+  | x::xs (* otherwise *)      -> add_missing (List.append list[x]) xs
+  | _ -> list
+
+(* removes all passed elements from the dependency list of each entry in the completion list *)
+let remove_from_completion elements completion =
+  List.map (fun (key,deps) ->
+    (key, List.filter (fun x -> not (List.mem x elements)) deps)
+  ) completion
+    
+let rec find_ordering_from_completion  completion = (
+  let collect_keys = List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in
+  let collect_deps = List.fold_left (fun list (key,deps) -> add_missing list deps) [] in
+  let collect_all  = List.fold_left (fun list (key,deps) -> add_missing list (key::deps)) [] in
+  let all_in_nodes = collect_deps completion in
+  match List.partition (fun (key,_) -> not (List.mem key all_in_nodes) )  completion with
+  | ([], []) -> []
+  | ([], _) -> failwith "Could not find a least element to in the given list. Could not create an ordering."
+  | (least_elements, rest ) ->
+    let reduced_rest = remove_from_completion (fst @$ List.split least_elements) rest in
+    let keys = List.map fst least_elements in
+    let all_rest = collect_all reduced_rest in
+    let all_least_dependencies = collect_deps least_elements in
+    let single_elements = List.filter (fun x -> not (List.mem x all_rest)) all_least_dependencies in
+    let keys_single = add_missing keys single_elements in
+    List.append keys_single (find_ordering_from_completion reduced_rest) 
+)
+
+let find_ordering  constraints =
+  let completion  = collect_dependencies  [] constraints in
+  find_ordering_from_completion completion

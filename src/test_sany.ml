@@ -1,5 +1,6 @@
 open Kaputt.Abbreviations
 open Sany
+open Sany_ds
 
 let exhandler f =
   try
@@ -23,6 +24,7 @@ let test_xml filename =
 	let tree = exhandler (fun () -> import_xml channel)
 	in
 	close_in channel;
+	(*	List.map visitor#mule tree; *)
 	tree
       )
     )
@@ -44,6 +46,7 @@ let files = List.map addpath [
   "withsubmodule" ; 
   "OneBit" ; 
 ]
+
 
   
 let get_tests = List.map test_xml files
