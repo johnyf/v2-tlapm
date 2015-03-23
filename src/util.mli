@@ -88,7 +88,7 @@ val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
 *)
 
 
-(** { 4 general stuff } *)
+(** {3 general stuff } *)
 
 val find_ordering : ('a * 'a) list -> 'a list
 (** given a list of pairs, where the first argument is considered as less 
@@ -103,6 +103,6 @@ Right-associative function application. You can write 'hd @$ tl @$ tl @$ [1;2;3;
 *)
 
 
-(** string utils *)
+(** {3 string utils} *)
 
 val mkString : ?front:string -> ?middle:string -> ?back:string  -> ( 'a -> string) -> 'a list -> string
