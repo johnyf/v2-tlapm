@@ -15,15 +15,14 @@ let check_xmloutput =
   with Not_found -> false
     
 let () =
+  let tests = List.concat [Test_sany.get_tests; Test_util.get_tests] in
   match check_xmloutput with
   | true  ->
     printf "Creating XML output\n";
     let channel = open_out "test/results.xml" in
-    Test.run_tests ~output:(Xml_junit_output channel) Test_sany.get_tests ;
-    Test.run_tests ~output:(Xml_junit_output channel) Test_util.get_tests 
+    Test.run_tests ~output:(Xml_junit_output channel)  tests;
   | false ->
     printf "Launching Tests\n";
-    Test.run_tests Test_sany.get_tests ;
-    Test.run_tests Test_util.get_tests
+    Test.run_tests tests
 
 
