@@ -765,7 +765,7 @@ and read_op_def i =
 and is_op_def name = List.mem name ["UserDefinedOpKind"; "ModuleInstanceKind"; "BuiltInKind"]
     
 and read_entry i = 
-   let _ = open_tag i "entry" in 
+   open_tag i "entry";
    let uid = get_data_in i "UID" read_int in
    let symbol = get_child_choice i [
      ((=)  "FormalParamNode", (fun i ->  FMOTA_formal_param (read_formal_param i)));
@@ -775,18 +775,22 @@ and read_entry i =
      ((=)  "TheoremNode"    , (fun i ->  FMOTA_theorem (read_theorem i)));
      ((=)  "AssumeNode"     , (fun i ->  FMOTA_assume  (read_assume i)));
      ((=)  "APSubstInNode"  , (fun i ->  FMOTA_ap_subst_in  (read_apsubstinnode i)));
-   ]
-   in let _ = close_tag i "entry";
-   in  (uid, symbol)
-    
+   ] in
+   close_tag i "entry";
+   {
+     uid = uid;
+     reference = symbol;
+   }
 
-   
 let read_modules i =
   open_tag i "modules";
-  let con = (init_context_map (get_children_in i "context" "entry" read_entry) ) in 
+  let entries = get_children_in i "context" "entry" read_entry in
   let ret = get_children i "ModuleNode" read_module in
   close_tag i "modules";
-  ret
+  {
+    entries = entries;
+    modules = ret;
+  }
 
 let read_header i =
   input i (* first symbol is dtd *)

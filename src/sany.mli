@@ -9,4 +9,4 @@ open Commons
 open Xmlm
 open Sany_ds
 
-val import_xml : Pervasives.in_channel -> mule list
+val import_xml : Pervasives.in_channel -> context

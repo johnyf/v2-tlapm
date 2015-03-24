@@ -1,6 +1,7 @@
 open Kaputt.Abbreviations
 open Sany
 open Sany_ds
+open Sany_visitor
 
 let exhandler f =
   try
@@ -13,7 +14,12 @@ let exhandler f =
       Printf.printf "Exception: %s\n" (Printexc.to_string x);
       Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
       raise x
-	
+
+let name_visitor = object
+  inherit [string list] visitor as super
+  method name acc n = n::acc
+end
+    
 
 let test_xml filename =
   Test.make_simple_test
@@ -24,7 +30,8 @@ let test_xml filename =
 	let tree = exhandler (fun () -> import_xml channel)
 	in
 	close_in channel;
-	(*	List.map visitor#mule tree; *)
+	let acc = name_visitor#context [] tree in
+	Printf.printf "%s\n" (Util.mkString (fun x->x) acc);
 	tree
       )
     )
@@ -46,8 +53,6 @@ let files = List.map addpath [
   "withsubmodule" ; 
   "OneBit" ; 
 ]
-
-
   
 let get_tests = List.map test_xml files
 

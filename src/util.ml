@@ -219,19 +219,20 @@ let rec collect_dependencies  keys_dependencies = function
   | [] -> keys_dependencies
   
 
+(** appends list2 to list without creating duplicates. does not remove duplicates from list. *)    
 let rec add_missing list = function
   | x::xs when List.mem x list -> add_missing list xs
   | x::xs (* otherwise *)      -> add_missing (List.append list[x]) xs
   | _ -> list
 
-(* removes all passed elements from the dependency list of each entry in the completion list *)
+(** removes all passed elements from the dependency list of each entry in the completion list *)
 let remove_from_completion elements completion =
   List.map (fun (key,deps) ->
     (key, List.filter (fun x -> not (List.mem x elements)) deps)
   ) completion
     
 let rec find_ordering_from_completion  completion = (
-  let collect_keys = List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in
+  (* let collect_keys = List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in *)
   let collect_deps = List.fold_left (fun list (key,deps) -> add_missing list deps) [] in
   let collect_all  = List.fold_left (fun list (key,deps) -> add_missing list (key::deps)) [] in
   let all_in_nodes = collect_deps completion in

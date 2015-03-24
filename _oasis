@@ -26,7 +26,7 @@ Document tlapm_api
   XOCamlbuildPath: src
   XOCamlbuildExtraArgs:
     "-docflags '-colorize-code -short-functors -charset utf-8'"
-  XOcamlBuildModules: Util, Sany, Sany_ds, Commons
+  XOcamlBuildModules: Util, Sany, Sany_ds, Sany_visitor, Commons
 
 Executable test
   Install: false
