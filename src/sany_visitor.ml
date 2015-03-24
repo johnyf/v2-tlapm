@@ -41,6 +41,7 @@ object
   method subst_in        : 'a -> subst_in -> 'a
   method node            : 'a -> node -> 'a
   method def_step        : 'a -> def_step -> 'a
+  method reference       : 'a -> int -> 'a
 
   method context         : 'a -> context -> 'a
   method entry           : 'a -> entry -> 'a
@@ -104,7 +105,7 @@ end
 
 
    method formal_param acc0 = function
-   | FP_ref i -> acc0
+   | FP_ref i -> self#reference acc0 i
    | FP { location; level; name; arity; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
@@ -113,7 +114,7 @@ end
      acc3
      
    method mule acc0 = function
-   | MOD_ref i -> acc0
+   | MOD_ref i -> self#reference acc0 i
    | MOD {name; location; constants; variables; definitions; assumptions; theorems; } ->
      let acc0a = self#name acc0 name in       
      let acc1 = self#location acc0a location in
@@ -133,7 +134,7 @@ end
      acc3
 
    method op_decl acc0 = function
-   | OPD_ref x -> acc0
+   | OPD_ref x -> self#reference acc0 x
    | OPD  { location ; level ; name ; arity ; kind ; } ->
    (* terminal node *)
      let acc1 = self#location acc0 location in
@@ -143,13 +144,13 @@ end
      acc3
 
    method op_def acc = function
-   | OPDef_ref x -> acc
+   | OPDef_ref x -> self#reference acc x
    | OPDef (O_module_instance x) -> self#module_instance acc x
    | OPDef (O_builtin_op x)      -> self#builtin_op acc x
    | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
        
    method theorem acc0 = function
-   | THM_ref x -> acc0
+   | THM_ref x -> self#reference acc0 x
    | THM { location; level; expr; proof; suffices } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
@@ -159,7 +160,7 @@ end
      acc4
      
    method assume acc0  = function
-   | ASSUME_ref x -> acc0
+   | ASSUME_ref x -> self#reference acc0 x
    | ASSUME {location; level; expr; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
@@ -260,17 +261,17 @@ end
      acc
        
    method module_instance acc0 = function
-   | MI_ref x -> acc0
+   | MI_ref x -> self#reference acc0 x
    | MI {location; level; name} ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc = self#name acc2 name in
      acc
      
-   method builtin_op acc = function
-   | BOP_ref x -> acc
+   method builtin_op acc0 = function
+   | BOP_ref x -> self#reference acc0 x
    | BOP {location; level; name; arity; params } ->
-     let acc1 = self#location acc location in
+     let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#name acc2 name in
    (* skip arity *)
@@ -278,7 +279,7 @@ end
      in acc
      
    method user_defined_op acc0 = function
-   | UOP_ref x -> acc0
+   | UOP_ref x -> self#reference acc0 x
    | UOP { location; level ; name ; arity ;
 	   body ; params ; recursive ; } ->
      let acc1 = self#location acc0 location in
@@ -291,6 +292,8 @@ end
      acc
 
    method name acc x = acc
+
+   method reference acc x = acc
 
    method context acc { entries; modules } =
      let acc0 = List.fold_left self#entry acc entries in

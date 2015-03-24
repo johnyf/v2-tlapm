@@ -38,6 +38,6 @@ THEOREM Prime = [n \in Nat |-> x]
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Feb 20 14:08:43 CET 2015 by marty
+\* Last modified Tue Mar 24 15:02:53 CET 2015 by marty
 \* Last modified Fri Feb 20 13:48:56 CET 2015 by merz
 \* Created Fri Feb 20 11:19:19 CET 2015 by merz

@@ -1,6 +1,8 @@
 open Commons
 open Sany_ds
 
+(** The visitor class for traversing a tla specification. Traversal usually starts at the
+    context node, module (mule) node or the expression node. *)
 class ['a] visitor :
 object
   method expr            : 'a -> expr -> 'a
@@ -38,10 +40,11 @@ object
   method subst           : 'a -> subst -> 'a
   method node            : 'a -> node -> 'a
   method def_step        : 'a -> def_step -> 'a
+  method reference       : 'a -> int -> 'a
   method context         : 'a -> context -> 'a
   method entry           : 'a -> entry -> 'a
 
-  (* handlers for disjunction types *)
+  (** handlers for disjunction types *)
   method expr_or_assume_prove : 'a -> expr_or_assume_prove -> 'a
   method expr_or_op_arg       : 'a -> expr_or_op_arg -> 'a
   method fmota                : 'a -> formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst -> 'a

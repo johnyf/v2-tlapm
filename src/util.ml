@@ -183,15 +183,15 @@ let temp_file (clean_hook : (unit -> unit) ref) suffix =
   (fname, chan)
 ;;
 
-(* some general fomratting utils *)
-let fmtPair left right (x,y) = "(" ^ (left x) ^ "," ^ (right y) ^ ")"
+(* some general formatting utils *)
+let fmtPair ?front:(f="(") ?middle:(m=", ") ?back:(b=")") left right (x,y) = f ^ (left x) ^ m ^ (right y) ^ b
 
 let rec mkString_ ?middle:(m=";") fmt = function
   | [] -> ""
   | [x] -> fmt x
   | x::xs -> (fmt x) ^ m ^ (mkString_ ~middle:m fmt xs)
 
-let mkString ?front:(f="[") ?middle:(m=";") ?back:(b="]") fmt lst =
+let mkString ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt lst =
   f ^ (mkString_ ~middle:m fmt lst) ^ b
 
 let fmt_dependencylist = mkString (fmtPair string_of_int (mkString string_of_int))

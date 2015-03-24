@@ -109,4 +109,9 @@ val add_missing : 'a list -> 'a list -> 'a list
 *)    
   
 (** {3 String utils} *)
+(** [mkString ~front ~middle ~back fmt list ] Creates a string from the given list by mapping fmt on each element, using ~middle as a seperator. The string ~front is prepended, while ~back is appended. *)
 val mkString : ?front:string -> ?middle:string -> ?back:string  -> ( 'a -> string) -> 'a list -> string
+
+(** [mkString ~front ~middle ~back fmt list ] Creates a string from the given list by mapping fmt on each element, using ~middle as a seperator. The string ~front is prepended, while ~back is appended. *)
+val fmtPair : ?front:string -> ?middle:string -> ?back:string  -> ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
+  
