@@ -1,8 +1,20 @@
 open Commons
 open Sany_ds
 
-(** The visitor class for traversing a tla specification. Traversal usually starts at the
-    context node, module (mule) node or the expression node. *)
+(** The visitor class for traversing a tla specification. Traversal usually
+    starts at the context node, module (mule) node or the expression (expr)
+    node.
+
+    Methods have the same name as the Sany_ds type they are handling, apart from
+    fmota, which is just too long to write that way. The name property has
+    its own method, but the default implementation skips arities and boolean
+    flags within a record. References are treated implicitly within the
+    method which handles the referred type. The reference method is only called
+    on the id.
+
+    The disjunction types which only delegate to the contained types are
+    at the bottom of the file. In most cases, they do not need an override.
+*)
 class ['a] visitor :
 object
   method expr            : 'a -> expr -> 'a

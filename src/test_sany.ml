@@ -60,7 +60,8 @@ let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 let files = List.map addpath [
   "empty";
   "UserDefOp";
-(*  "cyclic"; (* cyclic dependencies -- skipped *) *)
+  "cyclic"; (* (* cyclic dependencies -- skipped *) *)
+  "recursiveop"; (* (* cyclic dependencies -- skipped *) *)
   "tuples";
   "Choose";
   "at" ; 

@@ -1,6 +1,6 @@
 open Commons
 open Sany_ds
-  
+
 class ['a] visitor :
 object
   method expr            : 'a -> expr -> 'a
@@ -45,12 +45,12 @@ object
 
   method context         : 'a -> context -> 'a
   method entry           : 'a -> entry -> 'a
-    
+
   method expr_or_module_or_module_instance                       : 'a -> expr_or_module_or_module_instance -> 'a
   method user_defined_op_or_module_instance_or_theorem_or_assume : 'a -> user_defined_op_or_module_instance_or_theorem_or_assume -> 'a
   method new_symb_or_expr_or_assume_prove                        : 'a -> new_symb_or_expr_or_assume_prove -> 'a
   method op_def_or_theorem_or_assume                             : 'a -> op_def_or_theorem_or_assume -> 'a
-    
+
 end
  = object(self)
   method node acc = function
@@ -74,28 +74,27 @@ end
    method location acc l : 'a = acc
    method level acc l : 'a = acc
 
-  (* non-recursive expressions *) 
+  (* non-recursive expressions *)
    method decimal acc d = acc
    method numeral acc n = acc
    method strng acc s = acc
 
 (* recursive expressions *)
-   method at acc0 {location; level; except; except_component} : 'a =
+   method at acc0 {location; level; except; except_component} =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#op_appl acc2 except in
      let acc = self#op_appl acc3 except_component in
      acc
 
-   method op_appl acc0 {location; level; operator; operands; bound_symbols} : 'a=
+   method op_appl acc0 {location; level; operator; operands; bound_symbols} =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#fmota acc2 operator in
      let acc4 = List.fold_left self#expr_or_op_arg acc3 operands in
-     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in 
+     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
      acc
 
-       
    method bound_symbol acc = function
    | B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
    | B_unbounded_bound_symbol s -> self#unbounded_bound_symbol acc s
@@ -112,11 +111,12 @@ end
      let acc3 = self#name acc2 name in
      (* arity skipped *)
      acc3
-     
+
    method mule acc0 = function
    | MOD_ref i -> self#reference acc0 i
-   | MOD {name; location; constants; variables; definitions; assumptions; theorems; } ->
-     let acc0a = self#name acc0 name in       
+   | MOD {name; location; constants; variables;
+	  definitions; assumptions; theorems; } ->
+     let acc0a = self#name acc0 name in
      let acc1 = self#location acc0a location in
      let acc2 = List.fold_left self#op_decl acc1 constants in
      let acc3 = List.fold_left self#op_decl acc2 variables in
@@ -124,7 +124,7 @@ end
      let acc5 = List.fold_left self#assume acc4 assumptions in
      let acc = List.fold_left self#theorem acc5 theorems in
      acc
-     
+
    method op_arg acc0 {location; level; name; arity } =
      (* terminal node *)
      let acc1 = self#location acc0 location in
@@ -148,7 +148,7 @@ end
    | OPDef (O_module_instance x) -> self#module_instance acc x
    | OPDef (O_builtin_op x)      -> self#builtin_op acc x
    | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
-       
+
    method theorem acc0 = function
    | THM_ref x -> self#reference acc0 x
    | THM { location; level; expr; proof; suffices } ->
@@ -158,7 +158,7 @@ end
      let acc4 = self#proof acc3 proof  in
      (* todo: finish*)
      acc4
-     
+
    method assume acc0  = function
    | ASSUME_ref x -> self#reference acc0 x
    | ASSUME {location; level; expr; } ->
@@ -166,15 +166,17 @@ end
      let acc2 = self#level acc1 level in
      let acc = self#expr acc2 expr in
      acc
-       
+
    method proof acc0 = function
    | P_omitted location -> acc0
    | P_obvious location -> acc0
    | P_by { location; level; facts; defs; only} ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#expr_or_module_or_module_instance acc2 facts in
-     let acc = List.fold_left self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
+     let acc3 = List.fold_left
+       self#expr_or_module_or_module_instance acc2 facts in
+     let acc = List.fold_left
+       self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
      (* skip the only tag *)
      acc
    | P_steps { location; level; steps; } ->
@@ -190,14 +192,16 @@ end
    method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#expr_or_module_or_module_instance acc2 facts in
-     let acc = List.fold_left self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
+     let acc3 = List.fold_left
+       self#expr_or_module_or_module_instance acc2 facts in
+     let acc = List.fold_left
+       self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
      acc
-     
+
    method instance acc0 {location; level; name; substs; params; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in     
+     let acc3 = self#name acc2 name in
      let acc4 = List.fold_left self#subst acc3 substs in
      let acc = List.fold_left self#formal_param acc4 params in
      acc
@@ -206,16 +210,18 @@ end
      let acc1 = self#op_decl acc0 op in
      let acc = self#expr_or_op_arg acc1 expr in
      acc
-       
-   method assume_prove acc0 { location; level; assumes; prove; suffices; boxed; } =
+
+   method assume_prove acc0 { location; level; assumes;
+			      prove; suffices; boxed; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#new_symb_or_expr_or_assume_prove acc2 assumes in
+     let acc3 = List.fold_left
+       self#new_symb_or_expr_or_assume_prove acc2 assumes in
      let acc = self#expr acc3 prove in
      (* suffices and boxed are boolean flags*)
      acc
 
-   method new_symb acc0 { location; level; op_decl; set } = 
+   method new_symb acc0 { location; level; op_decl; set } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#op_decl acc2 op_decl in
@@ -230,14 +236,14 @@ end
      let acc3 = self#expr acc2 body in
      let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
      acc
-       
+
    method subst_in acc0 ({ location; level; substs; body } : subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = List.fold_left self#subst acc2 substs in
      let acc = self#expr acc3 body in
      acc
-     
+
    method label acc0 ({location; level; name; arity; body; params } : label) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
@@ -245,8 +251,8 @@ end
      (* skip arity *)
      let acc4 = self#expr_or_assume_prove acc3 body in
      let acc = List.fold_left self#formal_param acc4 params in
-     acc     
-       
+     acc
+
    method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
@@ -259,7 +265,7 @@ end
      let acc2 = self#level acc1 level in
      let acc = List.fold_left self#op_def acc2 defs in
      acc
-       
+
    method module_instance acc0 = function
    | MI_ref x -> self#reference acc0 x
    | MI {location; level; name} ->
@@ -267,7 +273,7 @@ end
      let acc2 = self#level acc1 level in
      let acc = self#name acc2 name in
      acc
-     
+
    method builtin_op acc0 = function
    | BOP_ref x -> self#reference acc0 x
    | BOP {location; level; name; arity; params } ->
@@ -275,9 +281,10 @@ end
      let acc2 = self#level acc1 level in
      let acc3 = self#name acc2 name in
    (* skip arity *)
-     let acc = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc3 params
+     let acc = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) acc3 params
      in acc
-     
+
    method user_defined_op acc0 = function
    | UOP_ref x -> self#reference acc0 x
    | UOP { location; level ; name ; arity ;
@@ -287,7 +294,8 @@ end
      let acc3 = self#name acc2 name in
    (* arity *)
      let acc4 = self#expr acc3 body in
-     let acc = List.fold_left (fun x (fp,_) -> self#formal_param x fp) acc4 params in
+     let acc = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) acc4 params in
    (* skip recursive flag *)
      acc
 
@@ -299,7 +307,7 @@ end
      let acc0 = List.fold_left self#entry acc entries in
      let acc1 = List.fold_left self#mule acc0 modules in
      acc1
-       
+
    method entry acc { uid; reference } =
      (* skipping uid *)
      self#fmota acc reference
@@ -319,14 +327,13 @@ end
    | EMM_expr x            -> self#expr acc x
    | EMM_module_instance x -> self#module_instance acc x
    | EMM_module x          -> self#mule acc x
-     
+
    method user_defined_op_or_module_instance_or_theorem_or_assume acc = function
    | UMTA_user_defined_op x -> self#user_defined_op acc x
    | UMTA_module_instance x -> self#module_instance acc x
    | UMTA_theorem x         -> self#theorem acc x
    | UMTA_assume x          -> self#assume acc x
 
-     
    method new_symb_or_expr_or_assume_prove acc = function
    | NEA_new_symb s      -> self#new_symb acc s
    | NEA_expr e          -> self#expr acc e
@@ -345,7 +352,6 @@ end
    | EO_op_arg oa -> self#op_arg acc oa
    | EO_expr e -> self#expr acc e
 
-     
    method fmota acc = function
    | FMOTA_formal_param x -> self#formal_param acc x
    | FMOTA_module  x -> self#mule acc x
@@ -355,4 +361,3 @@ end
    | FMOTA_assume  x -> self#assume acc x
    | FMOTA_ap_subst_in x -> self#ap_subst_in acc x
  end
-  

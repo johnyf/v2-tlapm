@@ -1,5 +1,21 @@
 open Commons
 
+(**
+   These datastructures directly mirror the XML schema in lib/sany.xsd. There
+   are two differences:
+   1) The handling of references is realized such that each of the types
+   allowing a reference are disjunctions of either a reference or a concrete
+   record.
+
+   2) The proof datatype has an additional case P_noproof to remember when
+   the user gave no proof (in contrast to omitted, where the user explicitly
+   requests to skip a proof).
+
+   Additional disjunction types (like expr_or_op_arg) are necessary, whenever
+   the XML schema may contain child nodes of different types. The have the form
+   type1_or_..._or_typeN.
+*)
+
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove
@@ -110,7 +126,7 @@ and new_symb = {
 and op_def =
   | OPDef_ref of int
   | OPDef of op_def_
-    
+
 and op_def_ =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
@@ -165,7 +181,7 @@ and formal_param =
 
 and formal_param_ = {
      location          : location option;
-     level             : level option; 
+     level             : level option;
      name              : string;
      arity             : int
 }
@@ -173,7 +189,7 @@ and formal_param_ = {
 and op_decl =
    | OPD_ref of int
    | OPD of op_decl_
-      
+
 and op_decl_ = {
   location          : location option;
   level             : level option;
@@ -211,17 +227,17 @@ and user_defined_op_or_module_instance_or_theorem_or_assume =
   | UMTA_assume of assume
 
 and by = {
-  location          : location option;
-  level             : level option;
-  facts             : expr_or_module_or_module_instance list;
-  defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
-  only              : bool
+  location       : location option;
+  level          : level option;
+  facts          : expr_or_module_or_module_instance list;
+  defs           : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  only           : bool
 }
 
 and steps = {
-  location          : location option;
-  level             : level option;
-  steps             : step list
+  location       : location option;
+  level          : level option;
+  steps          : step list
 }
 
 and step =
@@ -231,18 +247,18 @@ and step =
   | S_theorem of theorem
 
 and def_step = {
-  location          : location option;
-  level             : level option;
-  defs              : op_def list
+  location       : location option;
+  level          : level option;
+  defs           : op_def list
 }
 
 and use_or_hide = {
-  location          : location option;
-  level             : level option;
-  facts             : expr_or_module_or_module_instance list;
-  defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
-  only              : bool;
-  hide              : bool
+  location       : location option;
+  level          : level option;
+  facts          : expr_or_module_or_module_instance list;
+  defs           : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  only           : bool;
+  hide           : bool
 }
 
 and at = {
@@ -328,7 +344,7 @@ and bounded_bound_symbol = {
 and mule =
   | MOD_ref of int
   | MOD of mule_
-    
+
 and mule_ = {
   name              : string;
   location          : location option;
@@ -349,4 +365,3 @@ type context = {
   entries : entry list;
   modules : mule list;
 }
-

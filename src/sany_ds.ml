@@ -1,6 +1,5 @@
 open Commons
 
- 
 (* type declarations *)
 type node =
   | N_ap_subst_in of ap_subst_in
@@ -112,7 +111,7 @@ and new_symb = {
 and op_def =
   | OPDef_ref of int
   | OPDef of op_def_
-    
+
 and op_def_ =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
@@ -167,7 +166,7 @@ and formal_param =
 
 and formal_param_ = {
      location          : location option;
-     level             : level option; 
+     level             : level option;
      name              : string;
      arity             : int
 }
@@ -175,7 +174,7 @@ and formal_param_ = {
 and op_decl =
    | OPD_ref of int
    | OPD of op_decl_
-      
+
 and op_decl_ = {
   location          : location option;
   level             : level option;
@@ -189,7 +188,7 @@ and proof =
   | P_obvious of obvious
   | P_by of by
   | P_steps of steps
-  | P_noproof  
+  | P_noproof
 
 and omitted = {
   location          : location option;
@@ -213,17 +212,17 @@ and user_defined_op_or_module_instance_or_theorem_or_assume =
   | UMTA_assume of assume
 
 and by = {
-  location          : location option;
-  level             : level option;
-  facts             : expr_or_module_or_module_instance list;
-  defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
-  only              : bool
+  location      : location option;
+  level         : level option;
+  facts         : expr_or_module_or_module_instance list;
+  defs          : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  only          : bool
 }
 
 and steps = {
-  location          : location option;
-  level             : level option;
-  steps             : step list
+  location      : location option;
+  level         : level option;
+  steps         : step list
 }
 
 and step =
@@ -233,18 +232,18 @@ and step =
   | S_theorem of theorem
 
 and def_step = {
-  location          : location option;
-  level             : level option;
-  defs              : op_def list
+  location       : location option;
+  level          : level option;
+  defs           : op_def list
 }
 
 and use_or_hide = {
-  location          : location option;
-  level             : level option;
-  facts             : expr_or_module_or_module_instance list;
-  defs              : user_defined_op_or_module_instance_or_theorem_or_assume list;
-  only              : bool;
-  hide              : bool
+  location       : location option;
+  level          : level option;
+  facts          : expr_or_module_or_module_instance list;
+  defs           : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  only           : bool;
+  hide           : bool
 }
 
 and at = {
@@ -304,11 +303,11 @@ and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst 
   | FMOTA_ap_subst_in of ap_subst_in
 
 and op_appl = {
-  location          : location option;
-  level             : level option;
-  operator          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
-  operands          : expr_or_op_arg list;
-  bound_symbols     : bound_symbol list
+  location      : location option;
+  level         : level option;
+  operator      : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
+  operands      : expr_or_op_arg list;
+  bound_symbols : bound_symbol list
 }
 
 and bound_symbol =
@@ -330,7 +329,7 @@ and bounded_bound_symbol = {
 and mule =
   | MOD_ref of int
   | MOD of mule_
-    
+
 and mule_ = {
   name              : string;
   location          : location option;
