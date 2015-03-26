@@ -358,13 +358,14 @@ and read_subst i =
     expr = expr;
   }
 
-(* untested *)
 and read_substinnode i : subst_in =
   open_tag i "SubstInNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
   let substs = get_children_in i "substs" "Subst" read_subst in
+  open_tag i "body";
   let body = read_expr i in
+  close_tag i "body";
   close_tag i "SubstInNode";
   {
     location = location;

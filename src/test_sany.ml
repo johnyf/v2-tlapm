@@ -33,8 +33,8 @@ let dependency_visitor = object
     let deps = ref_visitor#fmota [] reference in
     let pairs = List.map (fun x -> (uid, x)) deps in
     List.append acc pairs
+
 end
-  
 
 let test_xml filename =
   Test.make_simple_test
@@ -48,9 +48,13 @@ let test_xml filename =
 	let acc = name_visitor#context [] tree in
 	Printf.printf "%s\n" (Util.mkString (fun x->x) acc);
 	let deps = dependency_visitor#context [] tree in
-	Printf.printf "Dependency pairs: %s\n" (Util.mkString ~front:"digraph out {" ~middle:"\n" ~back:"}" (Util.fmtPair ~front:"" ~middle:" -> " ~back:";" string_of_int string_of_int) deps);
+(*	Printf.printf "Dependency pairs: %s\n"
+	  (Util.mkString ~front:"digraph out {" ~middle:"\n" ~back:"}"
+	     (Util.fmtPair ~front:"" ~middle:" -> " ~back:";"
+	string_of_int string_of_int) deps); *)
 	let ordering = exhandler (fun () -> Util.find_ordering deps) in
-	Printf.printf "Found an ordering: %s\n" (Util.mkString string_of_int ordering);
+	Printf.printf "Found an ordering: %s\n"
+	  (Util.mkString string_of_int ordering);
 	tree
       )
     )
@@ -60,20 +64,20 @@ let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 let files = List.map addpath [
   "empty";
   "UserDefOp";
-  "cyclic"; (* (* cyclic dependencies -- skipped *) *)
-  "recursiveop"; (* (* cyclic dependencies -- skipped *) *)
+  (*  "cyclic"; (* cyclic dependencies -- skipped *) *)
+  (*  "recursiveop"; (* cyclic dependencies -- skipped *) *)
+  "lambda";
   "tuples";
   "Choose";
-  "at" ; 
-  "expr" ; 
+  "at" ;
+  "expr" ;
 (*  "Euclid" ; (* cyclic dependencies -- skipped *) *)
  (*   "pharos" ; (* commented out, takes 10s to load *)  *)
-  "instanceA" ; 
+  "instanceA" ;
 (*  "exec" ; (* cyclic dependencies -- skipped *) *)
 (*  "priming_stephan" ; (* cyclic dependencies -- skipped *) *)
-  "withsubmodule" ; 
-  "OneBit" ; 
+  "withsubmodule" ;
+  "OneBit" ;
 ]
-  
-let get_tests = List.map test_xml files
 
+let get_tests = List.map test_xml files
