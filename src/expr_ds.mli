@@ -18,7 +18,7 @@ open Commons
       type of everything whicih contains a subst_in, so perhaps better not.
    -) what to do about references? by default, we don't unfold definitions, etc.
       does it make so much more sense to refer to them by name instead of ints?
-   -) apparentlty, sany does not have explicit modules anymore. 
+   -) apparenlty, sany does not have explicit modules anymore. if it 
 *)
 
 type node =

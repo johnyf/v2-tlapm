@@ -4,6 +4,8 @@ VARIABLE z \* we cannot declare x here
 
 ---- MODULE sub1 ----
  VARIABLE x
+ 
+ COMPARE(u) == u = x 
 ====
 
 ---- MODULE sub2 ----
@@ -19,5 +21,5 @@ THEOREM T!CAP BY DEF T!CAP
 
 =============================================================================
 \* Modification History
-\* Last modified Tue Mar 31 16:39:11 CEST 2015 by marty
+\* Last modified Tue Mar 31 17:51:40 CEST 2015 by marty
 \* Created Tue Mar 31 16:24:25 CEST 2015 by marty
