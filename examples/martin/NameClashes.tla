@@ -19,7 +19,9 @@ T == INSTANCE sub2 WITH x <- 0, y <- 0
 
 THEOREM T!CAP BY DEF T!CAP
 
+THEOREM T!CAP BY DEF T
+
 =============================================================================
 \* Modification History
-\* Last modified Tue Mar 31 17:51:40 CEST 2015 by marty
+\* Last modified Wed Apr 01 15:50:43 CEST 2015 by marty
 \* Created Tue Mar 31 16:24:25 CEST 2015 by marty
