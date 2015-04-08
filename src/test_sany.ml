@@ -48,13 +48,13 @@ let test_xml filename =
 	let acc = name_visitor#context [] tree in
 	Printf.printf "%s\n" (Util.mkString (fun x->x) acc);
 	let deps = dependency_visitor#context [] tree in
-(*	Printf.printf "Dependency pairs: %s\n"
+	Printf.printf "Dependency pairs: %s\n"
 	  (Util.mkString ~front:"digraph out {" ~middle:"\n" ~back:"}"
 	     (Util.fmtPair ~front:"" ~middle:" -> " ~back:";"
-	string_of_int string_of_int) deps); *)
+	string_of_int string_of_int) deps);
 	let ordering = exhandler (fun () -> Util.find_ordering deps) in
-	Printf.printf "Found an ordering: %s\n"
-	  (Util.mkString string_of_int ordering);
+	(*Printf.printf "Found an ordering: %s\n"
+		(Util.mkString string_of_int ordering); *)
 	tree
       )
     )
@@ -62,6 +62,28 @@ let test_xml filename =
 let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 
 let files = List.map addpath [
+  "empty";
+  "UserDefOp";
+  "lambda";
+  "tuples";
+  "Choose";
+  "at" ;
+  "expr" ;
+  "instanceA" ;
+  "Euclid";
+  "exec";
+  "priming_stephan";
+  "withsubmodule";
+  "OneBit";
+  "pharos"; 
+
+]
+
+let get_tests = List.map test_xml files 
+
+  (*
+
+[
   "empty";
   "UserDefOp";
   (*  "cyclic"; (* cyclic dependencies -- skipped *) *)
@@ -80,4 +102,4 @@ let files = List.map addpath [
   "OneBit" ;
 ]
 
-let get_tests = List.map test_xml files
+  *)
