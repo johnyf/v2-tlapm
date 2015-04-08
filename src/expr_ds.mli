@@ -1,7 +1,7 @@
 open Commons
 
 (**
-   These datastructures are close the xml parser datastructures in sany_ds.
+   These datastructures are close to the xml parser datastructures in sany_ds.
    The differences are:
    1) instead of location option we use dummy values (Commons.mkDummyLocation)
    2) the expr in expr_or_assume_prove is replaced by assume_prove without
@@ -11,15 +11,20 @@ open Commons
       in which they are declared is only relevant for the sany parser.
    4) builtin operator references are expanded to applications of $builtinname.
       the expr_visitor will provide callbacks for each builtin.
+
+      builtins don't have a location anymore.
    5) entries in the context are now seperated by type
+   6) module instance references are unfolded.
+   7) operator definition references contain the name
 
    Still open:
    -) remove subst_in, since it is subsumed by ap_subst_in? it would widen the
       type of everything whicih contains a subst_in, so perhaps better not.
    -) what to do about references? by default, we don't unfold definitions, etc.
       does it make so much more sense to refer to them by name instead of ints?
-   -) apparently, sany does not have explicit modules anymore. should we just
-      remove the module part?
+   -) Module instance refer to modules by name, but they don't exist in the
+      representation anymore.
+
 *)
 
 type node =
@@ -139,7 +144,7 @@ and module_instance_ = {
 }
 
 and user_defined_op =
-  | UOP_ref of int
+  | UOP_ref of (int * string)
   | UOP of user_defined_op_
 
 and user_defined_op_ = {
@@ -152,12 +157,7 @@ and user_defined_op_ = {
   recursive         : bool
 }
 
-and builtin_op =
-  | BOP_ref of int
-  | BOP of builtin_op_
-
-and builtin_op_ = {
-  location          : location;
+and builtin_op = {
   level             : level option;
   name              : string;
   arity             : int;
@@ -304,7 +304,12 @@ and strng = {
   value             : string
 }
 
-and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst =
+(**
+   Operator corresponds is Sany_ds's disjunction type
+   formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst.
+   An operator is anything which can have arguments applied.
+*)
+and operator =
   | FMOTA_formal_param of formal_param
   | FMOTA_module of mule
   | FMOTA_op_decl of op_decl
@@ -316,7 +321,7 @@ and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst 
 and op_appl = {
   location          : location;
   level             : level option;
-  operator          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
+  operator          : operator;
   operands          : expr_or_op_arg list;
   bound_symbols     : bound_symbol list
 }
