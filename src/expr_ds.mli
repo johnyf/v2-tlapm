@@ -16,14 +16,18 @@ open Commons
    5) entries in the context are now seperated by type
    6) module instance references are unfolded.
    7) operator definition references contain the name
+   8) Renamings:
+     formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst = operator
+     user_defined_op_or_module_instance_or_theorem_or_assume = defined_expr
 
    Still open:
-   -) remove subst_in, since it is subsumed by ap_subst_in? it would widen the
-      type of everything whicih contains a subst_in, so perhaps better not.
    -) what to do about references? by default, we don't unfold definitions, etc.
       does it make so much more sense to refer to them by name instead of ints?
+      this only works for named objects like definitions, but not for unnamed
+      theorems etc.
    -) Module instance refer to modules by name, but they don't exist in the
       representation anymore.
+      At the moment, we try to infer the module name from the definition name.
 
 *)
 
@@ -216,7 +220,7 @@ and expr_or_module_or_module_instance =
   | EMM_module of mule
   | EMM_module_instance of module_instance
 
-and user_defined_op_or_module_instance_or_theorem_or_assume =
+and defined_expr =
   | UMTA_user_defined_op of user_defined_op
   | UMTA_module_instance of module_instance
   | UMTA_theorem of theorem
@@ -226,7 +230,7 @@ and by = {
   location       : location;
   level          : level option;
   facts          : expr_or_module_or_module_instance list;
-  defs           : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  defs           : defined_expr list;
   only           : bool
 }
 
@@ -252,7 +256,7 @@ and use_or_hide = {
   location       : location;
   level          : level option;
   facts          : expr_or_module_or_module_instance list;
-  defs           : user_defined_op_or_module_instance_or_theorem_or_assume list;
+  defs           : defined_expr list;
   only           : bool;
   hide           : bool
 }
@@ -366,4 +370,4 @@ type context = {
   apsubst_entries : (int * ap_subst_in) list;
   modules : mule list;
 }
-(* *)
+(*  *)

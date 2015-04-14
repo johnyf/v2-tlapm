@@ -14,7 +14,7 @@ open Commons
    Additional disjunction types (like expr_or_op_arg) are necessary, whenever
    the XML schema may contain child nodes of different types. The have the form
    type1_or_..._or_typeN.
-*)
+ *)
 
 type node =
   | N_ap_subst_in of ap_subst_in

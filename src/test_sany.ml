@@ -40,23 +40,28 @@ let test_xml filename =
   Test.make_simple_test
     ~title: ("xml parsing " ^ filename)
     (fun () ->
-      Assert.no_raise ~msg:"Unexpected exception raised." (fun () ->
-	let channel = open_in filename in
-	let tree = exhandler (fun () -> import_xml channel)
-	in
-	close_in channel;
-	let acc = name_visitor#context [] tree in
-	Printf.printf "%s\n" (Util.mkString (fun x->x) acc);
-	let deps = dependency_visitor#context [] tree in
-(*	Printf.printf "Dependency pairs: %s\n"
+     Assert.no_raise ~msg:"Unexpected exception raised."
+	(fun () -> exhandler
+	 (fun () -> 
+	  let channel = open_in filename in
+	      let tree = exhandler (fun () -> import_xml channel)
+	      in
+	      close_in channel;
+	      let acc = name_visitor#context [] tree in
+	      Printf.printf "%s\n" (Util.mkString (fun x->x) acc);
+	      ignore (dependency_visitor#context [] tree); (* remove warning -- just check*)
+	      (*	Printf.printf "Dependency pairs: %s\n"
 	  (Util.mkString ~front:"digraph out {" ~middle:"\n" ~back:"}"
-	     (Util.fmtPair ~front:"" ~middle:" -> " ~back:";" 
+	     (Util.fmtPair ~front:"" ~middle:" -> " ~back:";"
 	string_of_int string_of_int) deps); *)
-  	(* let ordering = exhandler (fun () -> Util.find_ordering deps) in *)
-	(*Printf.printf "Found an ordering: %s\n"
+  	      (* let ordering = exhandler (fun () -> Util.find_ordering deps) in *)
+	      (*Printf.printf "Found an ordering: %s\n"
 		(Util.mkString string_of_int ordering); *)
-	tree
-      )
+	      (* convert to internal format, but don't do anything with the result *)
+	      (* ignore (Sany_expr.convert_context tree); comment out since it doesnt work yet *)
+	      tree
+	 )
+	)
     )
 
 let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
@@ -75,8 +80,8 @@ let files = List.map addpath [
   "priming_stephan";
   "withsubmodule";
   "OneBit";
-  (*  "pharos"; (* contains duplicates of multiple modules, takes very long to load *) *)
+(*"pharos"; (* contains duplicates of multiple modules, takes long to load *) *)
 
 ]
 
-let get_tests = List.map test_xml files 
+let get_tests = List.map test_xml files

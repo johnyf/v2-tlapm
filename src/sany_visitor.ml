@@ -53,6 +53,7 @@ object
 
 end
  = object(self)
+
   method node acc = function
   | N_ap_subst_in x  -> self#ap_subst_in acc x
   | N_assume_prove x -> self#assume_prove acc x
