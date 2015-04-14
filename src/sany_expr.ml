@@ -10,60 +10,70 @@ open Commons
 
 type anyExpr =
   | Nothing
-  | E_node of node
-  | E_expr of expr
-  | E_expr_or_oparg of expr_or_op_arg
+  | Any_location of location
+  | Any_level of level option
+  | Any_node of node
+  | Any_expr of expr
+  | Any_expr_or_oparg of expr_or_op_arg
   (*  | E_new_symb_or_expr_or_assume_prove of new_symb_or_expr_or_assume_prove *)
-  | E_ap_subst_in of ap_subst_in
-  | E_subst_in of subst_in
-  | E_instance of instance
-  | E_subst of subst
-  | E_assume of assume
-  | E_assume_ of assume_
-  | E_theorem of theorem
-  | E_theorem_ of theorem_
-  | E_assume_prove of assume_prove
-  | E_new_symb of new_symb
-  | E_op_def of op_def
-  | E_op_def_ of op_def_
-  | E_module_instance of module_instance
-  | E_module_instance_ of module_instance_
-  | E_user_defined_op of user_defined_op
-  | E_user_defined_op_ of user_defined_op_
-  | E_builtin_op of builtin_op
-  | E_op_arg of op_arg
-  | E_formal_param of formal_param
-  | E_formal_param_ of formal_param_
-  | E_op_decl of op_decl
-  | E_op_decl_ of op_decl_
-  | E_proof of proof
-  | E_omitted of omitted
-  | E_obcious of obvious
-  | E_expr_or_module_or_module_instance of expr_or_module_or_module_instance
-  | E_defined_expr of defined_expr
-  | E_by of by
-  | E_steps of steps
-  | E_step of step
-  | E_def_tep of  def_step
-  | E_use_or_hide of use_or_hide
-  | E_at of at
-  | E_decimal of decimal
-  | E_label of label
-  | E_op_def_or_theorem_or_assume of op_def_or_theorem_or_assume
-  | E_let_in of let_in
-  | E_numeral of numeral
-  | E_strng of strng
-  | E_operator of operator
-  | E_op_appl of op_appl
-  | E_bound_symbol of bound_symbol
-  | E_unbounded_bound_symbol of unbounded_bound_symbol
-  | E_bounded_bound_symbol of bounded_bound_symbol
-  | E_mule of mule
-  | E_mule_ of  mule_
-  | E_context of context
+  | Any_ap_subst_in of ap_subst_in
+  | Any_subst_in of subst_in
+  | Any_instance of instance
+  | Any_subst of subst
+  | Any_assume of assume
+  | Any_assume_ of assume_
+  | Any_theorem of theorem
+  | Any_theorem_ of theorem_
+  | Any_assume_prove of assume_prove
+  | Any_new_symb of new_symb
+  | Any_op_def of op_def
+  | Any_op_def_ of op_def_
+  | Any_module_instance of module_instance
+  | Any_module_instance_ of module_instance_
+  | Any_user_defined_op of user_defined_op
+  | Any_user_defined_op_ of user_defined_op_
+  | Any_builtin_op of builtin_op
+  | Any_op_arg of op_arg
+  | Any_formal_param of formal_param
+  | Any_formal_param_ of formal_param_
+  | Any_op_decl of op_decl
+  | Any_op_decl_ of op_decl_
+  | Any_proof of proof
+  | Any_omitted of omitted
+  | Any_obcious of obvious
+  | Any_expr_or_module_or_module_instance of expr_or_module_or_module_instance
+  | Any_defined_expr of defined_expr
+  | Any_by of by
+  | Any_steps of steps
+  | Any_step of step
+  | Any_def_tep of  def_step
+  | Any_use_or_hide of use_or_hide
+  | Any_at of at
+  | Any_decimal of decimal
+  | Any_label of label
+  | Any_op_def_or_theorem_or_assume of op_def_or_theorem_or_assume
+  | Any_let_in of let_in
+  | Any_numeral of numeral
+  | Any_strng of strng
+  | Any_operator of operator
+  | Any_op_appl of op_appl
+  | Any_bound_symbol of bound_symbol
+  | Any_unbounded_bound_symbol of unbounded_bound_symbol
+  | Any_bounded_bound_symbol of bounded_bound_symbol
+  | Any_mule of mule
+  | Any_mule_ of  mule_
+  | Any_context of context
 
+type builtin_store = (Sany_ds.builtin_op * builtin_op) list
+
+(**
+ This visitor converts sany_ds datastructures into expr_ds datastructures. Since
+ builtin operators or unfolded, we pass an association list builtin_store in the
+ accumulator. As a return value, we are actually interested in an expression,
+ so we need to use the anyExpr data type to have a uniform type.
+ *)
 class converter = object(self)
-  inherit [anyExpr] Sany_visitor.visitor as super
+  inherit [anyExpr * builtin_store] Sany_visitor.visitor as super
 
   method node acc = function
   | Sany_ds.N_ap_subst_in x  -> self#ap_subst_in acc x
@@ -83,31 +93,77 @@ class converter = object(self)
   | Sany_ds.N_use_or_hide x  -> self#use_or_hide acc x
 
   (* parts of expressions *)
-   method location acc l : 'a = acc
-   method level acc l : 'a = acc
+  method location (_, acc) = function
+    | None -> (Any_location mkDummyLocation, acc)
+    | Some l -> (Any_location l, acc)
+
+  method level (_, acc) l = (Any_level l, acc)
 
   (* non-recursive expressions *)
-   method decimal acc d = acc
-   method numeral acc n = acc
-   method strng acc s = acc
+  method decimal acc0 {Sany_ds.location; level; mantissa; exponent} =
+    let (Any_location location, acc) = self#location acc0 location in
+    let d = {
+	location = location;
+	level = level;
+	mantissa = mantissa;
+	exponent = exponent;
+      } in
+    (Any_decimal d, acc)
 
+  method numeral acc0 ({Sany_ds.location; level; value} : Sany_ds.numeral) =
+    let (Any_location location, acc) = self#location acc0 location in
+    let n:numeral = {
+	location = location;
+	level = level;
+	value = value;
+      } in
+    (Any_numeral n, acc)
+
+  method strng acc0 ({Sany_ds.location; level; value} : Sany_ds.strng) =
+    let (Any_location location, acc) = self#location acc0 location in
+    let s:strng = {
+	location = location;
+	level = level;
+	value = value;
+      } in
+    (Any_strng s, acc)
 
   (* recursive expressions *)
    method at acc0 {Sany_ds.location; level; except; except_component} =
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       let acc3 = self#op_appl acc2 except in
-       let acc = self#op_appl acc3 except_component in
-       acc
+     let (Any_location location, acc1) = self#location acc0 location in
+     let (Any_level level      , acc2) = self#level (Nothing, acc1) level in
+     let (Any_op_appl except   , acc3) = self#op_appl (Nothing, acc2) except in
+     let (Any_op_appl except_component, acc ) =
+       self#op_appl (Nothing, acc3) except_component in
+     let at = {
+	 location = location;
+	 level = level;
+	 except = except;
+	 except_component = except_component;
+       } in
+     (Any_at at, acc)
 
    method op_appl acc0 ({Sany_ds.location; level; operator;
-			 operands; bound_symbols} : Sany_ds.op_appl) =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#fmota acc2 operator in
-     let acc4 = List.fold_left self#expr_or_op_arg acc3 operands in
-     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
-     acc
+			      operands; bound_symbols} : Sany_ds.op_appl) =
+     let (Any_location location, acc1) = self#location acc0 location in
+     let (Any_level level,       acc2) = self#level (Nothing, acc1) level in
+     let (Any_operator operator, acc3) = self#fmota (Nothing, acc2) operator in
+     let (any_operands, acc4) =
+       List.fold_left self#expr_or_op_arg (Nothing, acc3) operands in
+     let (any_bound_symbols, acc) =
+       List.fold_left self#bound_symbol (Nothing, acc4) bound_symbols in
+     let operands =
+       List.map (fun (Any_expr_or_oparg e) -> e) any_operands in
+     let bound_symbols =
+       List.map (fun (Any_bound_symbol s) -> s) any_bound_symbols in
+     let op_appl = {
+	 location = location;
+	 level = level;
+	 operator = operator;
+	 operands = operands;
+	 bound_symbols = bound_symbols;
+       } in
+     (Any_op_appl op_appl, acc)
 
    method bound_symbol acc = function
    | Sany_ds.B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
@@ -379,12 +435,12 @@ end
 
 let converter_instance = new converter
 
-let convert_expr x = match converter_instance#expr Nothing x with
-  | E_expr e -> e
+let convert_expr x = match converter_instance#expr ( Nothing, [] ) x with
+  | Any_expr e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_context x = match converter_instance#context Nothing x with
-  | E_context e -> e
+let convert_context x = match converter_instance#context ( Nothing, [] ) x with
+  | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_module x = match converter_instance#mule Nothing x with
-  | E_mule e -> e
+let convert_module x = match converter_instance#mule (Nothing, []) x with
+  | Any_mule e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
