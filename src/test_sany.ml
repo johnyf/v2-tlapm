@@ -58,7 +58,7 @@ let test_xml filename =
 	      (*Printf.printf "Found an ordering: %s\n"
 		(Util.mkString string_of_int ordering); *)
 	      (* convert to internal format, but don't do anything with the result *)
-	      (* ignore (Sany_expr.convert_context tree); comment out since it doesnt work yet *)
+	      ignore (Sany_expr.convert_context tree); (* comment out since it doesnt work yet *)
 	      tree
 	 )
 	)

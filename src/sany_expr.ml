@@ -15,7 +15,6 @@ type anyExpr =
   | Any_node of node
   | Any_expr of expr
   | Any_expr_or_oparg of expr_or_op_arg
-  (*  | E_new_symb_or_expr_or_assume_prove of new_symb_or_expr_or_assume_prove *)
   | Any_ap_subst_in of ap_subst_in
   | Any_subst_in of subst_in
   | Any_instance of instance
@@ -67,6 +66,34 @@ type anyExpr =
 type builtin_store = (Sany_ds.builtin_op * builtin_op) list
 
 (**
+  Applies the function f to the element y with the accumulator extracted from x.
+  Returns a pair of the function result prepended to the list of results
+  extracted from x together with the last accumulator state.
+
+  The idea is to lift f to lists of any expressions instead of expressions only.
+  Then it can be used to lift a fold.
+ *)
+let lift (f : ('b * 'c) -> 'a -> ('b * 'c))
+	 (x : ('b list * 'c))
+	 (y : 'a) = match x with
+  | list, racc ->
+     let ne, nacc = f (Nothing, racc) y in
+     (ne::list, nacc)
+
+(** Defines a fold_left with a folded function of type
+    ('a * 'b) -> ('a list *'b). The function f of type
+    ('a * 'b) -> 'c -> ('a * 'b) is lifted, such that the result 'a is
+    collected in a list and 'b is passed through as an argument.
+*)
+let fold f (anyexpr, acc0) l unwrap =
+  let (anylist, acc) =
+    List.fold_left (lift f) ([],acc0) l  in
+  (* lift produces a reversed list, turn it around before unwrapping *)
+  let unwrapped_list = List.map unwrap (List.rev anylist) in
+  (unwrapped_list, acc)
+
+
+(**
  This visitor converts sany_ds datastructures into expr_ds datastructures. Since
  builtin operators or unfolded, we pass an association list builtin_store in the
  accumulator. As a return value, we are actually interested in an expression,
@@ -101,7 +128,7 @@ class converter = object(self)
 
   (* non-recursive expressions *)
   method decimal acc0 {Sany_ds.location; level; mantissa; exponent} =
-    let (Any_location location, acc) = self#location acc0 location in
+    let Any_location location, acc = self#location acc0 location in
     let d = {
 	location = location;
 	level = level;
@@ -111,7 +138,7 @@ class converter = object(self)
     (Any_decimal d, acc)
 
   method numeral acc0 ({Sany_ds.location; level; value} : Sany_ds.numeral) =
-    let (Any_location location, acc) = self#location acc0 location in
+    let Any_location location, acc = self#location acc0 location in
     let n:numeral = {
 	location = location;
 	level = level;
@@ -120,7 +147,7 @@ class converter = object(self)
     (Any_numeral n, acc)
 
   method strng acc0 ({Sany_ds.location; level; value} : Sany_ds.strng) =
-    let (Any_location location, acc) = self#location acc0 location in
+    let Any_location location, acc = self#location acc0 location in
     let s:strng = {
 	location = location;
 	level = level;
@@ -130,10 +157,10 @@ class converter = object(self)
 
   (* recursive expressions *)
    method at acc0 {Sany_ds.location; level; except; except_component} =
-     let (Any_location location, acc1) = self#location acc0 location in
-     let (Any_level level      , acc2) = self#level (Nothing, acc1) level in
-     let (Any_op_appl except   , acc3) = self#op_appl (Nothing, acc2) except in
-     let (Any_op_appl except_component, acc ) =
+     let Any_location location, acc1 = self#location acc0 location in
+     let Any_level level      , acc2 = self#level (Nothing, acc1) level in
+     let Any_op_appl except   , acc3 = self#op_appl (Nothing, acc2) except in
+     let Any_op_appl except_component, acc  =
        self#op_appl (Nothing, acc3) except_component in
      let at = {
 	 location = location;
@@ -145,17 +172,15 @@ class converter = object(self)
 
    method op_appl acc0 ({Sany_ds.location; level; operator;
 			      operands; bound_symbols} : Sany_ds.op_appl) =
-     let (Any_location location, acc1) = self#location acc0 location in
-     let (Any_level level,       acc2) = self#level (Nothing, acc1) level in
-     let (Any_operator operator, acc3) = self#fmota (Nothing, acc2) operator in
-     let (any_operands, acc4) =
-       List.fold_left self#expr_or_op_arg (Nothing, acc3) operands in
-     let (any_bound_symbols, acc) =
-       List.fold_left self#bound_symbol (Nothing, acc4) bound_symbols in
-     let operands =
-       List.map (fun (Any_expr_or_oparg e) -> e) any_operands in
-     let bound_symbols =
-       List.map (fun (Any_bound_symbol s) -> s) any_bound_symbols in
+     let Any_location location, acc1 = self#location acc0 location in
+     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+     let Any_operator operator, acc3 = self#fmota (Nothing, acc2) operator in
+     let unwrap_expr (Any_expr_or_oparg e) = e in
+     let unwrap_bs (Any_bound_symbol s) = s in
+     let operands, acc4 =
+       fold self#expr_or_op_arg (Nothing, acc3) operands unwrap_expr in
+     let bound_symbols, acc =
+       fold self#bound_symbol (Nothing, acc4) bound_symbols unwrap_bs in
      let op_appl = {
 	 location = location;
 	 level = level;
@@ -165,53 +190,109 @@ class converter = object(self)
        } in
      (Any_op_appl op_appl, acc)
 
-   method bound_symbol acc = function
-   | Sany_ds.B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
-   | Sany_ds.B_unbounded_bound_symbol s -> self#unbounded_bound_symbol acc s
+   method bound_symbol acc0 = function
+     | Sany_ds.B_bounded_bound_symbol s ->
+	let Any_bounded_bound_symbol b,acc =
+	  self#bounded_bound_symbol acc0 s in
+	(Any_bound_symbol (B_bounded_bound_symbol b), acc)
+     | Sany_ds.B_unbounded_bound_symbol s ->
+	let Any_unbounded_bound_symbol b, acc =
+	  self#unbounded_bound_symbol acc0 s in
+	(Any_bound_symbol (B_unbounded_bound_symbol b), acc)
 
-   method bounded_bound_symbol acc x = acc
-   method unbounded_bound_symbol acc x = acc
+   method bounded_bound_symbol acc0 { Sany_ds.params; tuple; domain }  =
+     let unfold_formal_param (Any_formal_param x) = x in
+     let params, acc1 =
+       fold self#formal_param acc0 params unfold_formal_param in
+     let Any_expr domain, acc = self#expr (Nothing, acc1) domain in
+     let b = {
+	 params = params;
+	 tuple = tuple;
+	 domain = domain;
+       } in
+     (Any_bounded_bound_symbol b, acc)
+
+   method unbounded_bound_symbol acc0 { Sany_ds.param; tuple }  =
+     let Any_formal_param param, acc = self#formal_param acc0 param  in
+     let b = {
+	 param = param;
+	 tuple = tuple;
+       } in
+     (Any_unbounded_bound_symbol b, acc)
 
 
    method formal_param acc0 = function
-   | Sany_ds.FP_ref i -> self#reference acc0 i
-   | Sany_ds.FP { Sany_ds.location; level; name; arity; } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-     (* arity skipped *)
-     acc3
+     | Sany_ds.FP_ref i ->
+	(Any_formal_param (FP_ref i), snd acc0)
+     | Sany_ds.FP { Sany_ds.location; level; name; arity; } ->
+	let Any_location location, acc1 = self#location acc0 location in
+	let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+	let fp = {
+	    location = location;
+	    level = level;
+	    name = name;
+	    arity = arity;
+	  }
+	in (Any_formal_param (FP fp), acc2)
 
    method mule acc0 = function
-   | Sany_ds.MOD_ref i -> self#reference acc0 i
-   | Sany_ds.MOD {Sany_ds.name; location; constants; variables;
-	  definitions; assumptions; theorems; } ->
-     let acc0a = self#name acc0 name in
-     let acc1 = self#location acc0a location in
-     let acc2 = List.fold_left self#op_decl acc1 constants in
-     let acc3 = List.fold_left self#op_decl acc2 variables in
-     let acc4 = List.fold_left self#op_def acc3 definitions in
-     let acc5 = List.fold_left self#assume acc4 assumptions in
-     let acc = List.fold_left self#theorem acc5 theorems in
-     acc
+     | Sany_ds.MOD_ref i ->
+	(Any_mule (MOD_ref i), snd acc0)
+     | Sany_ds.MOD { Sany_ds.name; location; constants; variables;
+		     definitions; assumptions; theorems; } ->
+	let Any_location location, acc1 = self#location acc0 location in
+	let unfold_op_decl (Any_op_decl x) = x in
+	let unfold_op_def (Any_op_def x) = x in
+	let unfold_assumption (Any_assume x) = x in
+	let unfold_theorem (Any_theorem x) = x in
+	let constants, acc2 =
+	  fold self#op_decl (Nothing, acc1) constants unfold_op_decl in
+	let variables, acc3 =
+	  fold self#op_decl (Nothing, acc2) variables unfold_op_decl in
+	let definitions, acc4 =
+	  fold self#op_def (Nothing, acc3) definitions unfold_op_def in
+	let assumptions, acc5 =
+	  fold self#assume (Nothing, acc4) assumptions unfold_assumption in
+	let theorems, acc =
+	  fold self#theorem (Nothing, acc5) theorems unfold_theorem in
+	let m = MOD {
+	    name = name;
+	    location = location;
+	    constants = constants;
+	    variables = variables;
+	    definitions = definitions;
+	    assumptions = assumptions;
+	    theorems = theorems;
+	  } in
+	(Any_mule m, acc)
 
-   method op_arg acc0 {Sany_ds.location; level; name; arity } =
-     (* terminal node *)
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-   (*skip arity *)
-     acc3
+   method op_arg acc0 { Sany_ds.location; level; name; arity } =
+     let Any_location location, acc1 = self#location acc0 location in
+     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+     let oparg = ({
+	 location = location;
+	 level = level;
+	 name = name;
+	 arity = arity;
+       } : op_arg)  in
+     (Any_op_arg oparg, acc2)
+
 
    method op_decl acc0 = function
-   | Sany_ds.OPD_ref x -> self#reference acc0 x
+     | Sany_ds.OPD_ref x ->
+	(Any_op_decl (OPD_ref x), snd acc0)
    | Sany_ds.OPD  { Sany_ds.location ; level ; name ; arity ; kind ; } ->
    (* terminal node *)
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-   (* skip arity and kind *)
-     acc3
+     let Any_location location, acc1 = self#location acc0 location in
+     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+     let opdec = OPD {
+	 location = location;
+	 level = level;
+	 name = name;
+	 arity = arity;
+	 kind = kind;
+       } in
+     (Any_op_decl opdec, acc2)
 
    method op_def acc = function
    | Sany_ds.OPDef_ref x -> self#reference acc x
@@ -430,6 +511,8 @@ class converter = object(self)
    | Sany_ds.FMOTA_theorem x -> self#theorem acc x
    | Sany_ds.FMOTA_assume  x -> self#assume acc x
    | Sany_ds.FMOTA_ap_subst_in x -> self#ap_subst_in acc x
+
+
 
 end
 
