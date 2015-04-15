@@ -63,6 +63,7 @@ type anyExpr =
   | Any_mule_ of  mule_
   | Any_context of context
 
+
 type builtin_store = (Sany_ds.builtin_op * builtin_op) list
 
 (**
@@ -294,11 +295,17 @@ class converter = object(self)
        } in
      (Any_op_decl opdec, acc2)
 
-   method op_def acc = function
-   | Sany_ds.OPDef_ref x -> self#reference acc x
-   | Sany_ds.OPDef (Sany_ds.O_module_instance x) -> self#module_instance acc x
-   | Sany_ds.OPDef (Sany_ds.O_builtin_op x)      -> self#builtin_op acc x
-   | Sany_ds.OPDef (Sany_ds.O_user_defined_op x) -> self#user_defined_op acc x
+   method op_def acc0 = function
+     | Sany_ds.OPDef_ref x -> (Any_op_def (OPDef_ref x), snd acc0)
+     | Sany_ds.OPDef (Sany_ds.O_module_instance x) ->
+	let Any_module_instance mi, acc = self#module_instance acc0 x in
+	(Any_op_def (OPDef (O_module_instance mi)), acc)
+     | Sany_ds.OPDef (Sany_ds.O_builtin_op x)      ->
+	let Any_builtin_op bi, acc = self#builtin_op acc0 x in
+	(Any_op_def (OPDef (O_builtin_op bi)), acc)
+     | Sany_ds.OPDef (Sany_ds.O_user_defined_op x) ->
+	let Any_user_defined_op op, acc = self#user_defined_op acc0 x in
+	(Any_op_def (OPDef (O_user_defined_op op)), acc)
 
    method theorem acc0 = function
    | Sany_ds.THM_ref x -> self#reference acc0 x
@@ -319,20 +326,55 @@ class converter = object(self)
      acc
 
    method proof acc0 = function
-   | Sany_ds.P_omitted location -> acc0
-   | Sany_ds.P_obvious location -> acc0
-   | Sany_ds.P_by { Sany_ds.location; level; facts; defs; only} ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left
-       self#expr_or_module_or_module_instance acc2 facts in
-     let acc = List.fold_left
-       self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
-     (* skip the only tag *)
-     acc
-   | Sany_ds.P_steps { Sany_ds.location; level; steps; } ->
-     List.fold_left self#step acc0 steps
-   | Sany_ds.P_noproof -> acc0
+     | Sany_ds.P_omitted { Sany_ds.location; level } ->
+	let Any_location location, acc1 = self#location acc0 location in
+	let Any_level level,       acc  = self#level (Nothing, acc1) level in
+	let o = ({
+	    location = location;
+	    level = level;
+	  } : omitted) in
+	(Any_proof (P_omitted o), snd acc0)
+     | Sany_ds.P_obvious { Sany_ds.location; level } ->
+	let Any_location location, acc1 = self#location acc0 location in
+	let Any_level level,       acc  = self#level (Nothing, acc1) level in
+	let o = ({
+	    location = location;
+	    level = level;
+	  } : obvious) in
+	(Any_proof (P_obvious o), snd acc0)
+     | Sany_ds.P_by { Sany_ds.location; level; facts; defs; only } ->
+	let unfold_fact  (Any_expr_or_module_or_module_instance x) = x in
+	let unfold_def  (Any_defined_expr x) = x in
+	let Any_location location, acc1 = self#location acc0 location in
+	let Any_level level, acc2 = self#level (Nothing, acc1) level in
+	let facts, acc3 =
+	  fold self#expr_or_module_or_module_instance
+	       (Nothing, acc2) facts unfold_fact in
+	let defs, acc =
+	  fold self#user_defined_op_or_module_instance_or_theorem_or_assume
+	       (Nothing, acc3) defs unfold_def in
+	let by = {
+	    location = location;
+	    level = level;
+	    facts = facts;
+	    defs = defs;
+	    only = only;
+	  } in
+	(Any_proof (P_by by), acc)
+     | Sany_ds.P_steps { Sany_ds.location; level; steps; } ->
+	let unfold_steps  (Any_step x) = x in
+	let Any_location location, acc1 = self#location acc0 location in
+	let Any_level level, acc2 = self#level (Nothing, acc1) level in
+	let steps, acc3 =
+	  fold self#step (Nothing, acc2) steps unfold_steps in
+	let s = {
+	    location = location;
+	    level = level;
+	    steps = steps;
+	  } in
+	(Any_proof (P_steps s), acc3)
+
+     | Sany_ds.P_noproof -> ( Any_proof P_noproof, snd acc0)
 
    method step acc0 = function
    | Sany_ds.S_def_step x -> self#def_step acc0 x
@@ -340,7 +382,8 @@ class converter = object(self)
    | Sany_ds.S_instance i -> self#instance acc0 i
    | Sany_ds.S_theorem t -> self#theorem acc0 t
 
-   method use_or_hide acc0 {  Sany_ds.location; level; facts; defs; only; hide } =
+   method use_or_hide acc0 {  Sany_ds.location; level;
+			      facts; defs; only; hide } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = List.fold_left
