@@ -157,7 +157,7 @@ end
      let acc2 = self#level acc1 level in
      let acc3 = self#expr_or_assume_prove acc2 expr in
      let acc4 = self#proof acc3 proof  in
-     (* todo: finish*)
+     (* skip suffices *)
      acc4
 
    method assume acc0  = function
