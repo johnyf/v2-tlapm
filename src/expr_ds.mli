@@ -148,7 +148,7 @@ and module_instance_ = {
 }
 
 and user_defined_op =
-  | UOP_ref of (int * string)
+  | UOP_ref of int (*make it int * string, but makes conversion more complex *)
   | UOP of user_defined_op_
 
 and user_defined_op_ = {

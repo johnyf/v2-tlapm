@@ -13,6 +13,8 @@ type anyExpr =
   | Nothing
   | Any_location of location
   | Any_level of level option
+  | Any_name of string
+  | Any_reference of int
   | Any_node of node
   | Any_expr of expr
   | Any_expr_or_oparg of expr_or_op_arg
@@ -95,7 +97,7 @@ let unfold_subst (Any_subst x) = x
 
 
 
-type builtin_store = (Sany_ds.builtin_op * builtin_op) list
+type builtin_store = (int * builtin_op) list
 
 (**
   Applies the function f to the element y with the accumulator extracted from x.
@@ -153,27 +155,57 @@ let assume_proves_from_expr (expr : Sany_ds.expr) =  {
 
  Apart from the methods: builtin_op, expr_or_assume_prove, context, entry
  (todo: fill in), the methods are just recreating the sany datastructure as
- internal datastructure. 
+ internal datastructure.
  *)
 class converter = object(self)
   inherit [anyExpr * builtin_store] Sany_visitor.visitor as super
 
   method node acc = function
-  | Sany_ds.N_ap_subst_in x  -> self#ap_subst_in acc x
-  | Sany_ds.N_assume_prove x -> self#assume_prove acc x
-  | Sany_ds.N_def_step x     -> self#def_step acc x
-  | Sany_ds.N_expr x         -> self#expr acc x
-  | Sany_ds.N_op_arg x       -> self#op_arg acc x
-  | Sany_ds.N_instance x     -> self#instance acc x
-  | Sany_ds.N_new_symb x     -> self#new_symb acc x
-  | Sany_ds.N_proof x        -> self#proof acc x
-  | Sany_ds.N_formal_param x -> self#formal_param acc x
-  | Sany_ds.N_module x       -> self#mule acc x
-  | Sany_ds.N_op_decl x      -> self#op_decl acc x
-  | Sany_ds.N_op_def x       -> self#op_def acc x
-  | Sany_ds.N_assume x       -> self#assume acc x
-  | Sany_ds.N_theorem x      -> self#theorem acc x
-  | Sany_ds.N_use_or_hide x  -> self#use_or_hide acc x
+    | Sany_ds.N_ap_subst_in x  ->
+       let (Any_ap_subst_in x, acc0) = self#ap_subst_in acc x in
+       (Any_node (N_ap_subst_in x),acc0)
+    | Sany_ds.N_assume_prove x ->
+       let (Any_assume_prove x, acc0) = self#assume_prove acc x in
+       (Any_node (N_assume_prove x), acc0)
+    | Sany_ds.N_def_step x     ->
+       let (Any_def_step x, acc0) = self#def_step acc x in
+       (Any_node (N_def_step x), acc0)
+    | Sany_ds.N_expr x         ->
+       let (Any_expr x, acc0) = self#expr acc x in
+       (Any_node (N_expr x), acc0)
+    | Sany_ds.N_op_arg x       ->
+       let (Any_op_arg x, acc0) = self#op_arg acc x in
+       (Any_node (N_op_arg x), acc0)
+    | Sany_ds.N_instance x     ->
+       let (Any_instance x, acc0) = self#instance acc x in
+       (Any_node (N_instance x), acc0)
+    | Sany_ds.N_new_symb x     ->
+       let (Any_new_symb x, acc0) = self#new_symb acc x in
+       (Any_node (N_new_symb x), acc0)
+    | Sany_ds.N_proof x        ->
+       let (Any_proof x, acc0) = self#proof acc x in
+       (Any_node (N_proof x), acc0)
+    | Sany_ds.N_formal_param x ->
+       let (Any_formal_param x, acc0) = self#formal_param acc x in
+       (Any_node (N_formal_param x), acc0)
+    | Sany_ds.N_module x       ->
+       let (Any_mule x, acc0) = self#mule acc x in
+       (Any_node (N_module x), acc0)
+    | Sany_ds.N_op_decl x      ->
+       let (Any_op_decl x, acc0) = self#op_decl acc x in
+       (Any_node (N_op_decl x), acc0)
+    | Sany_ds.N_op_def x       ->
+       let (Any_op_def x, acc0) = self#op_def acc x in
+       (Any_node (N_op_def x), acc0)
+    | Sany_ds.N_assume x       ->
+       let (Any_assume x, acc0) = self#assume acc x in
+       (Any_node (N_assume x), acc0)
+    | Sany_ds.N_theorem x      ->
+       let (Any_theorem x, acc0) = self#theorem acc x in
+       (Any_node (N_theorem x), acc0)
+    | Sany_ds.N_use_or_hide x  ->
+       let (Any_use_or_hide x, acc0) = self#use_or_hide acc x in
+       (Any_node (N_use_or_hide x), acc0)
 
   (* parts of expressions *)
   method location (_, acc) = function
@@ -483,6 +515,7 @@ class converter = object(self)
        List.map (function
 		  | Sany_ds.NEA_expr expr ->
 		     Sany_ds.NEA_assume_prove (assume_proves_from_expr expr)
+		  | x -> x (* rest is unchanged *)
 		) assumes in
      (* divide into new_symb and assume-proves *)
      let (sany_ns, sany_assumes3) =
@@ -572,36 +605,35 @@ class converter = object(self)
      (Any_module_instance (MI mi), acc2)
 
    (* TODO: proper replacement *)
-   method builtin_op acc0 = function
-   | Sany_ds.BOP_ref x -> self#reference acc0 x
+   method builtin_op (_, acc0) = function
+     | Sany_ds.BOP_ref x ->
+	let op = List.assoc x acc0 in
+	(Any_builtin_op op, acc0)
    | Sany_ds.BOP {Sany_ds.location; level; name; arity; params } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-   (* skip arity *)
-     let acc = List.fold_left
-       (fun x (fp,_) -> self#formal_param x fp) acc3 params
-     in acc
+      failwith "Implementation error: builtins shouldn't be converted anymore!"
 
    method user_defined_op acc0 = function
-   | Sany_ds.UOP_ref x -> self#reference acc0 x
-   | Sany_ds.UOP { Sany_ds.location; level ; name ; arity ;
-	   body ; params ; recursive ; } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-   (* arity *)
-     let acc4 = self#expr acc3 body in
-     let acc = List.fold_left
-       (fun x (fp,_) -> self#formal_param x fp) acc4 params in
-   (* skip recursive flag *)
-     acc
+     | Sany_ds.UOP_ref x ->
+	(Any_user_defined_op (UOP_ref x), snd acc0)
+     | Sany_ds.UOP { Sany_ds.location; level ; name ; arity ;
+		     body ; params ; recursive ; } ->
+	let (Any_location location, acc1) = self#location acc0 location in
+	let (Any_level level, acc2) = self#level (Nothing, acc1) level in
+	let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
+	let handle_arg x (fp,_) = self#formal_param x fp in
+	let (args, acc) = fold handle_arg (Nothing, acc3)
+			       params unfold_formal_param in
+	let leibniz = List.map snd params in
+	let params = List.combine args leibniz in
+	let op = UOP {
+		     location; level; name; arity; body; params; recursive;
+		   } in
+	(Any_user_defined_op op, acc)
 
-   method name acc x =
-     failwith "Implementation error: code should be unreachable."
+   method name (_,acc) x = (Any_name x, acc)
 
-   method reference acc x =
-     failwith "Implementation error: code should be unreachable."
+   method reference (_, acc) x =
+     failwith "Implementation error: references should be handled implicitly!"
 
    method context acc { Sany_ds.entries; modules } =
      let es,  acc0 = fold self#entry acc entries unfold_entry in
@@ -640,6 +672,13 @@ class converter = object(self)
       *)
      let (fp, m, opd, opdec, t, a, aps) = ([], [], [], [], [], [], []) in
      match reference with
+     (* builtin operators need to be taken from the builtin store *)
+     | Sany_ds.FMOTA_op_def (Sany_ds.OPDef (Sany_ds.O_builtin_op _)) ->
+	let _, acc = acc0 in
+	let x = List.assoc uid acc in
+	let opd = [(uid, O_builtin_op x)] in
+	(Any_entry { fp; m; opd; opdec; t; a; aps }, acc)
+     (* remaining cases *)
      | Sany_ds.FMOTA_formal_param x ->
 	let Any_formal_param (FP x), acc = self#formal_param acc0 x in
 	let fp = [(uid, x)] in
@@ -685,8 +724,8 @@ class converter = object(self)
 	let Any_let_in y, acc0 = self#let_in acc x in
 	(Any_expr (E_let_in y), acc0)
      | Sany_ds.E_numeral x   ->
-	let Any_let_in y, acc0 = self#numeral acc x in
-	(Any_expr (E_let_in y), acc0)
+	let Any_numeral y, acc0 = self#numeral acc x in
+	(Any_expr (E_numeral y), acc0)
      | Sany_ds.E_op_appl x   ->
 	let Any_op_appl y, acc0 = self#op_appl acc x in
 	(Any_expr (E_op_appl y), acc0)
@@ -741,11 +780,11 @@ class converter = object(self)
 
    method expr_or_op_arg acc = function
      | Sany_ds.EO_op_arg oa ->
-	let Any_expr y, acc0 = self#op_arg acc oa in
-	(Any_expr_or_oparg (EO_expr y), acc0)
-     | Sany_ds.EO_expr e ->
-	let Any_op_arg y, acc0 = self#expr acc e in
+	let Any_op_arg y, acc0 = self#op_arg acc oa in
 	(Any_expr_or_oparg (EO_op_arg y), acc0)
+     | Sany_ds.EO_expr e ->
+	let Any_expr y, acc0 = self#expr acc e in
+	(Any_expr_or_oparg (EO_expr y), acc0)
 
    method fmota acc = function
      | Sany_ds.FMOTA_formal_param x ->
@@ -775,12 +814,19 @@ end
 
 let converter_instance = new converter
 
-let convert_expr x = match converter_instance#expr ( Nothing, [] ) x with
+let convert_expr ?builtins:(b=[]) x =
+  match converter_instance#expr ( Nothing, b ) x with
   | Any_expr e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_context x = match converter_instance#context ( Nothing, [] ) x with
+let convert_context ?builtins:(b=[]) x =
+  match converter_instance#context ( Nothing, b ) x with
   | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_module x = match converter_instance#mule (Nothing, []) x with
+let convert_module ?builtins:(b=[]) x =
+  match converter_instance#mule (Nothing, b) x with
   | Any_mule e, _ -> e
+  | _ -> failwith "Implementation error in sany -> internal term conversion."
+let convert_formal_param ?builtins:(b=[]) x =
+  match converter_instance#formal_param (Nothing, b) x with
+  | Any_formal_param e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
