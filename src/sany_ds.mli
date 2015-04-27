@@ -3,13 +3,15 @@ open Commons
 (**
    These datastructures directly mirror the XML schema in lib/sany.xsd. There
    are two differences:
-   1) The handling of references is realized such that each of the types
-   allowing a reference are disjunctions of either a reference or a concrete
-   record.
 
-   2) The proof datatype has an additional case P_noproof to remember when
-   the user gave no proof (in contrast to omitted, where the user explicitly
-   requests to skip a proof).
+  {ol
+   {- The handling of references is realized such that each of the types
+   allowing a reference are disjunctions of either a reference or a concrete
+   record. }
+   {- The handling of references is realized such that each of the types
+   allowing a reference are disjunctions of either a reference or a concrete
+   record. }
+  }
 
    Additional disjunction types (like expr_or_op_arg) are necessary, whenever
    the XML schema may contain child nodes of different types. The have the form

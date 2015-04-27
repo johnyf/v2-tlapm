@@ -1,15 +1,15 @@
 (* Copyright (C) 2014 MSR-INRIA
- *
- * tlapm datatypes are constructed in layers,
- * where each layer is obtained from a previous one
- * by the use of a transformation.
- * The first layer is obtained from SANY and the last one
- * contains the obligations shipped to the backends.
- *
- * This file contains common definitions shared by all layers.
- *
- *
  * Author: TL
+ *)
+
+(**
+  Tlapm datatypes are constructed in layers,
+  where each layer is obtained from a previous one
+  by the use of a transformation.
+  The first layer is obtained from SANY and the last one
+  contains the obligations shipped to the backends.
+
+  This file contains common definitions shared by all layers.
  *)
 
 type int_range = {
@@ -39,6 +39,8 @@ type op_decl_kind =
   | NewAction
   | NewTemporal
 
-
+(** Creates a range from 0 to 0. *)
 val mkDummyRange : int_range
+
+(** Creates a location at line 0 to 0, column 0 to 0. *)
 val mkDummyLocation : location

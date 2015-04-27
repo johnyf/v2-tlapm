@@ -3,31 +3,36 @@ open Commons
 (**
    These datastructures are close to the xml parser datastructures in sany_ds.
    The differences are:
-   1) instead of location option we use dummy values (Commons.mkDummyLocation)
-   2) the expr in expr_or_assume_prove is replaced by assume_prove without
-      assumptions
-   3) new_symb_or_expr_or_assume_prove is reduced to assume_prove, similar to 2
+   {ol
+    {- instead of location option we use dummy values (Commons.mkDummyLocation) }
+    {- the expr in expr_or_assume_prove is replaced by assume_prove without
+      assumptions }
+    {- new_symb_or_expr_or_assume_prove is reduced to assume_prove, similar to 2
       the new symbols are stored in a separate list in assume prove. the order
-      in which they are declared is only relevant for the sany parser.
-   4) builtin operator references are expanded to applications of $builtinname.
+      in which they are declared is only relevant for the sany parser. }
+    {- builtin operator references are expanded to applications of $builtinname.
       the expr_visitor will provide callbacks for each builtin.
 
-      builtins don't have a location anymore.
-   5) entries in the context are now seperated by type
-   6) module instance references are unfolded.
-   7) operator definition references contain the name
-   8) Renamings:
+      builtins don't have a location anymore. }
+    {- entries in the context are now seperated by type }
+    {- module instance references are unfolded. }
+    {- operator definition references contain the name }
+    {- Renamings:
      formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst = operator
      user_defined_op_or_module_instance_or_theorem_or_assume = defined_expr
+    }
+   }
 
    Still open:
-   -) what to do about references? by default, we don't unfold definitions, etc.
+   {ul
+    {- what to do about references? by default, we don't unfold definitions, etc.
       does it make so much more sense to refer to them by name instead of ints?
       this only works for named objects like definitions, but not for unnamed
-      theorems etc.
-   -) Module instance refer to modules by name, but they don't exist in the
+      theorems etc.}
+    {- Module instance refer to modules by name, but they don't exist in the
       representation anymore.
-      At the moment, we try to infer the module name from the definition name.
+      At the moment, we try to infer the module name from the definition name. }
+   }
 
 *)
 
@@ -309,7 +314,7 @@ and strng = {
 }
 
 (**
-   Operator corresponds is Sany_ds's disjunction type
+   Operator corresponds to {!module:Sany_ds}'s disjunction type
    formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst.
    An operator is anything which can have arguments applied.
 *)
@@ -370,4 +375,3 @@ type context = {
   apsubst_entries : (int * ap_subst_in) list;
   modules : mule list;
 }
-(*  *)

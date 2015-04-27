@@ -36,6 +36,11 @@ let dependency_visitor = object
 
 end
 
+let internal_ds_names = object
+    inherit [string list] Expr_visitor.visitor as super
+  method name acc n = Util.add_missing acc [n]
+  end
+
 let test_xml filename =
   Test.make_simple_test
     ~title: ("xml parsing " ^ filename)
