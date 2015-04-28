@@ -89,29 +89,47 @@ val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
 
 
 (** {3 General functions } *)
+
 val ( @$ ) : ('a -> 'b) -> 'a -> 'b
-(** 
-Right-associative function application. You can write 'hd @$ tl @$ tl @$ [1;2;3;4;5]' instead of 'hd ( tl ( tl ( [1;2;3;4;5] )))'. Taken from http://blog.0branch.com/posts/2012-04-17-haskell-application-ocaml.html.
+(**
+  Right-associative function application. You can write
+  'hd @$ tl @$ tl @$ [1;2;3;4;5]' instead of 'hd ( tl ( tl ( [1;2;3;4;5] )))'.
+  @see <http://blog.0branch.com/posts/2012-04-17-haskell-application-ocaml.html>
+      Original Source
 *)
 
 (** {3 List utils } *)
+
+(** [find_ordering pairs] *)
 val find_ordering : ('a * 'a) list -> 'a list
-(** [find_ordering pairs]
-    given a list of pairs, where the first argument is considered as less 
+(** given a list of pairs, where the first argument is considered as less
     than the second argument, find an ordering of the elements which
-   satisfies the transitive closure of the relation input. (I.e. find a linear extension of pairs)
+    satisfies the transitive closure of the relation input. (I.e. find a
+    linear extension of pairs)
 *)
 
+(** [add_missing list list2] *)
 val add_missing : 'a list -> 'a list -> 'a list
-(** 
- [add_missing list list2]
- appends list2 to list without creating duplicates. does not remove duplicates from list. 
-*)    
-  
-(** {3 String utils} *)
-(** [mkString ~front ~middle ~back fmt list ] Creates a string from the given list by mapping fmt on each element, using ~middle as a seperator. The string ~front is prepended, while ~back is appended. *)
-val mkString : ?front:string -> ?middle:string -> ?back:string  -> ( 'a -> string) -> 'a list -> string
+(** Appends list2 to list without creating duplicates. Does not remove
+    duplicates from list.
+*)
 
-(** [mkString ~front ~middle ~back fmt list ] Creates a string from the given list by mapping fmt on each element, using ~middle as a seperator. The string ~front is prepended, while ~back is appended. *)
-val fmtPair : ?front:string -> ?middle:string -> ?back:string  -> ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
-  
+(** Compares two lists for equivalence and treats them as multi-sets. I.e. *)
+val multiset_equal_lists : 'a list -> 'a list -> bool
+
+(** {3 String utils} *)
+(** [mkString ~front ~middle ~back fmt list ] *)
+val mkString : ?front:string -> ?middle:string -> ?back:string  ->
+	       ( 'a -> string) -> 'a list -> string
+(** Creates a string from the given
+    list by mapping fmt on each element, using ~middle as a seperator. The
+    string ~front is prepended, while ~back is appended.
+ *)
+
+(** [mkString ~front ~middle ~back fmt list ] *)
+val fmtPair : ?front:string -> ?middle:string -> ?back:string  ->
+	      ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
+(** Creates a string from the given
+    list by mapping fmt on each element, using ~middle as a seperator. The
+    string ~front is prepended, while ~back is appended.
+*)

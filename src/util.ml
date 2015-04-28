@@ -252,3 +252,9 @@ let rec find_ordering_from_completion  completion = (
 let find_ordering  constraints =
   let completion  = collect_dependencies  [] constraints in
   find_ordering_from_completion completion
+
+let multiset_equal_lists l1 l2 =
+  let s1 = List.sort l1 in
+  let s2 = List.sort l2 in
+  s1 = s2
+  
