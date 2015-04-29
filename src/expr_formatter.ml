@@ -1,256 +1,259 @@
 open Commons
 open Expr_ds
 open Expr_visitor
-
-let space = " "
+open Format
 
 class ['a] formatter =
 object(self)
-  inherit [string] visitor as self
+  inherit [Format.formatter] visitor as self
 
 
   (* parts of expressions *)
-   method location acc l : 'a = acc
-   method level acc l : 'a = acc
+   method location ppf l : 'a = ppf
+   method level ppf l : 'a = ppf
 
   (* non-recursive expressions *)
-   method decimal acc { location; level; mantissa; exponent;  } =
-     space ^ (string_of_int mantissa ) ^
-       "e" ^ (string_of_int exponent) ^ space ^ acc
+   method decimal ppf { location; level; mantissa; exponent;  } =
+     let value =
+       (float_of_int mantissa) /. ( 10.0 ** (float_of_int exponent)) in
+     fprintf ppf "%se%s" (string_of_float value);
+     ppf
 
-   method numeral acc {location; level; value } =
-     space ^ (string_of_int value) ^ space ^ acc
+   method numeral ppf {location; level; value } =
+     fprintf ppf "%s" (string_of_int value);
+     ppf
 
-   method strng acc {location; level; value} =
-     space ^ value ^ space ^ acc
+   method strng ppf {location; level; value} =
+     fprintf ppf "%s" value;
+     ppf
 
 (* recursive expressions *)
-   method at acc0 {location; level; except; except_component} =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#op_appl acc2 except in
-     let acc = self#op_appl acc3 except_component in
-     acc
+   method at ppf0 {location; level; except; except_component} =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#op_appl ppf2 except in
+     let ppf = self#op_appl ppf3 except_component in
+     ppf
 
-   method op_appl acc0 {location; level; operator; operands; bound_symbols} =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#operator acc2 operator in
-     let acc4 = List.fold_left self#expr_or_op_arg acc3 operands in
-     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
-     acc
+   method op_appl ppf0 {location; level; operator; operands; bound_symbols} =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#operator ppf2 operator in
+     let ppf4 = List.fold_left self#expr_or_op_arg ppf3 operands in
+     let ppf = List.fold_left self#bound_symbol ppf4 bound_symbols in
+     ppf
 
-   method bound_symbol acc = function
-   | B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
-   | B_unbounded_bound_symbol s -> self#unbounded_bound_symbol acc s
+   method bound_symbol ppf = function
+   | B_bounded_bound_symbol s -> self#bounded_bound_symbol ppf s
+   | B_unbounded_bound_symbol s -> self#unbounded_bound_symbol ppf s
 
-   method bounded_bound_symbol acc x = acc
-   method unbounded_bound_symbol acc x = acc
+   method bounded_bound_symbol ppf x = ppf
+   method unbounded_bound_symbol ppf x = ppf
 
 
-   method formal_param acc0 = function
-   | FP_ref i -> self#reference acc0 i
+   method formal_param ppf0 = function
+   | FP_ref i -> self#reference ppf0 i
    | FP { location; level; name; arity; } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
      (* arity skipped *)
-     acc3
+     ppf3
 
-   method mule acc0 = function
-   | MOD_ref i -> self#reference acc0 i
+   method mule ppf0 = function
+   | MOD_ref i -> self#reference ppf0 i
    | MOD {name; location; constants; variables;
-	  definitions; assumptions; theorems; } ->
-     let acc0a = self#name acc0 name in
-     let acc1 = self#location acc0a location in
-     let acc2 = List.fold_left self#op_decl acc1 constants in
-     let acc3 = List.fold_left self#op_decl acc2 variables in
-     let acc4 = List.fold_left self#op_def acc3 definitions in
-     let acc5 = List.fold_left self#assume acc4 assumptions in
-     let acc = List.fold_left self#theorem acc5 theorems in
-     acc
+          definitions; assumptions; theorems; } ->
+     let ppf0a = self#name ppf0 name in
+     let ppf1 = self#location ppf0a location in
+     let ppf2 = List.fold_left self#op_decl ppf1 constants in
+     let ppf3 = List.fold_left self#op_decl ppf2 variables in
+     let ppf4 = List.fold_left self#op_def ppf3 definitions in
+     let ppf5 = List.fold_left self#assume ppf4 assumptions in
+     let ppf = List.fold_left self#theorem ppf5 theorems in
+     ppf
 
-   method op_arg acc0 {location; level; name; arity } =
+   method op_arg ppf0 {location; level; name; arity } =
      (* terminal node *)
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
    (*skip arity *)
-     acc3
+     ppf3
 
-   method op_decl acc0 = function
-   | OPD_ref x -> self#reference acc0 x
+   method op_decl ppf0 = function
+   | OPD_ref x -> self#reference ppf0 x
    | OPD  { location ; level ; name ; arity ; kind ; } ->
    (* terminal node *)
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
    (* skip arity and kind *)
-     acc3
+     ppf3
 
-   method op_def acc = function
-   | OPDef_ref x -> self#reference acc x
-   | OPDef (O_module_instance x) -> self#module_instance acc x
-   | OPDef (O_builtin_op x)      -> self#builtin_op acc x
-   | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
+   method op_def ppf = function
+   | OPDef_ref x -> self#reference ppf x
+   | OPDef (O_module_instance x) -> self#module_instance ppf x
+   | OPDef (O_builtin_op x)      -> self#builtin_op ppf x
+   | OPDef (O_user_defined_op x) -> self#user_defined_op ppf x
 
-   method theorem acc0 = function
-   | THM_ref x -> self#reference acc0 x
+   method theorem ppf0 = function
+   | THM_ref x -> self#reference ppf0 x
    | THM { location; level; expr; proof; suffices } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#assume_prove acc2 expr in
-     let acc4 = self#proof acc3 proof  in
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#assume_prove ppf2 expr in
+     let ppf4 = self#proof ppf3 proof  in
      (* skip suffices *)
-     acc4
+     ppf4
 
-   method assume acc0  = function
-   | ASSUME_ref x -> self#reference acc0 x
+   method assume ppf0  = function
+   | ASSUME_ref x -> self#reference ppf0 x
    | ASSUME {location; level; expr; } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc = self#expr acc2 expr in
-     acc
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf = self#expr ppf2 expr in
+     ppf
 
-   method proof acc0 = function
-   | P_omitted location -> acc0
-   | P_obvious location -> acc0
+   method proof ppf0 = function
+   | P_omitted location -> ppf0
+   | P_obvious location -> ppf0
    | P_by { location; level; facts; defs; only} ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left
-       self#expr_or_module_or_module_instance acc2 facts in
-     let acc = List.fold_left
-       self#defined_expr acc3 defs in
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = List.fold_left
+       self#expr_or_module_or_module_instance ppf2 facts in
+     let ppf = List.fold_left
+       self#defined_expr ppf3 defs in
      (* skip the only tag *)
-     acc
+     ppf
    | P_steps { location; level; steps; } ->
-     List.fold_left self#step acc0 steps
-   | P_noproof -> acc0
+     List.fold_left self#step ppf0 steps
+   | P_noproof -> ppf0
 
-   method step acc0 = function
-   | S_def_step x -> self#def_step acc0 x
-   | S_use_or_hide x -> self#use_or_hide acc0 x
-   | S_instance i -> self#instance acc0 i
-   | S_theorem t -> self#theorem acc0 t
+   method step ppf0 = function
+   | S_def_step x -> self#def_step ppf0 x
+   | S_use_or_hide x -> self#use_or_hide ppf0 x
+   | S_instance i -> self#instance ppf0 i
+   | S_theorem t -> self#theorem ppf0 t
 
-   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left
-       self#expr_or_module_or_module_instance acc2 facts in
-     let acc = List.fold_left
-       self#defined_expr acc3 defs in
-     acc
+   method use_or_hide ppf0 {  location; level; facts; defs; only; hide } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = List.fold_left
+       self#expr_or_module_or_module_instance ppf2 facts in
+     let ppf = List.fold_left
+       self#defined_expr ppf3 defs in
+     ppf
 
-   method instance acc0 {location; level; name; substs; params; } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-     let acc4 = List.fold_left self#subst acc3 substs in
-     let acc = List.fold_left self#formal_param acc4 params in
-     acc
+   method instance ppf0 {location; level; name; substs; params; } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
+     let ppf4 = List.fold_left self#subst ppf3 substs in
+     let ppf = List.fold_left self#formal_param ppf4 params in
+     ppf
 
-   method subst acc0 { op; expr } =
-     let acc1 = self#op_decl acc0 op in
-     let acc = self#expr_or_op_arg acc1 expr in
-     acc
+   method subst ppf0 { op; expr } =
+     let ppf1 = self#op_decl ppf0 op in
+     let ppf = self#expr_or_op_arg ppf1 expr in
+     ppf
 
-   method assume_prove acc0 { location; level; new_symbols; assumes;
-			      prove; suffices; boxed; } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left
-		  self#new_symb acc2 new_symbols in
-     let acc4 = List.fold_left
-		  self#assume_prove acc3 assumes in
-     let acc = self#expr acc4 prove in
+   method assume_prove ppf0 { location; level; new_symbols; assumes;
+                              prove; suffices; boxed; } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = List.fold_left
+                  self#new_symb ppf2 new_symbols in
+     let ppf4 = List.fold_left
+                  self#assume_prove ppf3 assumes in
+     let ppf = self#expr ppf4 prove in
      (* suffices and boxed are boolean flags*)
-     acc
+     ppf
 
-   method new_symb acc0 { location; level; op_decl; set } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#op_decl acc2 op_decl in
-     let acc = match set with
-       | None -> acc3
-       | Some e -> self#expr acc3 e
-     in acc
+   method new_symb ppf0 { location; level; op_decl; set } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#op_decl ppf2 op_decl in
+     let ppf = match set with
+       | None -> ppf3
+       | Some e -> self#expr ppf3 e
+     in ppf
 
-   method let_in acc0 {location; level; body; op_defs } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#expr acc2 body in
-     let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
-     acc
+   method let_in ppf0 {location; level; body; op_defs } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#expr ppf2 body in
+     let ppf = List.fold_left self#op_def_or_theorem_or_assume ppf3 op_defs in
+     ppf
 
-   method subst_in acc0 ({ location; level; substs; body } : subst_in) =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#subst acc2 substs in
-     let acc = self#expr acc3 body in
-     acc
+   method subst_in ppf0 ({ location; level; substs; body } : subst_in) =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = List.fold_left self#subst ppf2 substs in
+     let ppf = self#expr ppf3 body in
+     ppf
 
-   method label acc0 ({location; level; name; arity; body; params } : label) =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
+   method label ppf0 ({location; level; name; arity; body; params } : label) =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
      (* skip arity *)
-     let acc4 = self#assume_prove acc3 body in
-     let acc = List.fold_left self#formal_param acc4 params in
-     acc
+     let ppf4 = self#assume_prove ppf3 body in
+     let ppf = List.fold_left self#formal_param ppf4 params in
+     ppf
 
-   method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#subst acc2 substs in
-     let acc = self#node acc3 body in
-     acc
+   method ap_subst_in ppf0 ({ location; level; substs; body } : ap_subst_in) =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = List.fold_left self#subst ppf2 substs in
+     let ppf = self#node ppf3 body in
+     ppf
 
-   method def_step acc0 { location; level; defs } =
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc = List.fold_left self#op_def acc2 defs in
-     acc
+   method def_step ppf0 { location; level; defs } =
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf = List.fold_left self#op_def ppf2 defs in
+     ppf
 
-   method module_instance acc0 = function
-   | MI_ref x -> self#reference acc0 x
+   method module_instance ppf0 = function
+   | MI_ref x -> self#reference ppf0 x
    | MI {location; level; name} ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc = self#name acc2 name in
-     acc
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf = self#name ppf2 name in
+     ppf
 
-   method builtin_op acc0 = function
+   method builtin_op ppf0 = function
    | { level; name; arity; params } ->
-     let acc1 = self#level acc0 level in
-     let acc2 = self#name acc1 name in
+     let ppf1 = self#level ppf0 level in
+     let ppf2 = self#name ppf1 name in
    (* skip arity *)
-     let acc = List.fold_left
-       (fun x (fp,_) -> self#formal_param x fp) acc2 params
-     in acc
+     let ppf = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) ppf2 params
+     in ppf
 
-   method user_defined_op acc0 = function
-   | UOP_ref x -> self#reference acc0 x
+   method user_defined_op ppf0 = function
+   | UOP_ref x -> self#reference ppf0 x
    | UOP { location; level ; name ; arity ;
-	   body ; params ; recursive ; } ->
-     let acc1 = self#location acc0 location in
-     let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
+           body ; params ; recursive ; } ->
+     let ppf1 = self#location ppf0 location in
+     let ppf2 = self#level ppf1 level in
+     let ppf3 = self#name ppf2 name in
    (* arity *)
-     let acc4 = self#expr acc3 body in
-     let acc = List.fold_left
-       (fun x (fp,_) -> self#formal_param x fp) acc4 params in
+     let ppf4 = self#expr ppf3 body in
+     let ppf = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) ppf4 params in
    (* skip recursive flag *)
-     acc
+     ppf
 
-   method name acc x = acc
+   method name ppf x = ppf
 
-   method reference acc x = acc
+   method reference ppf x = ppf
 
-   method context acc {   fp_entries; mod_entries; opdec_entries;
-			  opdef_entries; theorem_entries; assume_entries;
-			  apsubst_entries; modules } =
+   method context ppf { fp_entries; mod_entries; opdec_entries;
+                        opdef_entries; theorem_entries; assume_entries;
+                        apsubst_entries; modules } =
      let strip pack list = List.map (fun x -> pack (snd x)) list in
      let fp_strip = strip (fun x -> FP x) in
      let mod_strip = strip (fun x -> MOD x) in
@@ -259,73 +262,16 @@ object(self)
      let theorem_strip = strip (fun x -> THM x) in
      let assume_strip = strip (fun x -> ASSUME x) in
      let ap_strip = strip (fun x ->  x) in
-     let acc1 = List.fold_left self#formal_param acc (fp_strip fp_entries) in
-     let acc2 = List.fold_left self#mule acc1 (mod_strip mod_entries) in
-     let acc3 = List.fold_left self#op_decl acc2 (opdec_strip opdec_entries) in
-     let acc4 = List.fold_left self#op_def acc3 (opdef_strip opdef_entries) in
-     let acc5 =
-       List.fold_left self#theorem acc4 (theorem_strip theorem_entries) in
-     let acc6 = List.fold_left self#assume acc5 (assume_strip assume_entries) in
-     let acc7 =
-       List.fold_left self#ap_subst_in acc6 (ap_strip apsubst_entries) in
-     let acc8 = List.fold_left self#mule acc7 modules in
-     acc8
-
-   (* pure disjunction types *)
-   method expr acc = function
-   | E_at x        -> self#at acc x
-   | E_decimal x   -> self#decimal acc x
-   | E_label x     -> self#label acc x
-   | E_let_in x    -> self#let_in acc x
-   | E_numeral x   -> self#numeral acc x
-   | E_op_appl x   -> self#op_appl acc x
-   | E_string x    -> self#strng acc x
-   | E_subst_in x  -> self#subst_in acc x
-
-   method expr_or_module_or_module_instance acc = function
-   | EMM_expr x            -> self#expr acc x
-   | EMM_module_instance x -> self#module_instance acc x
-   | EMM_module x          -> self#mule acc x
-
-   method defined_expr acc = function
-   | UMTA_user_defined_op x -> self#user_defined_op acc x
-   | UMTA_module_instance x -> self#module_instance acc x
-   | UMTA_theorem x         -> self#theorem acc x
-   | UMTA_assume x          -> self#assume acc x
-
-   method op_def_or_theorem_or_assume acc = function
-   | OTA_op_def x -> self#op_def acc x
-   | OTA_theorem x -> self#theorem acc x
-   | OTA_assume x -> self#assume acc x
-
-   method expr_or_op_arg acc = function
-   | EO_op_arg oa -> self#op_arg acc oa
-   | EO_expr e -> self#expr acc e
-
-   method operator acc = function
-   | FMOTA_formal_param x -> self#formal_param acc x
-   | FMOTA_module  x -> self#mule acc x
-   | FMOTA_op_decl x -> self#op_decl acc x
-   | FMOTA_op_def  x -> self#op_def acc x
-   | FMOTA_theorem x -> self#theorem acc x
-   | FMOTA_assume  x -> self#assume acc x
-   | FMOTA_ap_subst_in x -> self#ap_subst_in acc x
-
-  method node acc = function
-  | N_ap_subst_in x  -> self#ap_subst_in acc x
-  | N_assume_prove x -> self#assume_prove acc x
-  | N_def_step x     -> self#def_step acc x
-  | N_expr x         -> self#expr acc x
-  | N_op_arg x       -> self#op_arg acc x
-  | N_instance x     -> self#instance acc x
-  | N_new_symb x     -> self#new_symb acc x
-  | N_proof x        -> self#proof acc x
-  | N_formal_param x -> self#formal_param acc x
-  | N_module x       -> self#mule acc x
-  | N_op_decl x      -> self#op_decl acc x
-  | N_op_def x       -> self#op_def acc x
-  | N_assume x       -> self#assume acc x
-  | N_theorem x      -> self#theorem acc x
-  | N_use_or_hide x  -> self#use_or_hide acc x
+     let ppf1 = List.fold_left self#formal_param ppf (fp_strip fp_entries) in
+     let ppf2 = List.fold_left self#mule ppf1 (mod_strip mod_entries) in
+     let ppf3 = List.fold_left self#op_decl ppf2 (opdec_strip opdec_entries) in
+     let ppf4 = List.fold_left self#op_def ppf3 (opdef_strip opdef_entries) in
+     let ppf5 =
+       List.fold_left self#theorem ppf4 (theorem_strip theorem_entries) in
+     let ppf6 = List.fold_left self#assume ppf5 (assume_strip assume_entries) in
+     let ppf7 =
+       List.fold_left self#ap_subst_in ppf6 (ap_strip apsubst_entries) in
+     let ppf8 = List.fold_left self#mule ppf7 modules in
+     ppf8
 
 end
