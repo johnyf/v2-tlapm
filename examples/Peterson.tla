@@ -18,8 +18,8 @@ Not(i) == IF i = 0 THEN 1 ELSE 0
    variables flag = [i \in {0, 1} |-> FALSE], turn = 0;
    fair process (proc \in {0,1}) {
      a0: while (TRUE) {
+     a1:   flag[self] := TRUE;
      a2:   turn := Not(self);
-          a1:   flag[self] := TRUE;
      a3a:  if (flag[Not(self)]) {goto a3b} else {goto cs} ;
      a3b:  if (turn = Not(self)) {goto a3a} else {goto cs} ;
      cs:   skip;  \* critical section
@@ -42,18 +42,18 @@ Init == (* Global variables *)
         /\ pc = [self \in ProcSet |-> "a0"]
 
 a0(self) == /\ pc[self] = "a0"
-            /\ pc' = [pc EXCEPT ![self] = "a2"]
-            /\ UNCHANGED << flag, turn >>
-
-a2(self) == /\ pc[self] = "a2"
-            /\ turn' = Not(self)
             /\ pc' = [pc EXCEPT ![self] = "a1"]
-            /\ flag' = flag
+            /\ UNCHANGED << flag, turn >>
 
 a1(self) == /\ pc[self] = "a1"
             /\ flag' = [flag EXCEPT ![self] = TRUE]
-            /\ pc' = [pc EXCEPT ![self] = "a3a"]
+            /\ pc' = [pc EXCEPT ![self] = "a2"]
             /\ turn' = turn
+
+a2(self) == /\ pc[self] = "a2"
+            /\ turn' = Not(self)
+            /\ pc' = [pc EXCEPT ![self] = "a3a"]
+            /\ flag' = flag
 
 a3a(self) == /\ pc[self] = "a3a"
              /\ IF flag[Not(self)]
@@ -77,7 +77,7 @@ a4(self) == /\ pc[self] = "a4"
             /\ pc' = [pc EXCEPT ![self] = "a0"]
             /\ turn' = turn
 
-proc(self) == a0(self) \/ a2(self) \/ a1(self) \/ a3a(self) \/ a3b(self)
+proc(self) == a0(self) \/ a1(self) \/ a2(self) \/ a3a(self) \/ a3b(self)
                  \/ cs(self) \/ a4(self)
 
 Next == (\E self \in {0,1}: proc(self))
@@ -109,8 +109,8 @@ TypeOK == /\ pc \in [{0,1} -> {"a0", "a1", "a2", "a3a", "a3b", "cs", "a4"}]
 
 I == \A i \in {0, 1} :
        /\ (pc[i] \in {"a2", "a3a", "a3b", "cs", "a4"} => flag[i])
-       /\ (pc[i] \in {"cs"})
-            => /\ pc[Not(i)] \notin {"cs"}
+       /\ (pc[i] \in {"cs", "a4"})
+            => /\ pc[Not(i)] \notin {"cs", "a4"}
                /\ (pc[Not(i)] \in {"a3a", "a3b"}) => (turn = i)
 
 Inv == TypeOK /\ I
@@ -143,38 +143,38 @@ THEOREM Spec => []MutualExclusion
   <2>1. ASSUME NEW self \in {0,1},
                a0(self)
         PROVE  Inv'
-    BY <2>1, Zenon DEFS Inv, TypeOK, I, Next, proc, a0, a1, a2, a3a, a3b, cs, a4, Not, vars
+    BY <2>1, Zenon DEFS Inv, TypeOK, I, a0, Not, vars
   <2>2. ASSUME NEW self \in {0,1},
                a1(self)
         PROVE  Inv'
-    BY <2>2, Zenon DEFS Inv, TypeOK, I, Next, proc, a0, a1, a2, a3a, a3b, cs, a4, Not, vars
+    BY <2>2, Zenon DEFS Inv, TypeOK, I, proc, a1, Not, vars
   <2>3. ASSUME NEW self \in {0,1},
                a2(self)
         PROVE  Inv'
-    BY <2>3 DEFS Inv, TypeOK, I, Next, proc, a0, a1, a2, a3a, a3b, cs, a4, Not, vars
+    BY <2>3, Zenon DEFS Inv, TypeOK, I, a2, Not, vars
   <2>4. ASSUME NEW self \in {0,1},
                a3a(self)
         PROVE  Inv'
-    BY <2>4, ZenonT(30) DEFS Inv, TypeOK, I, Next, a3a, Not
+    BY <2>4, ZenonT(30) DEFS Inv, TypeOK, I, a3a, Not
   <2>5. ASSUME NEW self \in {0,1},
                a3b(self)
         PROVE  Inv'
-    BY <2>5 DEFS Inv, TypeOK, I, Next, a3b, Not
+    BY <2>5, Zenon DEFS Inv, TypeOK, I, a3b, Not
   <2>6. ASSUME NEW self \in {0,1},
                cs(self)
         PROVE  Inv'
-    BY <2>6, Zenon DEFS Inv, TypeOK, I, Next, cs, Not
+    BY <2>6, Zenon DEFS Inv, TypeOK, I, cs, Not
   <2>7. ASSUME NEW self \in {0,1},
                a4(self)
         PROVE  Inv'
-    BY <2>7, Zenon DEFS Inv, TypeOK, I, Next, a4, Not
+    BY <2>7, Zenon DEFS Inv, TypeOK, I, a4, Not
   <2>8. CASE UNCHANGED vars
     BY <2>8, Zenon DEFS Inv, TypeOK, I, vars
   <2>9. QED
-    BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6, <2>7, <2>8 DEF Next, proc
+    BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6, <2>7, <2>8, Zenon DEF Next, proc
    
 <1>3. Inv => MutualExclusion
-  BY DEFS Inv, I, MutualExclusion, Not
+  BY Zenon DEFS Inv, I, MutualExclusion, Not
 <1>4. QED
   BY <1>1, <1>2, <1>3, PTL DEF Spec
 
