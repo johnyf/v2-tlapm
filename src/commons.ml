@@ -40,4 +40,6 @@ type op_decl_kind =
   | NewTemporal
 
 let mkDummyRange = { rbegin = 0; rend = 0 }
-let mkDummyLocation = { column = mkDummyRange ; line = mkDummyRange; filename = "Dummy" }
+let mkDummyLocation = { column = mkDummyRange ;
+                        line = mkDummyRange;
+                        filename = "Dummy" }

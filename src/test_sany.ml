@@ -62,12 +62,14 @@ let test_sany filename () =
   tree
 
 let test_xml filename =
-  Test.make_simple_test
+  Test.make_assert_test
     ~title: ("xml parsing " ^ filename)
+    (fun () -> ())
     (fun () ->
      Assert.no_raise ~msg:"Unexpected exception raised."
                      (fun () -> exhandler ( test_sany filename )  )
     )
+    (fun () -> ())
 
 let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 
