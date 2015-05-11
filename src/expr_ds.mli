@@ -34,9 +34,17 @@ open Commons
      At the moment, we try to infer the module name from the definition name. }
   }
 
+  How the datastructures work:
+  {ol
+    {- The context contains the actual data-structures with an index of a unique
+       reference id. Parent structures refer to their nested children using the
+       id, also within the context. }
+    {- The references may be cyclic (because of recursive definitions) }
+  }
+
 *)
 
-(** Represents a node which can be instantiated vie ap_subst_in *)
+(** Represents a node which can be instantiated via ap_subst_in *)
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove
@@ -76,7 +84,7 @@ and expr_or_op_arg =
 
 (** An instantiation of an ASSUME - PROVE expression. Other
     nodes are also allowed.
-    (TODO: check the SANY if this can be narrowed down)
+    (TODO: check the SANY implementation if this can be narrowed down)
  *)
 and ap_subst_in = {
   location          : location;
@@ -96,7 +104,8 @@ and subst_in = {
   body              : expr
 }
 
-(** An instance step within a proof.
+(** An instance step within a proof. The effect is the same
+    as using a global definition.
  *)
 and instance = {
   location          : location;
@@ -344,6 +353,13 @@ and by = {
   only           : bool
 }
 
+(** A proof by steps.
+    Example:
+     THEOREM ASSUME NEW P, NEW Q PROVE P /\ Q => P \/ Q
+     <1>1. P => P \/ Q OBVIOUS
+     <1>2. Q => P \/ Q OBVIOUS
+     <1> QED BY <1>1, <1>2
+*)
 and steps = {
   location       : location;
   level          : level option;
@@ -399,6 +415,10 @@ and op_def_or_theorem_or_assume =
   | OTA_theorem of theorem
   | OTA_assume of assume
 
+(** The LET statement of TLA.
+    Example:
+    LET T == A /\ B IN T => T
+*)
 and let_in = {
   location          : location;
   level             : level option;

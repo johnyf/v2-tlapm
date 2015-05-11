@@ -3,18 +3,9 @@ open Sany
 open Sany_ds
 open Sany_visitor
 open Util
+open Test_common
 
-let exhandler f =
-  try
-    Printexc.record_backtrace true;
-    let ret = f () in
-    Printexc.record_backtrace false;
-    ret
-  with
-    x ->
-    Printf.printf "Exception: %s\n" (Printexc.to_string x);
-    Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
-    raise x
+
 (** extracts all names *)
 let name_visitor =
   object
@@ -45,8 +36,8 @@ let internal_ds_names =
     method name acc n = Util.add_missing acc [n]
   end
 
-let test_sany filename () =
-  let channel = open_in filename in
+let test_sany record () =
+  let channel = open_in record.filename in
   let tree = exhandler (fun () -> import_xml channel) in
   close_in channel;
   let sany_names = List.sort compare (name_visitor#context [] tree) in
@@ -59,38 +50,20 @@ let test_sany filename () =
     ~msg:("Names extracted from SANY XML are different " ^
             "from the ones in the internal data-structrues!")
     sany_names internal_names;
+  (* update test result record *)
+  record.sany_context <- Some tree;
+  record.expr_context <- Some etree;
   tree
 
-let test_xml filename =
+let test_xml record =
   Test.make_assert_test
-    ~title: ("xml parsing " ^ filename)
+    ~title: ("xml parsing " ^ record.filename)
     (fun () -> ())
     (fun () ->
      Assert.no_raise ~msg:"Unexpected exception raised."
-                     (fun () -> exhandler ( test_sany filename )  )
+                     (fun () -> exhandler ( test_sany record )  )
     )
-    (fun () -> ())
+    (fun () -> ()  )
 
-let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 
-let files =
-  List.map
-    addpath [
-      "empty";
-      "UserDefOp";
-      "lambda";
-      "tuples";
-      "Choose";
-      "at" ;
-      "expr" ;
-      "instanceA" ;
-      "Euclid";
-      "exec";
-      "priming_stephan";
-      "withsubmodule";
-      "OneBit";
-      (* contains duplicates of multiple modules, takes long to load *)
-      (*"pharos";  *)
-    ]
-
-let get_tests = List.map test_xml files
+let get_tests records = List.map test_xml records

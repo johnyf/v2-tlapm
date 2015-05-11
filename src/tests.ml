@@ -1,5 +1,5 @@
 open Printf
-
+open Test_common
 open Kaputt.Abbreviations
 
 let t1 =
@@ -14,8 +14,38 @@ let check_xmloutput =
     value = "xml"
   with Not_found -> false
 
+
+let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
+
+let files =
+  List.map
+    addpath [
+      "empty";
+      "UserDefOp";
+      "lambda";
+      "tuples";
+      "Choose";
+      "at" ;
+      "expr" ;
+      "instanceA" ;
+      "Euclid";
+      "exec";
+      "proofsteps";
+      "priming_stephan";
+      "withsubmodule";
+      "OneBit";
+      (* contains duplicates of multiple modules, takes long to load *)
+      (*"pharos";  *)
+    ]
+
 let () =
-  let tests = List.concat [Test_sany.get_tests; Test_util.get_tests] in
+  let results = List.map (fun fn -> mkTestResult fn) files in
+  let tests =
+    List.concat [
+        Test_sany.get_tests results;
+        Test_formatter.get_tests results;
+        Test_util.get_tests;
+      ] in
   match check_xmloutput with
   | true  ->
     printf "Creating XML output\n";

@@ -4,6 +4,8 @@ open Expr_visitor
 open Format
 open List
 
+type fc = Format.formatter * context
+
 (* these are extractors for the accumulator type - could be defined as fst and
    snd, but if we extend the accumulator, we need to change it anyway  *)
 let ppf (p, context) = p
@@ -32,9 +34,9 @@ let ppf_ident ppf x = fprintf ppf "%s" x
 (** extracts the ppf from the given accumulator and outputs a newline *)
 let ppf_newline acc = fprintf (ppf acc) "@\n"
 
-class ['a] formatter =
+class formatter =
 object(self)
-  inherit [Format.formatter * context] visitor as self
+  inherit [fc] visitor as self
 
 
   (* parts of expressions *)
@@ -74,9 +76,10 @@ object(self)
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#operator acc2 operator in
-     fprintf (ppf acc3) "(";
+     let oparens, cparens = if (operands <> []) then ("(",")") else ("","") in
+     fprintf (ppf acc3) "%s" oparens;
      let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
-     fprintf (ppf acc4) ")";
+     fprintf (ppf acc4) "%s" cparens;
      fprintf (ppf acc4) "(* bound symbols: ";
      let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
      fprintf (ppf acc) " *)";
@@ -142,11 +145,12 @@ object(self)
         self#op_decl acc0 (OPD opd)
      | OPD  { location ; level ; name ; arity ; kind ; } ->
         let new_decl = match kind with
-          | NewConstant -> "NEW CONSTANT "
-          | NewVariable -> "NEW VARIABLE "
-          | NewState -> "NEW STATE "
-          | NewAction -> "NEW ACTION "
-          | NewTemporal -> "NEW TEMPORAL "
+          (* the new is added in new_decl *)
+          | NewConstant -> "CONSTANT "
+          | NewVariable -> "VARIABLE "
+          | NewState -> "STATE "
+          | NewAction -> "ACTION "
+          | NewTemporal -> "TEMPORAL "
           | _ -> ""
         in
         (* terminal node *)
@@ -235,13 +239,17 @@ object(self)
    method instance acc0 {location; level; name; substs; params; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
+     fprintf (ppf acc2) "INSTANCE ";
      let acc3 = self#name acc2 name in
+     fprintf (ppf acc2) " == ";
      let acc4 = List.fold_left self#subst acc3 substs in
      let acc = List.fold_left self#formal_param acc4 params in
+     ppf_newline acc;
      acc
 
    method subst acc0 { op; expr } =
      let acc1 = self#op_decl acc0 op in
+     fprintf (ppf acc1) " <- ";
      let acc = self#expr_or_op_arg acc1 expr in
      acc
 
@@ -249,21 +257,27 @@ object(self)
                               prove; suffices; boxed; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left
+     let s_suffices = if (suffices) then "SUFFICES ASSUME " else "ASSUME " in
+     fprintf (ppf acc2) "%s" s_suffices;
+     let acc3 = ppf_fold_with
                   self#new_symb acc2 new_symbols in
-     let acc4 = List.fold_left
+     fprintf (ppf acc2) " PROVE ";
+     let acc4 = ppf_fold_with
                   self#assume_prove acc3 assumes in
      let acc = self#expr acc4 prove in
-     (* suffices and boxed are boolean flags*)
+     ppf_newline acc;
      acc
 
    method new_symb acc0 { location; level; op_decl; set } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
+     fprintf (ppf acc2) "NEW ";
      let acc3 = self#op_decl acc2 op_decl in
      let acc = match set with
        | None -> acc3
-       | Some e -> self#expr acc3 e
+       | Some e ->
+          fprintf (ppf acc3) " \in ";
+          self#expr acc3 e
      in acc
 
    method let_in acc0 {location; level; body; op_defs } =
@@ -361,3 +375,5 @@ object(self)
      acc8
 
 end
+
+let expr_formatter = new formatter
