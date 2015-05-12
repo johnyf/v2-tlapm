@@ -13,22 +13,6 @@ let name_visitor =
     method name acc n = Util.add_missing acc [n]
   end
 
-(** extracts all references *)
-let ref_visitor =
-  object
-    inherit [int list] visitor as super
-    method reference acc i = Util.add_missing acc [i]
-  end
-
-(** extracts dependencies between references *)
-let dependency_visitor =
-  object
-    inherit [(int * int) list] visitor as super
-    method entry acc { uid; reference } =
-      let deps = ref_visitor#fmota [] reference in
-      let pairs = List.map (fun x -> (uid, x)) deps in
-      List.append acc pairs
-  end
 
 let internal_ds_names =
   object

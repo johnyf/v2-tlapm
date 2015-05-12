@@ -46,8 +46,12 @@ object
 
   method context         : fc -> context -> fc
 
-  method expr_or_module_or_module_instance : fc -> expr_or_module_or_module_instance -> fc
+  method expr_or_module_or_module_instance :
+           fc -> expr_or_module_or_module_instance -> fc
   method defined_expr : fc -> defined_expr -> fc
-  method op_def_or_theorem_or_assume       : fc -> op_def_or_theorem_or_assume -> fc
+  method op_def_or_theorem_or_assume       :
+           fc -> op_def_or_theorem_or_assume -> fc
 
 end
+
+val expr_formatter : formatter

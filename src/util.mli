@@ -99,6 +99,8 @@ val ( @$ ) : ('a -> 'b) -> 'a -> 'b
 *)
 
 (** {3 List utils } *)
+val flat_map : ('a -> 'a list) -> 'a list -> 'a list
+(** The composition of map and flatten. *)
 
 (** [find_ordering pairs] *)
 val find_ordering : ('a * 'a) list -> 'a list

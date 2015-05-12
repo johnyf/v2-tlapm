@@ -14,12 +14,16 @@ let test_sany record () =
            failwith ("Test implementation error! No expression context "^
                        "available in record for file " ^ record.filename )
       in
-      let fmt = new formatter in
-      let fmt_string = fmt#context (std_formatter, context) in
+      (* let fmt = new formatter in *)
+      (*      pp_set_margin std_formatter 80; *)
+      fprintf std_formatter "@[%s:@\n" record.filename;
+      let fmt_string =
+        expr_formatter#context (std_formatter, context) context in
+      fprintf std_formatter "@]@.";
       ()
     )
 
-let test_formatter record =
+let create_test record =
   Test.make_assert_test
     ~title: ("formatting " ^ record.filename)
     (fun () -> ())
@@ -30,4 +34,4 @@ let test_formatter record =
     (fun () -> ()  )
 
 
-let get_tests records = List.map test_formatter records
+let get_tests records = List.map create_test records

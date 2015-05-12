@@ -17,5 +17,5 @@ THEOREM fact(3) = 6
  
 =============================================================================
 \* Modification History
-\* Last modified Wed Mar 25 15:39:00 CET 2015 by marty
+\* Last modified Tue May 12 11:24:33 CEST 2015 by marty
 \* Created Wed Mar 25 10:07:40 CET 2015 by marty

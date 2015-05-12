@@ -43,7 +43,7 @@ let () =
   let tests =
     List.concat [
         Test_sany.get_tests results;
-        Test_formatter.get_tests results;
+        (*        Test_formatter.get_tests results; *)
         Test_util.get_tests;
       ] in
   match check_xmloutput with

@@ -46,9 +46,13 @@ object
 
   method context         : 'a -> context -> 'a
 
-  method expr_or_module_or_module_instance : 'a -> expr_or_module_or_module_instance -> 'a
+  method expr_or_module_or_module_instance :
+           'a -> expr_or_module_or_module_instance -> 'a
+
   method defined_expr : 'a -> defined_expr -> 'a
-  method op_def_or_theorem_or_assume       : 'a -> op_def_or_theorem_or_assume -> 'a
+
+  method op_def_or_theorem_or_assume       :
+           'a -> op_def_or_theorem_or_assume -> 'a
 
 end
  = object(self)
