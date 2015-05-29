@@ -15,7 +15,7 @@ let check_xmloutput =
   with Not_found -> false
 
 
-let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
+let addpath = (fun (str : string) -> "test/resources/xml/" ^ str ^ ".xml")
 
 let flt x = x
 
