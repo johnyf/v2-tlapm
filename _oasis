@@ -12,6 +12,7 @@ Executable tlapm
   BuildTools: ocamlbuild
 #  CompiledObject: native
   MainIs:     tlapm.ml
+#  XOCamlbuildExtraArgs: "-w +44"
   BuildDepends: xmlm,
                 str,
                 unix

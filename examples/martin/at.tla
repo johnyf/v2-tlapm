@@ -24,5 +24,5 @@ LEMMA ASSUME Init, Next PROVE f'.r1 = 103
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Feb 20 15:35:21 CET 2015 by marty
+\* Last modified Wed May 27 14:28:49 CEST 2015 by marty
 \* Created Fri Feb 20 13:41:37 CET 2015 by marty

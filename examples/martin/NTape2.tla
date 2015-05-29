@@ -1,4 +1,4 @@
-------------------------------- MODULE NTape1 -------------------------------
+------------------------------- MODULE NTape2 -------------------------------
 EXTENDS Naturals, TLAPS
 
 CONSTANT f
@@ -36,5 +36,5 @@ LEMMA L2 == ASSUME TypeOK PROVE TwoEqualSymbols
 
 =============================================================================
 \* Modification History
-\* Last modified Tue Jan 06 17:27:34 CET 2015 by marty
+\* Last modified Tue May 19 15:47:07 CEST 2015 by marty
 \* Created Tue Jan 06 11:16:11 CET 2015 by marty

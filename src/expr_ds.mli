@@ -149,6 +149,7 @@ and theorem =
 and theorem_ = {
   location          : location;
   level             : level option;
+  name              : string option;
   expr              : assume_prove;
   proof             : proof;
   suffices          : bool
@@ -489,6 +490,7 @@ and mule_ = {
   assumptions       : assume list ;
   theorems          : theorem list ;
 }
+
 (** In contrast to the {!module:Sany_ds} context, entries
     for different elements are separate.
 *)

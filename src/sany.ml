@@ -116,7 +116,7 @@ let read_opref i =
   let name = match (peek i) with
     | `El_start ((_, name),_ ) -> name
     | signal -> failwith ("We expect a symbol opening tag of an operator "^
-			     "reference but got " ^ (formatSignal signal))
+                            "reference but got " ^ (formatSignal signal))
   in
   let rr = read_ref i name in
   let opref = match name with
@@ -129,10 +129,10 @@ let read_opref i =
     | "TheoremNodeRef"        -> rr (fun x -> FMOTA_theorem (THM_ref x) )
     | "AssumeNodeRef"         -> rr (fun x -> FMOTA_assume (ASSUME_ref x) )
     | _ -> failwith ("Found tag " ^ name ^
-			" but we need an operator reference ("^
-			"FormalParamNodeRef, ModuleNodeRef, OpDeclNodeRef, " ^
-			"ModuleInstanceKindRef, UserDefinedOpKindRef, " ^
-			"BuiltInKindRef, TheoremNodeRef, AssumeNodeRef)")
+                       " but we need an operator reference ("^
+                         "FormalParamNodeRef, ModuleNodeRef, OpDeclNodeRef, " ^
+                           "ModuleInstanceKindRef, UserDefinedOpKindRef, " ^
+                             "BuiltInKindRef, TheoremNodeRef, AssumeNodeRef)")
   in
   opref
 
@@ -720,6 +720,13 @@ and read_theorem i : theorem =
   open_tag i "TheoremNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
+  let read_un i = get_data_in i "uniquename" read_string in
+  let name = match get_optchild i "uniquename" read_un with
+    | [] -> None
+    | [x] -> Some x
+    | _ ->
+       failwith "Implementation error! Theorems have exactly one unique name!"
+  in
   let expr = read_expr_or_assumeprove i in
   let proofl = get_optchild_choice i [(is_proof_node, read_proof)]  in
   let proof = match proofl with
@@ -731,6 +738,7 @@ and read_theorem i : theorem =
   THM {
     location = location;
     level    = level;
+    name     = name;
     expr     = expr;
     proof    = proof;
     suffices = suffices;

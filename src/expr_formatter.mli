@@ -1,7 +1,8 @@
 open Expr_ds
 open Commons
 
-type fc = Format.formatter * context
+type nesting = Module | Expression | ProofStep
+type fc = Format.formatter * context * bool * nesting
 
 class formatter :
 object
@@ -51,6 +52,8 @@ object
   method defined_expr : fc -> defined_expr -> fc
   method op_def_or_theorem_or_assume       :
            fc -> op_def_or_theorem_or_assume -> fc
+
+  method translate_builtin_name : string -> string
 
 end
 

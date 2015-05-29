@@ -7,23 +7,46 @@ open List
 open Format
 
 
-type fc = Format.formatter * context
+type nesting = Module | Expression | ProofStep
+(* We need to pass on the formatter, the contect for unfolding references and a
+   flag if to unfold *)
+type fc = Format.formatter * context * bool * nesting
 
-(* these are extractors for the accumulator type - could be defined as fst and
-   snd, but if we extend the accumulator, we need to change it anyway  *)
-let ppf (p, context) = p
-let con (p, context) = context
+(* these are extractors for the accumulator type  *)
+let ppf   (ppf, _, _, _) = ppf
+let con   (_, context, _, _) = context
+let undef (_, _, expand, _) = expand
+let nesting (_, _, _, n) = n
 
+(* sets the expand flag of the accumulator *)
+let set_expand (x,y,_,n) v = (x,y,v,n)
+
+(* sets the expand flag of the first accumulator the the expand flag of the
+   second accumulator *)
+let reset_expand (x,y,_,n) (_,_,v,_) = (x,y,v,n)
+
+(* modifies the accumulator to turn on definition expansion *)
+let enable_expand x = set_expand x true
+
+(* modifies the accumulator to turn off definition expansion *)
+let disable_expand x = set_expand x false
+
+
+let set_nesting (x,y,z,_) n = (x,y,z,n)
+let reset_nesting (x,y,z,_) (_,_,_,n) = (x,y,z,n)
+let nest_module x = set_nesting x Module
+let nest_expr x = set_nesting x Expression
+let nest_proof x = set_nesting x ProofStep
 
 (* folds the function f into the given list, but extracts the formatter from
    the accumulator and prints the string s after all but the last elements.  *)
-let rec ppf_fold_with ?str:(s=",") f acc = function
+let rec ppf_fold_with ?str:(s=", ") f acc = function
   | [x] ->
      f acc x
   | x::xs ->
      let y = f acc x in
      fprintf (ppf acc) "%s" s;
-     ppf_fold_with f y xs
+     ppf_fold_with ~str:s f y xs
   | [] -> acc
 
 (** encloses the given string with parenthesis. can be used as a %a
@@ -41,8 +64,7 @@ let ppf_newline acc = fprintf (ppf acc) "@\n"
 
 class formatter =
 object(self)
-  inherit [fc] visitor as self
-
+  inherit [fc] visitor as super
 
   (* parts of expressions *)
   method location acc l : 'a = acc
@@ -81,7 +103,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = self#operator acc2 operator in
-    let oparens, cparens = if (operands <> []) then ("(",")") else ("(",")") in
+    let oparens, cparens = if (operands <> []) then ("(",")") else ("","") in
     fprintf (ppf acc3) "%s" oparens;
     let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
     fprintf (ppf acc4) "%s" cparens;
@@ -127,22 +149,39 @@ object(self)
        failwith "Implementation error: cannot dereference modules!"
     | MOD {name; location; constants; variables;
            definitions; assumptions; theorems; } ->
-       fprintf (ppf acc0) "@[";
-       fprintf (ppf acc0) "==== %s ====" name;
-       (* let acc0a = self#name acc0 name in
+       match undef acc0 with
+       | false -> (* don't expand module name *)
+          fprintf (ppf acc0) "%s" name;
+          acc0
+       | true -> (* expand module name *)
+          let acc0a = nest_module acc0 in
+          fprintf (ppf acc0a) "@[<v 2>";
+          fprintf (ppf acc0a) "==== %s ====@\n" name;
+          (* let acc0a = self#name acc0 name in
            let acc1 = self#location acc0a location in *)
-       fprintf (ppf acc0) "CONSTANTS ";
-       let acc2 = ppf_fold_with self#op_decl acc0 constants in
-       (*       fprintf (ppf acc2) "@\n"; *)
-       fprintf (ppf acc2) "VARIABLES ";
-       let acc3 = ppf_fold_with self#op_decl acc2 variables in
-       (*       fprintf (ppf acc2) "@\n"; *)
-       let acc4 = List.fold_left self#op_def acc3 definitions in
-       let acc5 = List.fold_left self#assume acc4 assumptions in
-       let acc = List.fold_left self#theorem acc5 theorems in
-       fprintf (ppf acc2) "------------";
-       fprintf (ppf acc2) "@]";
-       acc
+          let s_constants, s_constantsnl =
+            if (constants == []) then "", "" else "CONSTANTS ", "\n" in
+          fprintf (ppf acc0a) "%s" s_constants;
+          let acc2 = ppf_fold_with self#op_decl acc0a constants in
+          fprintf (ppf acc2) "%s" s_constantsnl;
+          let s_variables, s_variablesnl =
+            if (constants == []) then "", "" else "VARIABLES ", "\n" in
+          fprintf (ppf acc2) "%s" s_variables;
+          let acc3 = ppf_fold_with self#op_decl acc2 variables in
+          fprintf (ppf acc2) "%s" s_variablesnl;
+          let s_opdefnl = if (definitions == []) then "" else "\n" in
+          let acc4 = ppf_fold_with ~str:"\n" self#op_def acc3 definitions in
+          fprintf (ppf acc4) "%s" s_opdefnl;
+          let s_assumptionsnl = if (assumptions == []) then "" else "\n" in
+          let acc5 = ppf_fold_with ~str:"\n" self#assume acc4 assumptions in
+          fprintf (ppf acc5) "%s" s_assumptionsnl;
+          let s_theoremnl = if (theorems == []) then "" else "\n" in
+          let acc6 = ppf_fold_with ~str:"\n" self#theorem acc5 theorems in
+          let acc = reset_nesting acc6 acc0 in
+          fprintf (ppf acc) "%s" s_theoremnl;
+          fprintf (ppf acc) "@]";
+          fprintf (ppf acc) "@\n------------@\n";
+          acc
 
 
   method op_decl acc0 = function
@@ -151,20 +190,12 @@ object(self)
        let opd = assoc x opdefs in
        self#op_decl acc0 (OPD opd)
     | OPD  { location ; level ; name ; arity ; kind ; } ->
-       let new_decl = match kind with
-         (* the new is added in new_decl *)
-         | NewConstant -> "CONSTANT "
-         | NewVariable -> "VARIABLE "
-         | NewState -> "STATE "
-         | NewAction -> "ACTION "
-         | NewTemporal -> "TEMPORAL "
-         | _ -> ""
-       in
+       (* the kind is only relevant in the new_symb rule *)
        (* terminal node *)
        let acc1 = self#location acc0 location in
        let acc2 = self#level acc1 level in
        let acc3 = self#name acc2 name in
-       fprintf (ppf acc3) "%s %s" new_decl name ;
+       fprintf (ppf acc3) "%s" name ;
        acc3
 
   method op_def acc = function
@@ -172,25 +203,70 @@ object(self)
        let ops = (con acc).opdef_entries  in
        let op = assoc x ops in
        self#op_def acc (OPDef op)
-    | OPDef (O_module_instance x) -> self#module_instance acc x
-    | OPDef (O_builtin_op x)      -> self#builtin_op acc x
-    | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
+    | OPDef (O_module_instance x) ->
+       self#module_instance acc x
+    | OPDef (O_builtin_op x)      ->
+       self#builtin_op acc x
+    | OPDef (O_user_defined_op x) ->
+       let op = match x with
+       | UOP d -> d
+       | UOP_ref r ->
+          let opdefs = (con acc).opdef_entries in
+          match assoc r opdefs with
+          | O_user_defined_op (UOP op) -> op
+          | _ -> failwith ("The id " ^ (string_of_int r) ^
+                           " does refer to a user defined operator!")
+       in
+       match nesting acc, undef acc with
+       | Module, _ ->
+          fprintf (ppf acc) "%s == " op.name;
+          let acc1 = nest_expr acc in
+          let acc2 = self#user_defined_op acc1 x in
+          let acc3 = reset_nesting acc2 acc in
+          ppf_newline acc3;
+          acc3
+       | Expression, true ->
+          let acc1 = nest_expr acc in
+          let acc2 = self#user_defined_op acc1 x in
+          let acc3 = reset_nesting acc2 acc in
+          acc3
+       | Expression, false ->
+          fprintf (ppf acc) "%s" op.name;
+          acc
+       | ProofStep, _ ->
+          failwith ("TODO: implement printing of op definitions in " ^
+                    "proof step environments.")
 
   method theorem acc0 = function
     | THM_ref x ->
        let thms = (con acc0).theorem_entries  in
        let thm = assoc x thms in
        self#theorem acc0 (THM thm)
-    | THM { location; level; expr; proof; suffices } ->
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       let s = if suffices then "SUFFICES " else "" in
-       fprintf (ppf acc2) "%s" s;
-       let acc3 = self#assume_prove acc2 expr in
-       let acc4 = self#proof acc3 proof  in
-
-       ppf_newline acc4;
-       acc4
+    | THM { location; level; name; expr; proof; suffices } ->
+       match undef acc0, name with
+       | true, _ ->
+          fprintf (ppf acc0) "THEOREM ";
+          let acc1 = self#location acc0 location in
+          let acc2 = self#level acc1 level in
+          let named = match nesting acc2, name with
+          | Module, Some name -> name ^ " == "
+          | _ -> ""
+          in
+          let s = if suffices then "SUFFICES " else "" in
+          fprintf (ppf acc2) "%s %s" named s;
+          let acc2a = nest_expr acc2 in
+          let acc3 = self#assume_prove acc2a expr in
+          let acc3a = nest_proof acc3 in
+          let acc4 = self#proof acc3 proof  in
+          let acc4a = reset_nesting acc4 acc0 in
+          ppf_newline acc4a;
+          acc4a
+       | false, Some name ->
+          fprintf (ppf acc0) "%s" name;
+          acc0
+       | _ -> failwith
+                ("Implementation error! Trying to pretty print a theorem's " ^
+                   "name, but the theorem does not have one.")
 
   method assume acc0  = function
     | ASSUME_ref x ->
@@ -205,43 +281,70 @@ object(self)
 
   method proof acc0 = function
     | P_omitted location ->
-       fprintf (ppf acc0) "OMITTED";
+       fprintf (ppf acc0) " OMITTED";
        ppf_newline acc0;
        acc0
     | P_obvious location ->
-       fprintf (ppf acc0) "OBVIOUS";
+       fprintf (ppf acc0) " OBVIOUS";
        ppf_newline acc0;
        acc0
     | P_by { location; level; facts; defs; only }  ->
        let acc1 = self#location acc0 location in
        let acc2 = self#level acc1 level in
-       let by_only = if only then "BY ONLY " else "BY " in
+       let by_only = if only then " BY ONLY " else " BY " in
        fprintf (ppf acc2) "%s" by_only;
-       let acc3 = ppf_fold_with
-                    self#expr_or_module_or_module_instance acc2 facts in
-       let bydef = if (defs <> []) then "DEF " else "" in
+       let acc3 = disable_expand acc2 in
+       let acc4 = ppf_fold_with
+                    self#expr_or_module_or_module_instance acc3 facts in
+       let bydef = if (defs <> []) then " DEF " else "" in
        fprintf (ppf acc3) " %s" bydef;
        (* this loops because of self-reference to the containing theorem *)
-       let acc = ppf_fold_with
-                   self#defined_expr acc3 defs in
+       let acc5 = ppf_fold_with ~str:"\n"
+                   self#defined_expr acc4 defs in
+       let acc = reset_expand acc5 acc0 in
        ppf_newline acc;
        acc
     | P_steps { location; level; steps; } ->
-       let acc = ppf_fold_with ~str:"@\n" self#step acc0 steps in
+       let acc1 = disable_expand acc0 in
+       let acc2 = ppf_fold_with ~str:"" self#step acc1 steps in
+       ppf_newline acc2;
+       let acc = reset_expand acc2 acc1 in
        ppf_newline acc;
        acc
     | P_noproof ->
        ppf_newline acc0;
        acc0
 
+  method step acc0 = function
+     | S_def_step x -> self#def_step acc0 x
+     | S_use_or_hide x -> self#use_or_hide acc0 x
+     | S_instance i -> self#instance acc0 i
+     | S_theorem t ->
+        (* dereference theorem *)
+        let thm = match t with
+          | THM_ref x ->
+             let thms = (con acc0).theorem_entries  in
+             assoc x thms
+          | THM x -> x
+        in
+        match thm.name with
+        | Some name ->
+           fprintf (ppf acc0) "%s " name;
+           let acc1 = enable_expand acc0 in
+           let acc2 = self#theorem acc1 t in
+           let acc = reset_expand acc2 acc0 in
+           (*           ppf_newline acc; *)
+           acc
+        | None -> failwith "A theorem as proofstep needs a name!"
+
   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let uoh = if hide then "HIDE " else "USE " in
+    let uoh = if hide then " HIDE " else " USE " in
     fprintf (ppf acc2) "%s" uoh;
     let acc3 = ppf_fold_with
                  self#expr_or_module_or_module_instance acc2 facts in
-    let bydef = if (defs <> []) then "DEF " else "" in
+    let bydef = if (defs <> []) then " DEF " else "" in
     fprintf (ppf acc3) "%s" bydef;
     let acc = ppf_fold_with
                 self#defined_expr acc3 defs in
@@ -291,6 +394,21 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "NEW ";
+    (* dereference op_decl *)
+    let od = match op_decl with
+      | OPD_ref x ->
+         let opdecs = (con acc2).opdec_entries in
+         assoc x opdecs
+      | OPD x -> x
+    in
+    let new_decl = match od.kind with
+         | NewConstant -> "CONSTANT "
+         | NewVariable -> "VARIABLE "
+         | NewState -> "STATE "
+         | NewAction -> "ACTION "
+         | NewTemporal -> "TEMPORAL "
+         | _ -> failwith "declared new symbol with a non-new kind."
+    in
     let acc3 = self#op_decl acc2 op_decl in
     let acc = match set with
       | None -> acc3
@@ -348,7 +466,7 @@ object(self)
     | { level; name; arity; params } ->
        let acc1 = self#level acc0 level in
        let acc2 = self#name acc1 name in
-       fprintf (ppf acc0) "%s" name;
+       fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
        acc2
 
   method user_defined_op acc0 = function
@@ -356,18 +474,23 @@ object(self)
        self#reference acc0 x
     | UOP { location; level ; name ; arity ;
             body ; params ; recursive ; } ->
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       fprintf (ppf acc2) "%s" name;
-       let acc3 = self#name acc2 name in
-       (* arity *)
-       (*
-        let acc4 = self#expr acc3 body in
-        let acc = List.fold_left
+       match undef acc0, recursive with
+       | true, false -> (* expand the definition *)
+          let acc1 = self#location acc0 location in
+          let acc2 = self#level acc1 level in
+          let acc4 = self#expr acc2 body in
+          (* TODO: handle recursive definitions *)
+          (*
+          let acc = List.fold_left
                     (fun x (fp,_) -> self#formal_param x fp) acc4 params in
-        *)
-       (* skip recursive flag *)
-       acc3
+           *)
+          acc4
+       | _ -> (* don't exapand the definition *)
+          let acc1 = self#location acc0 location in
+          let acc2 = self#level acc1 level in
+          fprintf (ppf acc2) "%s" name;
+          let acc3 = self#name acc2 name in
+          acc3
 
   method name acc x = acc
 
@@ -377,28 +500,51 @@ object(self)
   method context acc { fp_entries; mod_entries; opdec_entries;
                        opdef_entries; theorem_entries; assume_entries;
                        apsubst_entries; modules } =
-    (*
-    let strip pack list = List.map (fun x -> pack (snd x)) list in
-    let fp_strip = strip (fun x -> FP x) in
-    let mod_strip = strip (fun x -> MOD x) in
-    let opdef_strip = strip (fun x -> OPDef x) in
-    let opdec_strip = strip (fun x -> OPD x) in
-    let theorem_strip = strip (fun x -> THM x) in
-    let assume_strip = strip (fun x -> ASSUME x) in
-    let ap_strip = strip (fun x ->  x) in
-    let acc1 = List.fold_left self#formal_param acc (fp_strip fp_entries) in
-    let acc2 = List.fold_left self#mule acc1 (mod_strip mod_entries) in
-    let acc3 = List.fold_left self#op_decl acc2 (opdec_strip opdec_entries) in
-    let acc4 = List.fold_left self#op_def acc3 (opdef_strip opdef_entries) in
-    let acc5 =
-      List.fold_left self#theorem acc4 (theorem_strip theorem_entries) in
-    let acc6 = List.fold_left self#assume acc5 (assume_strip assume_entries) in
-    let acc7 =
-      List.fold_left self#ap_subst_in acc6 (ap_strip apsubst_entries) in
-    *)
     let acc8 = List.fold_left self#mule acc modules in
     acc8
 
+  method translate_builtin_name = function
+    (*    | "$AngleAct"  as x -> failwith ("Unknown operator " ^ x ^"!") *)
+    | "$BoundedChoose" -> "CHOOSE"
+    | "$BoundedExists" -> "EXISTS"
+    | "$BoundedForall" -> "\\A"
+    | "$Case" -> "CASE"
+    | "$CartesianProd" -> "\times"
+    | "$ConjList" -> "/\\"
+    | "$DisjList" -> "\\/"
+    | "$Except" -> "EXCEPT"
+    (*    | "$FcnApply" as x -> failwith ("Unknown operator " ^ x ^"!") *)
+    (*    | "$FcnConstructor"  as x -> failwith ("Unknown operator " ^ x ^"!") *)
+    | "$IfThenElse" -> "IFTHENELSE"
+(*    | "$NonRecursiveFcnSpec"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$Pair"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$RcdConstructor"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$RcdSelect"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$RecursiveFcnSpec"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$Seq"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SquareAct"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SetEnumerate"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SF"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SetOfAll" as x  -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SetOfRcds" as x  -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SetOfFcns" as x  -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SubsetOf" as x  -> failwith ("Unknown operator " ^ x ^"!")
+    | "$Tuple" as x  -> failwith ("Unknown operator " ^ x ^"!") *)
+    | "$TemporalExists" -> "\\EE"
+    | "$TemporalForall" -> "\\AA"
+    | "$UnboundedChoose" -> "CHOOSE"
+    | "$UnboundedExists" -> "\\E"
+    | "$UnboundedForall" -> "\\A"
+(*    | "$WF" as x  -> failwith ("Unknown operator " ^ x ^"!")
+    | "$Nop" as x -> failwith ("Unknown operator " ^ x ^"!") *)
+    | "$Qed" -> "QED"
+    | "$Pfcase" -> "CASE"
+    | "$Have" -> "HAVE"
+    | "$Take" -> "TAKE"
+    | "$Pick" -> "PICK"
+    | "$Witness" -> "WITNESS"
+    | "$Suffices" -> "SUFFICES"
+    | x -> x (* catchall case *)
 end
 
 let expr_formatter = new formatter

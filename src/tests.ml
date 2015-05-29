@@ -17,34 +17,37 @@ let check_xmloutput =
 
 let addpath = (fun (str : string) -> "test/resources/" ^ str ^ ".xml")
 
+let flt x = x
+
 let files =
   List.map
-    addpath [
-      "empty";
-      "UserDefOp";
-      "lambda";
-      "tuples";
-      "Choose";
-      "at" ;
-      "expr" ;
-      "instanceA" ;
-      "Euclid";
-      "exec";
-      "proofsteps";
-      "priming_stephan";
-      "withsubmodule";
-      "OneBit";
-      (* contains duplicates of multiple modules, takes long to load *)
-      (*"pharos";  *)
-    ]
+  addpath (flt
+           [
+           "empty";
+           "UserDefOp";
+           "lambda";
+           "tuples";
+           "Choose";
+           "at" ;
+           "expr" ;
+           "instanceA" ;
+           "Euclid";
+           (*           "exec"; *)
+           "proofsteps";
+           (* "priming_stephan"; *)
+           "withsubmodule";
+           "OneBit";
+           (* contains duplicates of multiple modules, takes long to load *)
+           (*"pharos";  *)
+           ])
 
 let () =
   let results = List.map (fun fn -> mkTestResult fn) files in
   let tests =
     List.concat [
+        Test_util.get_tests;
         Test_sany.get_tests results;
         (*        Test_formatter.get_tests results; *)
-        Test_util.get_tests;
       ] in
   match check_xmloutput with
   | true  ->

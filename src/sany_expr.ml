@@ -389,7 +389,7 @@ class converter = object(self)
 
    method theorem acc0 = function
      | Sany_ds.THM_ref x -> (Any_theorem (THM_ref x), snd acc0)
-     | Sany_ds.THM { Sany_ds.location; level; expr; proof; suffices } ->
+     | Sany_ds.THM { Sany_ds.location; level; name; expr; proof; suffices } ->
 	let Any_location location, acc1 = self#location acc0 location in
 	let Any_level level,       acc2 = self#level (Nothing, acc1) level in
 	let ap = match expr with
@@ -401,6 +401,7 @@ class converter = object(self)
 	let t = {
 	    location;
 	    level;
+            name;
 	    expr;
 	    proof;
 	    suffices;

@@ -87,6 +87,7 @@ and theorem =
 and theorem_ = {
   location          : location option;
   level             : level option;
+  name              : string option;
   expr              : expr_or_assume_prove;
   proof             : proof;
   suffices          : bool

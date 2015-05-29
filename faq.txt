@@ -54,6 +54,16 @@ At the moment, the xml format refers to the instance I just by its name (string)
 Q: In v1 tlapm, what is the difference between an empty bullet list List(Refs []) and TRUE?
 A: The difference between bullet lists and conjunctions is that the old code can refer directly to an index in the list. 
 
+Q: What are different display modes of SANY elements?
+A:
+* Defined Operators: only the name, only the definiens, op(fp1,...,fpN) == definiens
+* Theorem: only the name, only the body, name + body
+* Assumption: only the name, only the body
+* Module Instance: name == module with substitution, explicit instantiation node (unprintable in TLA)
+* Instance steps:
+* Label: name, ?
+* Module: name, full
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet points?

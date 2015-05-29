@@ -155,10 +155,13 @@ end
 
    method theorem acc0 = function
    | THM_ref x -> self#reference acc0 x
-   | THM { location; level; expr; proof; suffices } ->
+   | THM { location; level; name; expr; proof; suffices } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#assume_prove acc2 expr in
+     let acc2a = match name with
+       | None -> acc2
+       | Some n -> self#name acc2 n in
+     let acc3 = self#assume_prove acc2a expr in
      let acc4 = self#proof acc3 proof  in
      (* skip suffices *)
      acc4
