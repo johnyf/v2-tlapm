@@ -44,6 +44,7 @@ object
   method def_step        : 'a -> def_step -> 'a
   method reference       : 'a -> int -> 'a
 
+  method entry           : 'a -> (int * entry) -> 'a
   method context         : 'a -> context -> 'a
 
   method expr_or_module_or_module_instance :
@@ -295,7 +296,7 @@ end
    method user_defined_op acc0 = function
    | UOP_ref x -> self#reference acc0 x
    | UOP { location; level ; name ; arity ;
-	   body ; params ; recursive ; } ->
+           body ; params ; recursive ; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#name acc2 name in
@@ -310,28 +311,19 @@ end
 
    method reference acc x = acc
 
-   method context acc {   fp_entries; mod_entries; opdec_entries;
-			  opdef_entries; theorem_entries; assume_entries;
-			  apsubst_entries; modules } =
-     let strip pack list = List.map (fun x -> pack (snd x)) list in
-     let fp_strip = strip (fun x -> FP x) in
-     let mod_strip = strip (fun x -> MOD x) in
-     let opdef_strip = strip (fun x -> OPDef x) in
-     let opdec_strip = strip (fun x -> OPD x) in
-     let theorem_strip = strip (fun x -> THM x) in
-     let assume_strip = strip (fun x -> ASSUME x) in
-     let ap_strip = strip (fun x ->  x) in
-     let acc1 = List.fold_left self#formal_param acc (fp_strip fp_entries) in
-     let acc2 = List.fold_left self#mule acc1 (mod_strip mod_entries) in
-     let acc3 = List.fold_left self#op_decl acc2 (opdec_strip opdec_entries) in
-     let acc4 = List.fold_left self#op_def acc3 (opdef_strip opdef_entries) in
-     let acc5 =
-       List.fold_left self#theorem acc4 (theorem_strip theorem_entries) in
-     let acc6 = List.fold_left self#assume acc5 (assume_strip assume_entries) in
-     let acc7 =
-       List.fold_left self#ap_subst_in acc6 (ap_strip apsubst_entries) in
-     let acc8 = List.fold_left self#mule acc7 modules in
-     acc8
+   method entry acc (id, e) = match e with
+   | FP_entry x -> self#formal_param acc (FP x)
+   | MOD_entry x -> self#mule acc (MOD x)
+   | OPDef_entry x -> self#op_def acc (OPDef x)
+   | OPDec_entry x -> self#op_decl acc (OPD x)
+   | THM_entry x -> self#theorem acc (THM x)
+   | ASSUME_entry x -> self#assume acc (ASSUME x)
+   | APSUBST_entry x -> self#ap_subst_in acc x
+
+   method context acc {   entries; modules } =
+     let acc1 = List.fold_left self#entry acc entries in
+     let acc2 = List.fold_left self#mule acc1 modules in
+     acc2
 
    (* pure disjunction types *)
    method expr acc = function

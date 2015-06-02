@@ -1,6 +1,7 @@
 open Commons
 open Expr_ds
 open Expr_visitor
+open Expr_utils
 open Util
 
 open List
@@ -37,6 +38,13 @@ let reset_nesting (x,y,z,_) (_,_,_,n) = (x,y,z,n)
 let nest_module x = set_nesting x Module
 let nest_expr x = set_nesting x Expression
 let nest_proof x = set_nesting x ProofStep
+
+
+let find_entry unpack acc i =
+  let entries = (con acc).entries in
+  let elem = assoc i entries in
+  unpack elem
+
 
 (* folds the function f into the given list, but extracts the formatter from
    the accumulator and prints the string s after all but the last elements.  *)
@@ -133,8 +141,7 @@ object(self)
 
   method formal_param acc0 = function
     | FP_ref i ->
-       let fps = (con acc0).fp_entries in
-       let fp = assoc i fps in
+       let fp = find_entry unpack_fp_entry acc0 i in
        self#formal_param acc0 (FP fp)
     | FP { location; level; name; arity; } ->
        let acc1 = self#location acc0 location in
@@ -186,8 +193,7 @@ object(self)
 
   method op_decl acc0 = function
     | OPD_ref x ->
-       let opdefs = (con acc0).opdec_entries in
-       let opd = assoc x opdefs in
+       let opd = find_entry unpack_opdecl_entry acc0 x in
        self#op_decl acc0 (OPD opd)
     | OPD  { location ; level ; name ; arity ; kind ; } ->
        (* the kind is only relevant in the new_symb rule *)
@@ -200,8 +206,7 @@ object(self)
 
   method op_def acc = function
     | OPDef_ref x ->
-       let ops = (con acc).opdef_entries  in
-       let op = assoc x ops in
+       let op = find_entry unpack_opdef_entry acc x in
        self#op_def acc (OPDef op)
     | OPDef (O_module_instance x) ->
        self#module_instance acc x
@@ -211,8 +216,8 @@ object(self)
        let op = match x with
        | UOP d -> d
        | UOP_ref r ->
-          let opdefs = (con acc).opdef_entries in
-          match assoc r opdefs with
+          let opd = find_entry unpack_opdef_entry acc r in
+          match opd with
           | O_user_defined_op (UOP op) -> op
           | _ -> failwith ("The id " ^ (string_of_int r) ^
                            " does refer to a user defined operator!")
@@ -239,8 +244,7 @@ object(self)
 
   method theorem acc0 = function
     | THM_ref x ->
-       let thms = (con acc0).theorem_entries  in
-       let thm = assoc x thms in
+       let thm = find_entry unpack_thm_entry acc0 x in
        self#theorem acc0 (THM thm)
     | THM { location; level; name; expr; proof; suffices } ->
        match undef acc0, name with
@@ -322,10 +326,9 @@ object(self)
      | S_theorem t ->
         (* dereference theorem *)
         let thm = match t with
-          | THM_ref x ->
-             let thms = (con acc0).theorem_entries  in
-             assoc x thms
-          | THM x -> x
+        | THM_ref x ->
+           find_entry unpack_thm_entry acc0 x
+        | THM x -> x
         in
         match thm.name with
         | Some name ->
@@ -396,10 +399,9 @@ object(self)
     fprintf (ppf acc2) "NEW ";
     (* dereference op_decl *)
     let od = match op_decl with
-      | OPD_ref x ->
-         let opdecs = (con acc2).opdec_entries in
-         assoc x opdecs
-      | OPD x -> x
+    | OPD_ref x ->
+       find_entry unpack_opdecl_entry acc0 x
+    | OPD x -> x
     in
     let new_decl = match od.kind with
          | NewConstant -> "CONSTANT "
@@ -497,11 +499,9 @@ object(self)
   method reference acc x = acc
 
 
-  method context acc { fp_entries; mod_entries; opdec_entries;
-                       opdef_entries; theorem_entries; assume_entries;
-                       apsubst_entries; modules } =
-    let acc8 = List.fold_left self#mule acc modules in
-    acc8
+  method context acc { entries; modules } =
+    let acc1 = List.fold_left self#mule acc modules in
+    acc1
 
   method translate_builtin_name = function
     (*    | "$AngleAct"  as x -> failwith ("Unknown operator " ^ x ^"!") *)

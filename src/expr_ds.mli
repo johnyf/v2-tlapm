@@ -14,7 +14,7 @@ open Commons
      the expr_visitor will provide callbacks for each builtin.
 
      builtins don't have a location anymore. }
-   {- entries in the context are now seperated by type }
+   {- entries in the context cannot contain references anymore }
    {- module instance references are unfolded. }
    {- operator definition references contain the name }
    {- Renamings:
@@ -491,16 +491,19 @@ and mule_ = {
   theorems          : theorem list ;
 }
 
+type entry =
+  FP_entry of formal_param_ |
+  MOD_entry of mule_ |
+  OPDec_entry of op_decl_ |
+  OPDef_entry of op_def_ |
+  THM_entry of theorem_ |
+  ASSUME_entry of assume_ |
+  APSUBST_entry of ap_subst_in
+
 (** In contrast to the {!module:Sany_ds} context, entries
     for different elements are separate.
 *)
 type context = {
-  fp_entries      : (int * formal_param_) list;
-  mod_entries     : (int * mule_) list;
-  opdec_entries   : (int * op_decl_) list;
-  opdef_entries   : (int * op_def_) list;
-  theorem_entries : (int * theorem_) list;
-  assume_entries  : (int * assume_) list;
-  apsubst_entries : (int * ap_subst_in) list;
+  entries : (int * entry) list;
   modules : mule list;
 }

@@ -51,6 +51,7 @@ object
   method def_step        : 'a -> def_step -> 'a
   method reference       : 'a -> int -> 'a
 
+  method entry           : 'a -> (int * entry) -> 'a
   method context         : 'a -> context -> 'a
 
   method expr_or_module_or_module_instance : 'a -> expr_or_module_or_module_instance -> 'a

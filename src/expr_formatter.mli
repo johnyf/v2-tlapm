@@ -45,6 +45,7 @@ object
   method def_step        : fc -> def_step -> fc
   method reference       : fc -> int -> fc
 
+  method entry           : fc -> (int * entry) -> fc
   method context         : fc -> context -> fc
 
   method expr_or_module_or_module_instance :

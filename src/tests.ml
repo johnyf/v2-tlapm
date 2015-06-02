@@ -47,7 +47,7 @@ let () =
     List.concat [
         Test_util.get_tests;
         Test_sany.get_tests results;
-        (*        Test_formatter.get_tests results; *)
+        Test_formatter.get_tests results; (* *)
       ] in
   match check_xmloutput with
   | true  ->
