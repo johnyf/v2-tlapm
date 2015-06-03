@@ -5,7 +5,6 @@ open Util
 open Test_common
 open Format
 
-
 let test_sany record () =
   ignore (
       let context = match record.expr_context with
@@ -17,8 +16,9 @@ let test_sany record () =
       (* let fmt = new formatter in *)
       (*      pp_set_margin std_formatter 80; *)
       fprintf std_formatter "@[<v 0>%s:@\n" record.filename;
+      let init = (std_formatter, context, true, Module, 0) in
       let fmt_string =
-        expr_formatter#context (std_formatter, context, true, Module) context in
+        expr_formatter#context init context in
       fprintf std_formatter "@]@.";
       ()
     )

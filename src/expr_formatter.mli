@@ -2,7 +2,7 @@ open Expr_ds
 open Commons
 
 type nesting = Module | Expression | ProofStep
-type fc = Format.formatter * context * bool * nesting
+type fc = Format.formatter * context * bool * nesting * int
 
 class formatter :
 object

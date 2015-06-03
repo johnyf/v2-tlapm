@@ -11,20 +11,21 @@ open Format
 type nesting = Module | Expression | ProofStep
 (* We need to pass on the formatter, the contect for unfolding references and a
    flag if to unfold *)
-type fc = Format.formatter * context * bool * nesting
+type fc = Format.formatter * context * bool * nesting * int
 
 (* these are extractors for the accumulator type  *)
-let ppf   (ppf, _, _, _) = ppf
-let con   (_, context, _, _) = context
-let undef (_, _, expand, _) = expand
-let nesting (_, _, _, n) = n
+let ppf   (ppf, _, _, _, _) = ppf
+let con   (_, context, _, _, _) = context
+let undef (_, _, expand, _, _) = expand
+let nesting (_, _, _, n, _) = n
+let ndepth (_, _, _,  _, n) = n
 
 (* sets the expand flag of the accumulator *)
-let set_expand (x,y,_,n) v = (x,y,v,n)
+let set_expand (x,y,_,n, d) v = (x,y,v,n,d)
 
 (* sets the expand flag of the first accumulator the the expand flag of the
    second accumulator *)
-let reset_expand (x,y,_,n) (_,_,v,_) = (x,y,v,n)
+let reset_expand (x,y,_,n,d) (_,_,v,_,_) = (x,y,v,n,d)
 
 (* modifies the accumulator to turn on definition expansion *)
 let enable_expand x = set_expand x true
@@ -33,12 +34,15 @@ let enable_expand x = set_expand x true
 let disable_expand x = set_expand x false
 
 
-let set_nesting (x,y,z,_) n = (x,y,z,n)
-let reset_nesting (x,y,z,_) (_,_,_,n) = (x,y,z,n)
+let set_nesting (x,y,z,_,u) n = (x,y,z,n,u)
+let reset_nesting x (_,_,_,n,_) = set_nesting x n
 let nest_module x = set_nesting x Module
 let nest_expr x = set_nesting x Expression
 let nest_proof x = set_nesting x ProofStep
 
+let set_ndepth (x,y,z,n,d) depth = (x,y,z,n,depth)
+let reset_ndepth x (_,_,_,_,d) = set_ndepth x d
+let inc_ndepth x = set_ndepth x ((ndepth x) + 1)
 
 let find_entry unpack acc i =
   let entries = (con acc).entries in
@@ -270,7 +274,7 @@ object(self)
           acc0
        | _ -> failwith
                 ("Implementation error! Trying to pretty print a theorem's " ^
-                   "name, but the theorem does not have one.")
+                   "name without expanding, but the theorem does not have one.")
 
   method assume acc0  = function
     | ASSUME_ref x ->
@@ -309,10 +313,12 @@ object(self)
        ppf_newline acc;
        acc
     | P_steps { location; level; steps; } ->
-       let acc1 = disable_expand acc0 in
+       (* disable operator expansion, increase the proof nesting level *)
+       let acc1 = inc_ndepth (disable_expand acc0) in
        let acc2 = ppf_fold_with ~str:"" self#step acc1 steps in
        ppf_newline acc2;
-       let acc = reset_expand acc2 acc1 in
+       (* reset expansion state and nesting level *)
+       let acc = reset_ndepth (reset_expand acc2 acc0) acc0 in
        ppf_newline acc;
        acc
     | P_noproof ->
@@ -330,15 +336,19 @@ object(self)
            find_entry unpack_thm_entry acc0 x
         | THM x -> x
         in
-        match thm.name with
-        | Some name ->
-           fprintf (ppf acc0) "%s " name;
-           let acc1 = enable_expand acc0 in
-           let acc2 = self#theorem acc1 t in
-           let acc = reset_expand acc2 acc0 in
-           (*           ppf_newline acc; *)
-           acc
-        | None -> failwith "A theorem as proofstep needs a name!"
+        let stepname = match thm.name with
+        | Some name -> name
+        | None ->
+           (* failwith "A theorem as proofstep needs a name!" *)
+           "<" ^ (string_of_int (ndepth acc0)) ^ ">."
+        in
+        fprintf (ppf acc0) "%s " stepname;
+        let acc1 = enable_expand acc0 in
+        let acc2 = self#theorem acc1 t in
+        let acc = reset_expand acc2 acc0 in
+        (*           ppf_newline acc; *)
+        acc
+
 
   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
     let acc1 = self#location acc0 location in
@@ -419,6 +429,7 @@ object(self)
          self#expr acc3 e
     in acc
 
+  (* TODO *)
   method let_in acc0 {location; level; body; op_defs } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
@@ -426,35 +437,43 @@ object(self)
     let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
     acc
 
+  (* TODO *)
   method subst_in acc0 ({ location; level; substs; body } : subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = List.fold_left self#subst acc2 substs in
+    fprintf (ppf acc3) "(subst)";
     let acc = self#expr acc3 body in
     acc
 
+  (* TODO *)
   method label acc0 ({location; level; name; arity; body; params } : label) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = self#name acc2 name in
     (* skip arity *)
+    fprintf (ppf acc3) "(label)";
     let acc4 = self#assume_prove acc3 body in
     let acc = List.fold_left self#formal_param acc4 params in
     acc
 
+  (* TODO *)
   method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = List.fold_left self#subst acc2 substs in
+    fprintf (ppf acc3) "(apsubstin)";
     let acc = self#node acc3 body in
     acc
 
+  (* TODO *)
   method def_step acc0 { location; level; defs } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc = List.fold_left self#op_def acc2 defs in
     acc
 
+  (* TODO *)
   method module_instance acc0 = function
     | MI_ref x ->
        self#reference acc0 x

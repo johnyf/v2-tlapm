@@ -17,11 +17,11 @@ let check_xmloutput =
 
 let addpath = (fun (str : string) -> "test/resources/xml/" ^ str ^ ".xml")
 
-let flt x = x
+let id x = true
 
-let files =
+let files flt =
   List.map
-  addpath (flt
+  addpath (List.filter flt
            [
            "empty";
            "UserDefOp";
@@ -42,12 +42,16 @@ let files =
            ])
 
 let () =
-  let results = List.map (fun fn -> mkTestResult fn) files in
+  let results = List.map (fun fn -> mkTestResult fn) (files id) in
+  (* The semantics of ASSUME T PROVE X are not well defined yet, if T is a
+     theorem. Remove the test for now *)
+  let fmt_filter r = r.filename <> (addpath "withsubmodule")
+  in
   let tests =
     List.concat [
         Test_util.get_tests;
         Test_sany.get_tests results;
-        Test_formatter.get_tests results; (* *)
+        Test_formatter.get_tests (List.filter fmt_filter results;) (* *)
       ] in
   match check_xmloutput with
   | true  ->
