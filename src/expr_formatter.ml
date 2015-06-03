@@ -166,7 +166,7 @@ object(self)
           acc0
        | true -> (* expand module name *)
           let acc0a = nest_module acc0 in
-          fprintf (ppf acc0a) "@[<v 2>";
+          fprintf (ppf acc0a) "@[<v 0>";
           fprintf (ppf acc0a) "==== %s ====@\n" name;
           (* let acc0a = self#name acc0 name in
            let acc1 = self#location acc0a location in *)
@@ -299,16 +299,19 @@ object(self)
     | P_by { location; level; facts; defs; only }  ->
        let acc1 = self#location acc0 location in
        let acc2 = self#level acc1 level in
-       let by_only = if only then " BY ONLY " else " BY " in
-       fprintf (ppf acc2) "%s" by_only;
+       let by_only = if only then "ONLY " else "" in
+       fprintf (ppf acc2) " BY %s" by_only;
        let acc3 = disable_expand acc2 in
        let acc4 = ppf_fold_with
                     self#expr_or_module_or_module_instance acc3 facts in
-       let bydef = if (defs <> []) then " DEF " else "" in
+       let bydef = match facts, defs with
+       | _, [] ->  ""
+       | [],_ -> "DEF "
+       | _ -> " DEF "
+       in
        fprintf (ppf acc3) " %s" bydef;
        (* this loops because of self-reference to the containing theorem *)
-       let acc5 = ppf_fold_with ~str:"\n"
-                   self#defined_expr acc4 defs in
+       let acc5 = ppf_fold_with self#defined_expr acc4 defs in
        let acc = reset_expand acc5 acc0 in
        ppf_newline acc;
        acc
@@ -480,6 +483,7 @@ object(self)
     | MI {location; level; name} ->
        let acc1 = self#location acc0 location in
        let acc2 = self#level acc1 level in
+       fprintf (ppf acc2) "(module instance %s )" name;
        let acc = self#name acc2 name in
        acc
 
@@ -492,7 +496,8 @@ object(self)
 
   method user_defined_op acc0 = function
     | UOP_ref x ->
-       self#reference acc0 x
+       let opd = find_entry unpack_opdef_entry acc0 x in
+       self#op_def acc0 (OPDef opd)
     | UOP { location; level ; name ; arity ;
             body ; params ; recursive ; } ->
        match undef acc0, recursive with
@@ -500,18 +505,17 @@ object(self)
           let acc1 = self#location acc0 location in
           let acc2 = self#level acc1 level in
           let acc4 = self#expr acc2 body in
-          (* TODO: handle recursive definitions *)
-          (*
           let acc = List.fold_left
                     (fun x (fp,_) -> self#formal_param x fp) acc4 params in
-           *)
           acc4
-       | _ -> (* don't exapand the definition *)
+       | _ -> (* don't expand the definition  *)
+          (* TODO: recursive definitions are never unfolded at the moment *)
           let acc1 = self#location acc0 location in
           let acc2 = self#level acc1 level in
           fprintf (ppf acc2) "%s" name;
           let acc3 = self#name acc2 name in
           acc3
+
 
   method name acc x = acc
 

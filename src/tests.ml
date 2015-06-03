@@ -32,6 +32,7 @@ let files flt =
            "expr" ;
            "instanceA" ;
            "Euclid";
+           "Quantifiers";
            (*           "exec"; *)
            "proofsteps";
            (* "priming_stephan"; *)
