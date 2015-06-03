@@ -2,13 +2,14 @@ open Commons
 open Expr_ds
 open Expr_visitor
 open Expr_utils
+open Expr_dereference
 open Util
 
 open List
 open Format
 
 
-type nesting = Module | Expression | ProofStep
+type nesting = Module | Expression | ProofStep | By
 (* We need to pass on the formatter, the contect for unfolding references and a
    flag if to unfold *)
 type fc = Format.formatter * context * bool * nesting * int
@@ -39,15 +40,12 @@ let reset_nesting x (_,_,_,n,_) = set_nesting x n
 let nest_module x = set_nesting x Module
 let nest_expr x = set_nesting x Expression
 let nest_proof x = set_nesting x ProofStep
+let nest_by x = set_nesting x By
 
 let set_ndepth (x,y,z,n,d) depth = (x,y,z,n,depth)
 let reset_ndepth x (_,_,_,_,d) = set_ndepth x d
 let inc_ndepth x = set_ndepth x ((ndepth x) + 1)
 
-let find_entry unpack acc i =
-  let entries = (con acc).entries in
-  let elem = assoc i entries in
-  unpack elem
 
 
 (* folds the function f into the given list, but extracts the formatter from
@@ -143,17 +141,15 @@ object(self)
     if tuple then fprintf (ppf acc1) ">> \\in ";
     acc1
 
-  method formal_param acc0 = function
-    | FP_ref i ->
-       let fp = find_entry unpack_fp_entry acc0 i in
-       self#formal_param acc0 (FP fp)
-    | FP { location; level; name; arity; } ->
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       let acc3 = self#name acc2 name in
-       fprintf (ppf acc3) "%s" name;
-       (* arity skipped *)
-       acc3
+  method formal_param acc0 fp =
+    let { location; level; name; arity; } : formal_param_ =
+      dereference_formal_param (con acc0) fp in
+    let acc1 = self#location acc0 location in
+    let acc2 = self#level acc1 level in
+    let acc3 = self#name acc2 name in
+    fprintf (ppf acc3) "%s" name;
+    (* arity skipped *)
+    acc3
 
   method mule acc0 = function
     | MOD_ref i ->
@@ -195,11 +191,9 @@ object(self)
           acc
 
 
-  method op_decl acc0 = function
-    | OPD_ref x ->
-       let opd = find_entry unpack_opdecl_entry acc0 x in
-       self#op_decl acc0 (OPD opd)
-    | OPD  { location ; level ; name ; arity ; kind ; } ->
+  method op_decl acc0 opdec =
+    let { location ; level ; name ; arity ; kind ; } =
+      dereference_op_decl (con acc0) opdec in
        (* the kind is only relevant in the new_symb rule *)
        (* terminal node *)
        let acc1 = self#location acc0 location in
@@ -208,32 +202,28 @@ object(self)
        fprintf (ppf acc3) "%s" name ;
        acc3
 
-  method op_def acc = function
-    | OPDef_ref x ->
-       let op = find_entry unpack_opdef_entry acc x in
-       self#op_def acc (OPDef op)
-    | OPDef (O_module_instance x) ->
+  method op_def acc opdef =
+    match dereference_op_def (con acc) opdef  with
+    | O_module_instance x ->
        self#module_instance acc x
-    | OPDef (O_builtin_op x)      ->
+    | O_builtin_op x      ->
        self#builtin_op acc x
-    | OPDef (O_user_defined_op x) ->
-       let op = match x with
-       | UOP d -> d
-       | UOP_ref r ->
-          let opd = find_entry unpack_opdef_entry acc r in
-          match opd with
-          | O_user_defined_op (UOP op) -> op
-          | _ -> failwith ("The id " ^ (string_of_int r) ^
-                           " does refer to a user defined operator!")
+    | O_user_defined_op x ->
+       let op = dereference_user_defined_op (con acc) x
        in
        match nesting acc, undef acc with
        | Module, _ ->
-          fprintf (ppf acc) "%s == " op.name;
-          let acc1 = nest_expr acc in
+          let acc0 = disable_expand acc in
+          let acc0a = self#user_defined_op acc0 x in
+          let acc0b = enable_expand acc0a in
+          fprintf (ppf acc0b) " == ";
+          let acc1 = nest_expr acc0b in
           let acc2 = self#user_defined_op acc1 x in
           let acc3 = reset_nesting acc2 acc in
-          ppf_newline acc3;
-          acc3
+          let acc4 = reset_expand acc3 acc in
+          fprintf (ppf acc4) "";
+          ppf_newline acc4;
+          acc4
        | Expression, true ->
           let acc1 = nest_expr acc in
           let acc2 = self#user_defined_op acc1 x in
@@ -242,15 +232,18 @@ object(self)
        | Expression, false ->
           fprintf (ppf acc) "%s" op.name;
           acc
+       | By, _ ->
+          let acc0 = disable_expand acc in
+          let acc0a = self#user_defined_op acc0 x in
+          let acc0b = reset_expand acc0a acc in
+          acc0b
        | ProofStep, _ ->
           failwith ("TODO: implement printing of op definitions in " ^
                     "proof step environments.")
 
-  method theorem acc0 = function
-    | THM_ref x ->
-       let thm = find_entry unpack_thm_entry acc0 x in
-       self#theorem acc0 (THM thm)
-    | THM { location; level; name; expr; proof; suffices } ->
+  method theorem acc0 thm =
+    let { location; level; name; expr; proof; suffices } =
+      dereference_theorem (con acc0) thm in
        match undef acc0, name with
        | true, _ ->
           fprintf (ppf acc0) "THEOREM ";
@@ -265,7 +258,7 @@ object(self)
           let acc2a = nest_expr acc2 in
           let acc3 = self#assume_prove acc2a expr in
           let acc3a = nest_proof acc3 in
-          let acc4 = self#proof acc3 proof  in
+          let acc4 = self#proof acc3a proof  in
           let acc4a = reset_nesting acc4 acc0 in
           ppf_newline acc4a;
           acc4a
@@ -301,7 +294,7 @@ object(self)
        let acc2 = self#level acc1 level in
        let by_only = if only then "ONLY " else "" in
        fprintf (ppf acc2) " BY %s" by_only;
-       let acc3 = disable_expand acc2 in
+       let acc3 = nest_by (disable_expand acc2) in
        let acc4 = ppf_fold_with
                     self#expr_or_module_or_module_instance acc3 facts in
        let bydef = match facts, defs with
@@ -312,7 +305,7 @@ object(self)
        fprintf (ppf acc3) " %s" bydef;
        (* this loops because of self-reference to the containing theorem *)
        let acc5 = ppf_fold_with self#defined_expr acc4 defs in
-       let acc = reset_expand acc5 acc0 in
+       let acc = reset_nesting (reset_expand acc5 acc0) acc0 in
        ppf_newline acc;
        acc
     | P_steps { location; level; steps; } ->
@@ -334,11 +327,7 @@ object(self)
      | S_instance i -> self#instance acc0 i
      | S_theorem t ->
         (* dereference theorem *)
-        let thm = match t with
-        | THM_ref x ->
-           find_entry unpack_thm_entry acc0 x
-        | THM x -> x
-        in
+        let thm = dereference_theorem (con acc0) t  in
         let stepname = match thm.name with
         | Some name -> name
         | None ->
@@ -410,12 +399,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "NEW ";
-    (* dereference op_decl *)
-    let od = match op_decl with
-    | OPD_ref x ->
-       find_entry unpack_opdecl_entry acc0 x
-    | OPD x -> x
-    in
+    let od = dereference_op_decl (con acc0) op_decl in
     let new_decl = match od.kind with
          | NewConstant -> "CONSTANT "
          | NewVariable -> "VARIABLE "
@@ -494,27 +478,34 @@ object(self)
        fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
        acc2
 
-  method user_defined_op acc0 = function
-    | UOP_ref x ->
-       let opd = find_entry unpack_opdef_entry acc0 x in
-       self#op_def acc0 (OPDef opd)
-    | UOP { location; level ; name ; arity ;
-            body ; params ; recursive ; } ->
-       match undef acc0, recursive with
-       | true, false -> (* expand the definition *)
-          let acc1 = self#location acc0 location in
-          let acc2 = self#level acc1 level in
-          let acc4 = self#expr acc2 body in
-          let acc = List.fold_left
-                    (fun x (fp,_) -> self#formal_param x fp) acc4 params in
-          acc4
-       | _ -> (* don't expand the definition  *)
-          (* TODO: recursive definitions are never unfolded at the moment *)
-          let acc1 = self#location acc0 location in
-          let acc2 = self#level acc1 level in
-          fprintf (ppf acc2) "%s" name;
-          let acc3 = self#name acc2 name in
-          acc3
+  method user_defined_op acc0 op =
+    let { location; level ; name ; arity ;
+          body ; params ; recursive ; } =
+      dereference_user_defined_op (con acc0) op in
+    match nesting acc0, undef acc0, recursive with
+    | _, true, false -> (* expand the definition *)
+       let acc1 = self#location acc0 location in
+       let acc2 = self#level acc1 level in
+       let acc4 = self#expr acc2 body in
+       acc4
+    | By, _, _ ->
+       let acc1 = self#location acc0 location in
+       let acc2 = self#level acc1 level in
+       fprintf (ppf acc2) "%s" name;
+       let acc3 = self#name acc2 name in
+       acc3
+    | _ -> (* don't expand the definition  *)
+       (* TODO: recursive definitions are never unfolded at the moment *)
+       let acc1 = self#location acc0 location in
+       let acc2 = self#level acc1 level in
+       fprintf (ppf acc2) "%s" name;
+       let acc3 = self#name acc2 name in
+       let fp_open, fp_close = if (params <> []) then "(",")" else "","" in
+       fprintf (ppf acc3) "%s" fp_open;
+       let acc = ppf_fold_with
+                 (fun x (fp,_) -> self#formal_param x fp) acc3 params in
+       fprintf (ppf acc) "%s" fp_close;
+       acc
 
 
   method name acc x = acc
@@ -529,7 +520,7 @@ object(self)
   method translate_builtin_name = function
     (*    | "$AngleAct"  as x -> failwith ("Unknown operator " ^ x ^"!") *)
     | "$BoundedChoose" -> "CHOOSE"
-    | "$BoundedExists" -> "EXISTS"
+    | "$BoundedExists" -> "\\E"
     | "$BoundedForall" -> "\\A"
     | "$Case" -> "CASE"
     | "$CartesianProd" -> "\times"

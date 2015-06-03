@@ -26,6 +26,7 @@ let files flt =
            "empty";
            "UserDefOp";
            "lambda";
+           "minilambda";
            "tuples";
            "Choose";
            "at" ;

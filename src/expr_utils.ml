@@ -21,12 +21,13 @@ let unpack_opdef_entry = function
 
 let unpack_thm_entry = function
   | THM_entry x -> x
+  (*
   | APSUBST_entry x -> failwith "apsubst"
   | FP_entry x -> failwith "fp"
   | MOD_entry x -> failwith "mod"
   | OPDef_entry x -> failwith "opdef"
   | OPDec_entry x -> failwith "opdec"
-  | ASSUME_entry x -> failwith "assume"
+  | ASSUME_entry x -> failwith "assume" *)
   | _ -> failwith (entry_error "thm")
 
 let unpack_assume_entry = function

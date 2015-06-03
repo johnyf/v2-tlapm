@@ -64,6 +64,12 @@ A:
 * Label: name, ?
 * Module: name, full
 
+Q: For v1-tlapm under Windows, newer cygwin installations only provide cyggmp-4.dll, but Isabelle2014/PolyML depends on
+   cyggmp-3.dll. How can this be circumvented?
+A: Go to http://cs.nyu.edu/~exact/core/gmp/index.html and download gmp-dynamic-cygwin-4.1.tar.gz . The bin directory
+   contains cyggmp-3.dll. It needs to be put into /usr/local/lib/tlaps/Isabelle2011-1/contrib/polyml-5.4.0/x86-cygwin
+   in the distribution.
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet points?
