@@ -75,6 +75,7 @@ and expr =
   | E_op_appl of op_appl
   | E_string of strng
   | E_subst_in of subst_in
+  | E_binder of binder
 
 (** The union of expressions and operator arguments.
     Used by substitutions and as operand in applications. *)
@@ -388,11 +389,15 @@ and use_or_hide = {
   hide           : bool
 }
 
+and op_appl_or_binder =
+  | OB_op_appl of op_appl
+  | OB_binder of binder
+
 and at = {
   location          : location;
   level             : level option;
-  except            : op_appl;
-  except_component  : op_appl
+  except            : op_appl_or_binder;
+  except_component  : op_appl_or_binder
 }
 
 and decimal = {
@@ -458,8 +463,21 @@ and op_appl = {
   level             : level option;
   operator          : operator;
   operands          : expr_or_op_arg list;
+}
+
+(**
+ A binder represents a term (B x: F[x]) where B is one of
+ \A,\E,\AA,\EE and x is a bound variable. It can be used wherever
+ an application is possible.
+*)
+and binder = {
+  location          : location;
+  level             : level option;
+  operator          : operator;
+  operand           : expr_or_op_arg;
   bound_symbols     : bound_symbol list
 }
+
 
 and bound_symbol =
   | B_unbounded_bound_symbol of unbounded_bound_symbol

@@ -12,6 +12,7 @@ object
   method strng           : 'a -> strng -> 'a
   method at              : 'a -> at -> 'a
   method op_appl         : 'a -> op_appl -> 'a
+  method binder          : 'a -> binder -> 'a
   method op_arg          : 'a -> op_arg -> 'a
   method operator        : 'a -> operator -> 'a
   method expr_or_op_arg  : 'a -> expr_or_op_arg -> 'a
@@ -47,6 +48,7 @@ object
   method entry           : 'a -> (int * entry) -> 'a
   method context         : 'a -> context -> 'a
 
+  method op_appl_or_binder : 'a -> op_appl_or_binder -> 'a
   method expr_or_module_or_module_instance :
            'a -> expr_or_module_or_module_instance -> 'a
 
@@ -88,15 +90,22 @@ end
    method at acc0 {location; level; except; except_component} =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#op_appl acc2 except in
-     let acc = self#op_appl acc3 except_component in
+     let acc3 = self#op_appl_or_binder acc2 except in
+     let acc = self#op_appl_or_binder acc3 except_component in
      acc
 
-   method op_appl acc0 {location; level; operator; operands; bound_symbols} =
+   method op_appl acc0 ({location; level; operator; operands} : op_appl) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#operator acc2 operator in
-     let acc4 = List.fold_left self#expr_or_op_arg acc3 operands in
+     let acc = List.fold_left self#expr_or_op_arg acc3 operands in
+     acc
+
+   method binder acc0 {location; level; operator; operand; bound_symbols} =
+     let acc1 = self#location acc0 location in
+     let acc2 = self#level acc1 level in
+     let acc3 = self#operator acc2 operator in
+     let acc4 = self#expr_or_op_arg acc3 operand in
      let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
      acc
 
@@ -335,6 +344,11 @@ end
    | E_op_appl x   -> self#op_appl acc x
    | E_string x    -> self#strng acc x
    | E_subst_in x  -> self#subst_in acc x
+   | E_binder x    -> self#binder acc x
+
+   method op_appl_or_binder acc0 = function
+     | OB_op_appl x -> self#op_appl acc0 x
+     | OB_binder x -> self#binder acc0 x
 
    method expr_or_module_or_module_instance acc = function
    | EMM_expr x            -> self#expr acc x

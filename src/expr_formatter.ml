@@ -103,13 +103,13 @@ object(self)
   method at acc0 {location; level; except; except_component} =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let acc3 = self#op_appl acc2 except in
-    let acc = self#op_appl acc3 except_component in
+    let acc3 = self#op_appl_or_binder acc2 except in
+    let acc = self#op_appl_or_binder acc3 except_component in
     (* todo make this better or manually remove the @ operators? *)
     fprintf (ppf acc) "@@" ;
     acc
 
-  method op_appl acc0 {location; level; operator; operands; bound_symbols} =
+  method op_appl acc0 {location; level; operator; operands} =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = self#operator acc2 operator in
@@ -117,10 +117,21 @@ object(self)
     fprintf (ppf acc3) "%s" oparens;
     let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
     fprintf (ppf acc4) "%s" cparens;
-    (*     fprintf (ppf acc4) "(* bound symbols: ";
-     let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
-     fprintf (ppf acc) " *)"; *)
     acc4
+
+  method binder acc0 {location; level; operator; operand; bound_symbols} =
+    let acc1 = self#location acc0 location in
+    let acc2 = self#level acc1 level in
+    let acc3 = self#operator acc2 operator in
+    fprintf (ppf acc3) " ";
+    let acc4 = List.fold_left self#bound_symbol acc3 bound_symbols in
+    fprintf (ppf acc4) " : ";
+    let oparens, cparens = "(",")" in
+    fprintf (ppf acc4) "%s" oparens;
+    let acc5 = self#expr_or_op_arg acc3 operand in
+    fprintf (ppf acc5) "%s" cparens;
+    acc4
+
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
     match params with
@@ -128,12 +139,16 @@ object(self)
        failwith "Trying to process empty tuple of bound symbols with domain!"
     | [param] ->
        if tuple then fprintf (ppf acc) "<<";
-       let acc1 = ppf_fold_with self#formal_param acc params in
+       let acc1 = self#formal_param acc param in
        if tuple then fprintf (ppf acc1) ">> \\in ";
        let acc2 = self#expr acc domain in
        acc2
-    | _ ->  (*TODO: implement *)
-       failwith "Implementation error: not yet implemented."
+    | _ ->
+       fprintf (ppf acc) "<<";
+       let acc1 = ppf_fold_with ~str:", " self#formal_param acc params in
+       fprintf (ppf acc1) ">> \\in ";
+       let acc2 = self#expr acc domain in
+       acc2
 
   method unbounded_bound_symbol acc { param; tuple } =
     if tuple then fprintf (ppf acc) "<<";

@@ -59,6 +59,7 @@ type anyExpr =
   | Any_strng of strng
   | Any_operator of operator
   | Any_op_appl of op_appl
+  | Any_binder of binder
   | Any_bound_symbol of bound_symbol
   | Any_unbounded_bound_symbol of unbounded_bound_symbol
   | Any_bounded_bound_symbol of bounded_bound_symbol
@@ -243,13 +244,20 @@ method strng acc0 ({Sany_ds.location; level; value} : Sany_ds.strng) =
   } in
   (Any_strng s, acc)
 
+method private mkOB = function
+  | Any_op_appl x -> OB_op_appl x
+  | Any_binder x -> OB_binder x
+  | _ -> failwith "Implementation error: only op_appl or binder expected here!"
+
 (* recursive expressions *)
 method at acc0 {Sany_ds.location; level; except; except_component} =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level      , acc2 = self#level (Nothing, acc1) level in
-  let Any_op_appl except   , acc3 = self#op_appl (Nothing, acc2) except in
-  let Any_op_appl except_component, acc  =
+  let any_except   , acc3 = self#op_appl (Nothing, acc2) except in
+  let any_except_component, acc  =
     self#op_appl (Nothing, acc3) except_component in
+  let except = self#mkOB any_except in
+  let except_component = self#mkOB any_except_component in
   let at = {
   location ;
   level ;
@@ -265,16 +273,21 @@ method op_appl acc0 ({Sany_ds.location; level; operator;
   let Any_operator operator, acc3 = self#fmota (Nothing, acc2) operator in
   let operands, acc4 =
     fold self#expr_or_op_arg (Nothing, acc3) operands unfold_e_o in
-  let bound_symbols, acc =
-    fold self#bound_symbol (Nothing, acc4) bound_symbols unfold_bs in
-  let op_appl = {
-  location ;
-  level ;
-  operator ;
-  operands ;
-  bound_symbols ;
-  } in
-  (Any_op_appl op_appl, acc)
+  (* binders in sany are applications. in expr_ds we have different
+     type constructors for application and binding *)
+  match bound_symbols with
+  | [] ->
+     let op_appl = { location; level; operator; operands; } in
+     (Any_op_appl op_appl, acc4)
+  | _ ->
+     let operand = match operands with
+     | [x] -> x
+     | _ -> failwith "A binder must have exactly one formula it applies to!"
+     in
+     let bound_symbols, acc =
+       fold self#bound_symbol (Nothing, acc4) bound_symbols unfold_bs in
+     let binder = { location; level; operator; operand; bound_symbols } in
+     (Any_binder binder, acc)
 
 method bound_symbol acc0 = function
   | Sany_ds.B_bounded_bound_symbol s ->
@@ -694,8 +707,14 @@ method expr acc = function
      let Any_numeral y, acc0 = self#numeral acc x in
      (Any_expr (E_numeral y), acc0)
   | Sany_ds.E_op_appl x   ->
-     let Any_op_appl y, acc0 = self#op_appl acc x in
-     (Any_expr (E_op_appl y), acc0)
+     let op_appl_or_binder, acc0 = self#op_appl acc x in
+     let oa = match op_appl_or_binder with
+     | Any_op_appl y ->
+        E_op_appl y
+     | Any_binder y ->
+        E_binder y
+     in
+     (Any_expr oa, acc0)
   | Sany_ds.E_string x    ->
      let Any_strng y, acc0 = self#strng acc x in
      (Any_expr (E_string y), acc0)

@@ -15,6 +15,7 @@ object
   method strng           : fc -> strng -> fc
   method at              : fc -> at -> fc
   method op_appl         : fc -> op_appl -> fc
+  method binder          : fc -> binder -> fc
   method op_arg          : fc -> op_arg -> fc
   method operator        : fc -> operator -> fc
   method expr_or_op_arg  : fc -> expr_or_op_arg -> fc
@@ -48,6 +49,7 @@ object
   method entry           : fc -> (int * entry) -> fc
   method context         : fc -> context -> fc
 
+  method op_appl_or_binder : fc -> op_appl_or_binder -> fc
   method expr_or_module_or_module_instance :
            fc -> expr_or_module_or_module_instance -> fc
   method defined_expr : fc -> defined_expr -> fc
