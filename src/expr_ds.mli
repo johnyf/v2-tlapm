@@ -17,6 +17,10 @@ open Commons
    {- entries in the context cannot contain references anymore }
    {- module instance references are unfolded. }
    {- operator definition references contain the name }
+   {- binders were included in opappl before. now they are their own
+      expression type  }
+   {- lambda abstractions are explicit now instead of being treated as
+      user defined operator with name LAMBDA  }
    {- Renamings:
     formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst = operator
     user_defined_op_or_module_instance_or_theorem_or_assume = defined_expr
@@ -76,6 +80,7 @@ and expr =
   | E_string of strng
   | E_subst_in of subst_in
   | E_binder of binder
+  | E_lambda of lambda
 
 (** The union of expressions and operator arguments.
     Used by substitutions and as operand in applications. *)
@@ -246,6 +251,17 @@ and user_defined_op_ = {
 }
 
 
+(** A lambda abstraction. The difference to binders is that it works on formal
+    parameters, not variables.
+ *)
+and lambda = {
+(*TODO: check if a lambda abstraction has a level*)
+  level             : level option;
+  arity             : int;
+  body              : expr;
+  params            : (formal_param * bool (*is leibniz*)) list;
+}
+
 (** A builtin operator of TLA. See the TLA book p. 268ff. for a list.
     Each operator is a constant.
     Example: =>, TRUE
@@ -263,8 +279,9 @@ and builtin_op = {
 and op_arg = {
   location          : location;
   level             : level option;
-  name              : string;
-  arity             : int
+  (*  name              : string; *)
+  (* arity             : int; *)
+  argument          : operator;
 }
 
 (** A formal parameter or a reference to it.*)

@@ -133,7 +133,7 @@ let get_children_choice_in ?context:(con=None) i tg_par tgs_funs =
 
 let get_child_in ?context:(con=None) i tg_par tg_chd f =
   let chldn = get_children_in ~context:con i tg_par tg_chd f in
-  match List.length chldn with
-  | 1 ->  List.hd chldn
-  | n -> failwith ("Expexting exactly one child but found " ^
-                     (string_of_int n) ^ ".")
+  match chldn with
+  | [x] ->  x
+  | _ -> failwith ("Expexting exactly one child but found " ^
+                     (string_of_int (List.length chldn)) ^ ".")

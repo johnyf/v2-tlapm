@@ -174,8 +174,9 @@ and builtin_op_ = {
 and op_arg = {
   location          : location option;
   level             : level option;
-  name              : string;
-  arity             : int
+  (*  name              : string; *)
+  (* arity             : int; *)
+  argument          : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
 }
 
 and formal_param =

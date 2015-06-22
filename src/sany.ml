@@ -21,7 +21,7 @@ let mkLevel i = match i with
   | 2 -> ActionLevel
   | 3 -> TemporalLevel
   | _ -> Errors.bug ("XML Parser error: unknown level " ^
-			(string_of_int i) ^ " (expected 0-3).")
+                     (string_of_int i) ^ " (expected 0-3).")
 
 let opdeclkind_from_int i = match i with
   | 2 -> ConstantDecl
@@ -33,8 +33,8 @@ let opdeclkind_from_int i = match i with
   | 27 -> NewAction
   | 28 -> NewTemporal
   | n -> failwith ("Conversion from int to operator declaration type failed. " ^
-		      "The number " ^ (string_of_int n) ^
-		      " does not represent a proper declaration.")
+                   "The number " ^ (string_of_int n) ^
+                   " does not represent a proper declaration.")
 
 
 (** Parses a location node, returning a record with line and column *)
@@ -61,7 +61,7 @@ let read_optlocation i : location option =
   | [] -> None
   | [x] -> Some x
   | x -> failwith ("Implementation error in XML parsing: the reader for 0 or " ^
-		      "1 elements returned multiple elements" )
+                   "1 elements returned multiple elements" )
 
 (** Parses an optional level node *)
 let get_optlevel i =
@@ -69,7 +69,7 @@ let get_optlevel i =
   | [] -> None
   | [x] -> Some (mkLevel x)
   | x -> failwith ("Implementation error in XML parsing: the reader for 0 or " ^
-		      "1 elements returned multiple elements")
+                   "1 elements returned multiple elements")
 
 (** Parses the FormalParamNode within context/entry *)
 let read_formal_param i : formal_param =
@@ -85,22 +85,6 @@ let read_formal_param i : formal_param =
     arity = ar;
     name = un;
   }
-
-(** Parses the OpArgNode *)
-let read_oparg i : op_arg =
-  open_tag i "OpArgNode";
-  let loc = read_optlocation i in
-  let level = get_optlevel i in
-  let un = get_data_in i "uniquename" read_string in
-  let ar = get_data_in i "arity" read_int in
-  close_tag i "OpArgNode";
-  {
-    location = loc;
-    level = level;
-    arity = ar;
-    name = un;
-  }
-
 
 (** gets the UID number of the reference node "name" *)
 let read_ref i name f =
@@ -129,10 +113,10 @@ let read_opref i =
     | "TheoremNodeRef"        -> rr (fun x -> FMOTA_theorem (THM_ref x) )
     | "AssumeNodeRef"         -> rr (fun x -> FMOTA_assume (ASSUME_ref x) )
     | _ -> failwith ("Found tag " ^ name ^
-                       " but we need an operator reference ("^
-                         "FormalParamNodeRef, ModuleNodeRef, OpDeclNodeRef, " ^
-                           "ModuleInstanceKindRef, UserDefinedOpKindRef, " ^
-                             "BuiltInKindRef, TheoremNodeRef, AssumeNodeRef)")
+                     " but we need an operator reference ("^
+                     "FormalParamNodeRef, ModuleNodeRef, OpDeclNodeRef, " ^
+                     "ModuleInstanceKindRef, UserDefinedOpKindRef, " ^
+                     "BuiltInKindRef, TheoremNodeRef, AssumeNodeRef)")
   in
   opref
 
@@ -799,6 +783,30 @@ and read_op_def i =
   ]
 and is_op_def name = List.mem name
   ["UserDefinedOpKind"; "ModuleInstanceKind"; "BuiltInKind"]
+
+(** Parses the OpArgNode *)
+and read_oparg i : op_arg =
+  open_tag i "OpArgNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  (*  let un = get_data_in i "uniquename" read_string in *)
+  (* let arity = get_data_in i "arity" read_int in *)
+  open_tag i "argument";
+  let argument = get_child_choice i [
+     ((=)  "FormalParamNode", (fun i ->  FMOTA_formal_param
+       (read_formal_param i)));
+     (is_op_def             , (fun i ->  FMOTA_op_def (read_op_def i)));
+     ((=)  "ModuleNode"     , (fun i ->  FMOTA_module  (read_module i)));
+     ((=)  "OpDeclNode"     , (fun i ->  FMOTA_op_decl (read_op_decl i)));
+     ((=)  "TheoremNode"    , (fun i ->  FMOTA_theorem (read_theorem i)));
+     ((=)  "AssumeNode"     , (fun i ->  FMOTA_assume  (read_assume i)));
+     ((=)  "APSubstInNode"  , (fun i ->  FMOTA_ap_subst_in
+       (read_apsubstinnode i)));
+   ] in
+  close_tag i "argument";
+  close_tag i "OpArgNode";
+  { location; level; argument;  }
+
 
 and read_entry i =
    open_tag i "entry";

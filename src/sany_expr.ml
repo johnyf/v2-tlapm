@@ -60,6 +60,7 @@ type anyExpr =
   | Any_operator of operator
   | Any_op_appl of op_appl
   | Any_binder of binder
+  | Any_lambda of lambda
   | Any_bound_symbol of bound_symbol
   | Any_unbounded_bound_symbol of unbounded_bound_symbol
   | Any_bounded_bound_symbol of bounded_bound_symbol
@@ -360,14 +361,14 @@ method mule acc0 = function
              } in
      (Any_mule m, acc)
 
-method op_arg acc0 { Sany_ds.location; level; name; arity } =
+method op_arg acc0 { Sany_ds.location; level; argument } =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+  let Any_operator argument, acc3 = self#fmota (Nothing, acc2) argument in
   let oparg = ({
               location ;
               level ;
-              name ;
-              arity ;
+              argument;
               } : op_arg)  in
   (Any_op_arg oparg, acc2)
 
@@ -626,23 +627,42 @@ method builtin_op (_, acc0) = function
   | Sany_ds.BOP {Sany_ds.location; level; name; arity; params } ->
      failwith "Implementation error: builtins shouldn't be converted anymore!"
 
+(*
+method private lambda acc0 { Sany_ds.location; level; name; arity;
+                             body; params; recursive } =
+  let (Any_level level, acc1) = self#level (Nothing, acc0) level in
+  let (Any_expr body, acc2) = self#expr (Nothing, acc1) body in
+  let handle_arg x (fp,_) = self#formal_param x fp in
+  let (args, acc) = fold handle_arg (Nothing, acc2)
+                         params unfold_formal_param in
+  let leibniz = List.map snd params in
+  let params = List.combine args leibniz in
+  let op = UOP {
+           level; name; arity; body; params;
+           } in
+  (Any_user_defined_op op, acc)
+ *)
+
 method user_defined_op acc0 = function
   | Sany_ds.UOP_ref x ->
      (Any_user_defined_op (UOP_ref x), snd acc0)
-  | Sany_ds.UOP { Sany_ds.location; level ; name ; arity ;
-                  body ; params ; recursive ; } ->
-     let (Any_location location, acc1) = self#location acc0 location in
-     let (Any_level level, acc2) = self#level (Nothing, acc1) level in
-     let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
-     let handle_arg x (fp,_) = self#formal_param x fp in
-     let (args, acc) = fold handle_arg (Nothing, acc3)
-                            params unfold_formal_param in
-     let leibniz = List.map snd params in
-     let params = List.combine args leibniz in
-     let op = UOP {
-              location; level; name; arity; body; params; recursive;
-              } in
-     (Any_user_defined_op op, acc)
+  | Sany_ds.UOP ({ Sany_ds.location; level ; name ; arity ;
+                  body ; params ; recursive ; } as arg)->
+     match location, name with
+     (*     | None, "LAMBDA" -> self#lambda acc0 arg (*TODO: convert lambda expressions *)*)
+     | _ ->
+        let (Any_location location, acc1) = self#location acc0 location in
+        let (Any_level level, acc2) = self#level (Nothing, acc1) level in
+        let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
+        let handle_arg x (fp,_) = self#formal_param x fp in
+        let (args, acc) = fold handle_arg (Nothing, acc3)
+                               params unfold_formal_param in
+        let leibniz = List.map snd params in
+        let params = List.combine args leibniz in
+        let op = UOP {
+                 location; level; name; arity; body; params; recursive;
+                 } in
+        (Any_user_defined_op op, acc)
 
 method name (_,acc) x = (Any_name x, acc)
 

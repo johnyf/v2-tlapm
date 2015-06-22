@@ -95,9 +95,10 @@ object(self)
     fprintf (ppf acc) "%s" value;
     acc
 
-  method op_arg acc {location; level; name; arity } =
-    fprintf (ppf acc) "%s" name;
-    acc
+  method op_arg acc {location; level; argument } =
+    (* fprintf (ppf acc) "%s" name;
+     acc *)
+    self#operator acc argument
 
   (* recursive expressions *)
   method at acc0 {location; level; except; except_component} =

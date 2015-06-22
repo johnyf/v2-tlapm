@@ -139,12 +139,12 @@ end
      let acc = List.fold_left self#theorem acc5 theorems in
      acc
 
-   method op_arg acc0 {location; level; name; arity } =
+   method op_arg acc0 {location; level; argument } =
      (* terminal node *)
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
    (*skip arity *)
+     let acc3 = self#operator acc2 argument in
      acc3
 
    method op_decl acc0 = function
