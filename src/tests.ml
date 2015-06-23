@@ -53,6 +53,7 @@ let () =
     List.concat [
         Test_util.get_tests;
         Test_sany.get_tests results;
+        Test_map.get_tests results;
         Test_formatter.get_tests (List.filter fmt_filter results;) (* *)
       ] in
   match check_xmloutput with

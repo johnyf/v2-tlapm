@@ -42,7 +42,7 @@ type anyExpr =
   | Any_op_decl_ of op_decl_
   | Any_proof of proof
   | Any_omitted of omitted
-  | Any_obcious of obvious
+  | Any_obvious of obvious
   | Any_expr_or_module_or_module_instance of expr_or_module_or_module_instance
   | Any_defined_expr of defined_expr
   | Any_by of by
