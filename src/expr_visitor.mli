@@ -22,6 +22,7 @@ object
   method at              : 'a -> at -> 'a
   method op_appl         : 'a -> op_appl -> 'a
   method binder          : 'a -> binder -> 'a
+  method lambda          : 'a -> lambda -> 'a
   method op_arg          : 'a -> op_arg -> 'a
   method operator        : 'a -> operator -> 'a
   method expr_or_op_arg  : 'a -> expr_or_op_arg -> 'a

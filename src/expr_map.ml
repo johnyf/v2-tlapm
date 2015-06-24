@@ -1,150 +1,24 @@
 open Commons
 open Expr_ds
 open Expr_visitor
+open Anyexpr
 
 (** A transformer template for expressions.
  *)
 
-type _ anyExpr =
-  | Nothing : unit -> unit anyExpr
-  | Any_location : location -> location anyExpr
-  | Any_level  : level -> level anyExpr
-  | Any_name  : string -> string anyExpr
-  | Any_reference  : int -> int anyExpr
-  | Any_node  : node -> node anyExpr
-  | Any_expr  : expr -> expr anyExpr
-  | Any_expr_or_oparg  : expr_or_op_arg -> expr_or_op_arg anyExpr
-  | Any_ap_subst_in  : ap_subst_in -> ap_subst_in anyExpr
-  | Any_subst_in  : subst_in -> subst_in anyExpr
-  | Any_instance  : instance -> instance anyExpr
-  | Any_subst  : subst -> subst anyExpr
-  | Any_assume  : assume -> assume anyExpr
-  | Any_assume_  : assume_ -> assume_ anyExpr
-  | Any_theorem  : theorem -> theorem anyExpr
-  | Any_theorem_  : theorem_ -> theorem_ anyExpr
-  | Any_assume_prove  : assume_prove -> assume_prove anyExpr
-  | Any_new_symb  : new_symb -> new_symb anyExpr
-  | Any_op_def  : op_def -> op_def anyExpr
-  | Any_op_def_  : op_def_ -> op_def_ anyExpr
-  | Any_module_instance  : module_instance -> module_instance anyExpr
-  | Any_module_instance_  : module_instance_ -> module_instance_ anyExpr
-  | Any_user_defined_op  : user_defined_op -> user_defined_op anyExpr
-  | Any_user_defined_op_  : user_defined_op_ -> user_defined_op_ anyExpr
-  | Any_builtin_op  : builtin_op -> builtin_op anyExpr
-  | Any_op_arg  : op_arg -> op_arg anyExpr
-  | Any_formal_param  : formal_param -> formal_param anyExpr
-  | Any_formal_param_  : formal_param_ -> formal_param_ anyExpr
-  | Any_op_decl  : op_decl -> op_decl anyExpr
-  | Any_op_decl_  : op_decl_ -> op_decl_ anyExpr
-  | Any_proof : proof -> proof anyExpr
-  | Any_omitted  : omitted -> omitted anyExpr
-  | Any_obvious  : obvious -> obvious anyExpr
-  | Any_expr_or_module_or_module_instance  :
-      expr_or_module_or_module_instance -> expr_or_module_or_module_instance anyExpr
-  | Any_defined_expr  : defined_expr -> defined_expr anyExpr
-  | Any_by  : by -> by anyExpr
-  | Any_steps  : steps -> steps anyExpr
-  | Any_step  : step -> step anyExpr
-  | Any_def_step  : def_step -> def_step anyExpr
-  | Any_use_or_hide  : use_or_hide -> use_or_hide anyExpr
-  | Any_at  : at -> at anyExpr
-  | Any_decimal  : decimal -> decimal anyExpr
-  | Any_label  : label -> label anyExpr
-  | Any_op_def_or_theorem_or_assume  :
-      op_def_or_theorem_or_assume -> op_def_or_theorem_or_assume anyExpr
-  | Any_let_in  : let_in -> let_in anyExpr
-  | Any_numeral  : numeral -> numeral anyExpr
-  | Any_strng  : strng -> strng anyExpr
-  | Any_operator  : operator -> operator anyExpr
-  | Any_op_appl  : op_appl -> op_appl anyExpr
-  | Any_binder  : binder -> binder anyExpr
-  | Any_lambda  : lambda -> lambda anyExpr
-  | Any_bound_symbol  : bound_symbol -> bound_symbol anyExpr
-  | Any_unbounded_bound_symbol  :
-      unbounded_bound_symbol -> unbounded_bound_symbol anyExpr
-  | Any_bounded_bound_symbol  :
-      bounded_bound_symbol -> bounded_bound_symbol anyExpr
-  | Any_mule  : mule -> mule anyExpr
-  | Any_mule_  : mule_ -> mule_ anyExpr
-  | Any_context  : context -> context anyExpr
-  | Any_entry  : entry -> entry anyExpr
-
-
-
-let get_anyexpr (x, _) = x
-let update_anyexpr (_, acc) (any, _) = (acc, any)
-
-let  extract_ap_subst_in acc =
-  match get_anyexpr acc with Any_ap_subst_in x -> x
-let  extract_assume acc =
-  match get_anyexpr acc with Any_assume x -> x
-let  extract_assume_prove acc =
-  match get_anyexpr acc with Any_assume_prove x -> x
-let  extract_at acc =
-  match get_anyexpr acc with Any_at x -> x
-let  extract_bounded_bound_symbol acc =
-  match get_anyexpr acc with Any_bounded_bound_symbol x -> x
-let  extract_builtin_op acc =
-  match get_anyexpr acc with Any_builtin_op x -> x
-let  extract_decimal acc =
-  match get_anyexpr acc with Any_decimal x -> x
-let  extract_def_step acc =
-  match get_anyexpr acc with Any_def_step x -> x
-let  extract_expr acc =
-  match get_anyexpr acc with Any_expr x -> x
-let  extract_expr_or_oparg acc =
-  match get_anyexpr acc with Any_expr_or_oparg x -> x
-let  extract_formal_param acc =
-  match get_anyexpr acc with Any_formal_param x -> x
-let  extract_instance acc =
-  match get_anyexpr acc with Any_instance x -> x
-let  extract_label acc =
-  match get_anyexpr acc with Any_label x -> x
-let  extract_let_in acc =
-  match get_anyexpr acc with Any_let_in x -> x
-let  extract_level acc =
-  match get_anyexpr acc with Any_level x -> x
-let  extract_level_option acc =
-  match get_anyexpr acc with
-  | Some (Any_level x) -> Some x
-  | None -> None
-let  extract_location acc =
-  match get_anyexpr acc with Any_location x -> x
-let  extract_module_instance acc =
-  match get_anyexpr acc with Any_module_instance x -> x
-let  extract_mule acc =
-  match get_anyexpr acc with Any_mule x -> x
-let  extract_node acc =
-  match get_anyexpr acc with Any_node x -> x
-let  extract_numeral acc =
-  match get_anyexpr acc with Any_numeral x -> x
-let  extract_op_arg acc =
-  match get_anyexpr acc with Any_op_arg x -> x
-let  extract_op_decl acc =
-  match get_anyexpr acc with Any_op_decl x -> x
-let  extract_op_def acc =
-  match get_anyexpr acc with Any_op_def x -> x
-let  extract_operator acc =
-  match get_anyexpr acc with Any_operator x -> x
-let  extract_proof acc =
-  match get_anyexpr acc with Any_proof x -> x
-let  extract_strng acc =
-  match get_anyexpr acc with Any_strng x -> x
-let  extract_subst_in acc =
-  match get_anyexpr acc with Any_subst_in x -> x
-let  extract_theorem acc =
-  match get_anyexpr acc with Any_theorem x -> x
-let  extract_unbounded_bound_symbol acc =
-  match get_anyexpr acc with Any_unbounded_bound_symbol x -> x
-let  extract_use_or_hid acc =
-  match get_anyexpr acc with Any_use_or_hide x -> x
-let  extract_user_defined_op acc =
-  match get_anyexpr acc with Any_user_defined_op x -> x
-
-type ('a, 'b) macc =  'a anyExpr * 'b
-
-class ['a,'b] expr_map = object(self)
-inherit [('a, 'b) macc] visitor as super
+type 'a macc =  anyExpr * 'a
+let get_anyexpr (any,acc) = any
+let set_anyexpr (_,acc) any = (any,acc)
+let update_anyexpr (_,acc) (any,_) = (any,acc)
+                          
+class ['b] macc_extractor = object
+  inherit ['b macc] any_extractor
+  method extract = get_anyexpr
+end
+                       
+class ['a] expr_map = object(self)
+inherit ['a macc] visitor as super
+   val extract = new macc_extractor
 
   (* parts of expressions *)
    method location acc l  = acc
@@ -160,23 +34,27 @@ inherit [('a, 'b) macc] visitor as super
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#op_appl_or_binder acc2 except in
-     let acc = self#op_appl_or_binder acc3 except_component in
-(* TODO: the type 'a is set for the whole class, so using self#location and
-         self#level unifies the type of the passed result.
+     let acc4 = self#op_appl_or_binder acc3 except_component in
      let r = {
-     location = extract_location acc1;
-     level = extract_level_option acc2;
-     except = extract_op_appl_or_binder acc3;
-     except_component = extract_op_appl_or_binder acc4;
+     location = extract#location acc1;
+     level = extract#level acc2;
+     except = extract#op_appl_or_binder acc3;
+     except_component = extract#op_appl_or_binder acc4;
      } in
- *)
-     acc
+     set_anyexpr acc4 (Any_at r) 
 
    method op_appl acc0 ({location; level; operator; operands} : op_appl) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#operator acc2 operator in
      let acc = List.fold_left self#expr_or_op_arg acc3 operands in
+(*     let r = {
+     location = extract#location acc1;
+     level = extract#level acc2;
+     operator = extract#operator acc3;
+     operands = List.map extract#expr_or_op_arg acc;
+     } in
+     set_anyexpr acc (Any_op_appl r) *)
      acc
 
    method binder acc0 {location; level; operator; operand; bound_symbols} =
@@ -185,6 +63,14 @@ inherit [('a, 'b) macc] visitor as super
      let acc3 = self#operator acc2 operator in
      let acc4 = self#expr_or_op_arg acc3 operand in
      let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
+     acc
+
+   method lambda acc ({level; arity; body; params; } : lambda) =
+     let acc1 = self#level acc level in
+   (* arity *)
+     let acc2 = self#expr acc1 body in
+     let acc = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) acc2 params in
      acc
 
    method bound_symbol acc = function
@@ -416,6 +302,7 @@ inherit [('a, 'b) macc] visitor as super
    method expr acc = function
    | E_at x        -> self#at acc x
    | E_decimal x   -> self#decimal acc x
+   | E_lambda x     -> self#lambda acc x
    | E_label x     -> self#label acc x
    | E_let_in x    -> self#let_in acc x
    | E_numeral x   -> self#numeral acc x

@@ -16,6 +16,7 @@ object
   method at              : fc -> at -> fc
   method op_appl         : fc -> op_appl -> fc
   method binder          : fc -> binder -> fc
+  method lambda          : fc -> lambda -> fc
   method op_arg          : fc -> op_arg -> fc
   method operator        : fc -> operator -> fc
   method expr_or_op_arg  : fc -> expr_or_op_arg -> fc

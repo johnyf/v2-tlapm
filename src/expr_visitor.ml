@@ -13,6 +13,7 @@ object
   method at              : 'a -> at -> 'a
   method op_appl         : 'a -> op_appl -> 'a
   method binder          : 'a -> binder -> 'a
+  method lambda          : 'a -> lambda -> 'a
   method op_arg          : 'a -> op_arg -> 'a
   method operator        : 'a -> operator -> 'a
   method expr_or_op_arg  : 'a -> expr_or_op_arg -> 'a
@@ -107,6 +108,14 @@ end
      let acc3 = self#operator acc2 operator in
      let acc4 = self#expr_or_op_arg acc3 operand in
      let acc = List.fold_left self#bound_symbol acc4 bound_symbols in
+     acc
+
+   method lambda acc ({level; arity; body; params; } : lambda) =
+     let acc1 = self#level acc level in
+   (* arity *)
+     let acc2 = self#expr acc1 body in
+     let acc = List.fold_left
+       (fun x (fp,_) -> self#formal_param x fp) acc2 params in
      acc
 
    method bound_symbol acc = function
