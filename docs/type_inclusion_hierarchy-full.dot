@@ -1,0 +1,251 @@
+digraph typedeps {
+
+nod -> ap_subst_in;
+nod -> assume_prove;
+nod -> def_step;
+nod -> expr;
+nod -> op_arg;
+nod -> instance;
+nod -> new_symb;
+nod -> proof;
+nod -> formal_param;
+nod -> mule;
+nod -> op_decl;
+nod -> op_def;
+nod -> assume;
+nod -> theorem;
+nod -> use_or_hide;
+
+expr -> at;
+expr -> decimal;
+expr -> label;
+expr -> let_in;
+expr -> numeral;
+expr -> op_appl;
+expr -> strng;
+expr -> subst_in;
+expr -> binder;
+expr -> lambda;
+
+expr_or_op_arg -> expr;
+expr_or_op_arg -> op_arg;
+
+ap_subst_in -> location;
+ap_subst_in -> level option;
+ap_subst_in -> subst;
+ap_subst_in -> nod;
+
+subst_in -> location;
+subst_in -> level option;
+subst_in -> subst list;
+subst_in -> expr;
+
+
+instance -> location;
+instance -> level option;
+instance -> string;
+instance -> subst;
+instance -> formal_param;
+
+
+subst -> op_decl;
+subst -> expr_or_op_arg;
+
+assume -> assume_;
+
+assume -> location;
+assume -> level option;
+assume -> expr;
+
+theorem -> theorem_
+
+theorem_ ->  location;
+theorem_ ->  level option;
+theorem_ ->  string option;
+theorem_ ->  assume_prove;
+theorem_ ->  proof;
+theorem_ ->  bool;
+
+
+assume_prove -> location;
+assume_prove -> level;
+assume_prove -> new_symb ;
+assume_prove -> assume_prove;
+assume_prove -> expr;
+assume_prove -> bool;
+
+new_symb ->  location;
+new_symb ->  level option;
+new_symb ->  op_decl;
+new_symb ->  expr option;
+
+op_def -> op_def_;
+
+
+op_def_ -> module_instance;
+op_def_ -> user_defined_op;
+op_def_ -> builtin_op;
+
+module_instance -> module_instance_;
+
+module_instance_ -> location;
+module_instance_ -> level option;
+module_instance_ -> string;
+
+user_defined_op -> user_defined_op_;
+
+user_defined_op_ -> location;
+user_defined_op_ -> level;
+user_defined_op_ -> string;
+user_defined_op_ -> int;
+user_defined_op_ -> expr;
+user_defined_op_ -> formal_param;
+user_defined_op_ -> bool;
+
+
+lambda -> level;
+lambda -> int;
+lambda -> expr;
+lambda -> formal_param;
+
+
+builtin_op -> level;
+builtin_op -> string;
+builtin_op -> int;
+builtin_op -> formal_param
+
+op_arg -> location;
+op_arg -> level option;
+op_arg -> operator;
+
+
+formal_param -> formal_param_;
+
+formal_param_ -> location;
+formal_param_ -> level option;
+formal_param_ -> string;
+formal_param_ -> int;
+
+op_decl -> op_decl_;
+
+op_decl_ -> location;
+op_decl_ -> level option;
+op_decl_ -> string;
+op_decl_ -> int;
+op_decl_ -> op_decl_kind;
+
+proof -> omitted;
+proof -> obvious;
+proof -> by;
+proof -> steps;
+
+expr_or_module_or_module_instance -> expr;
+expr_or_module_or_module_instance -> mule;
+expr_or_module_or_module_instance -> module_instance;
+
+defined_expr -> user_defined_op;
+defined_expr -> module_instance;
+defined_expr -> theorem;
+defined_expr -> assume;
+
+by -> location;
+by -> level;
+by -> expr_or_module_or_module_instance;
+by -> defined_expr;
+by -> bool;
+
+
+steps -> location;
+steps -> level;
+steps -> step;
+
+step -> def_step;
+step -> use_or_hide;
+step -> instance;
+step -> theorem;
+
+def_step -> location;
+def_step -> level option;
+def_step -> op_def;
+
+use_or_hide -> location;
+use_or_hide -> level;
+use_or_hide -> expr_or_module_or_module_instance;
+use_or_hide -> defined_expr;
+use_or_hide -> bool;
+
+op_appl_or_binder -> op_appl;
+op_appl_or_binder -> binder;
+
+at -> location;
+at -> level option;
+at -> op_appl_or_binder;
+
+
+label -> location;
+label -> level option;
+label -> string;
+label -> int;
+label -> assume_prove;
+label -> formal_param;
+
+
+op_def_or_theorem_or_assume -> op_def;
+op_def_or_theorem_or_assume -> theorem;
+op_def_or_theorem_or_assume -> assume;
+
+let_in -> location;
+let_in -> level option;
+let_in -> expr;
+let_in -> op_def_or_theorem_or_assume;
+
+operator -> formal_param;
+operator -> mule;
+operator -> op_decl;
+operator -> op_def;
+operator -> theorem;
+operator -> assume;
+operator -> ap_subst_in;
+
+op_appl -> location;
+op_appl -> level;
+op_appl -> operator;
+op_appl -> expr_or_op_arg;
+
+binder -> location;
+binder -> level;
+binder -> operator;
+binder -> expr_or_op_arg;
+binder -> bound_symbol;
+
+bound_symbol -> unbounded_bound_symbol;
+bound_symbol -> bounded_bound_symbol;
+
+unbounded_bound_symbol -> formal_param;
+bounded_bound_symbol -> formal_param list;
+bounded_bound_symbol -> expr list;
+
+mule -> mule_;
+
+mule_ -> string;
+mule_ -> location;
+mule_ -> op_decl ;
+mule_ -> op_decl ;
+mule_ -> op_def  ;
+mule_ -> assume  ;
+mule_ -> theorem  ;
+
+
+entry -> formal_param_ ;
+entry -> mule_ ;
+entry -> op_decl_ ;
+entry -> op_def_ ;
+entry -> theorem_ ;
+entry -> assume_ ;
+entry -> ap_subst_in;
+
+
+context -> entry;
+context -> mule;
+
+}
