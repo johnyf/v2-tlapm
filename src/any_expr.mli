@@ -1,6 +1,11 @@
 open Commons
 open Expr_ds
 
+(** A type holding all possible types in expr_ds, including a formatter and an
+    extractor class. Sometimes we do not want to restrict the return value of a
+    function to a specific sub-expression in expr_ds. The extractor class
+    retrieves the specified element from an any_expr. *)
+
 type anyExpr =
   | Nothing
   | Any_location of location
@@ -61,40 +66,59 @@ type anyExpr =
   | Any_mule_ of  mule_
   | Any_context of context
   | Any_entry of (int * entry)
-     
+
+val format_anyexpr : anyExpr -> string
 
 
 class ['a] any_extractor : object
+  (** All other any_extractor methods handle the conversion from anyExpr to one
+      of the corresponding type. Extract converts from 'a to anyExpr. The
+      default implementation maps to Nothing, any useful derived class needs to
+      override extract.
+  *)
   method extract : 'a -> anyExpr
 
   method ap_subst_in : 'a -> ap_subst_in
   method assume : 'a -> assume
   method assume_prove : 'a -> assume_prove
   method at : 'a -> at
+  method binder : 'a -> binder
+  method bound_symbol : 'a -> bound_symbol
   method bounded_bound_symbol : 'a -> bounded_bound_symbol
   method builtin_op : 'a -> builtin_op
   method decimal : 'a -> decimal
   method def_step : 'a -> def_step
+  method defined_expr : 'a -> defined_expr
+  method entry : 'a -> (int * entry)
   method expr : 'a -> expr
   method expr_or_op_arg : 'a -> expr_or_op_arg
+  method expr_or_module_or_module_instance : 'a -> expr_or_module_or_module_instance
   method formal_param : 'a -> formal_param
   method instance : 'a -> instance
   method label : 'a -> label
+  method lambda : 'a -> lambda
   method let_in : 'a -> let_in
   method level : 'a -> level option
   method location : 'a -> location
   method module_instance : 'a -> module_instance
   method mule : 'a -> mule
+  method name : 'a -> string
+  method new_symb : 'a -> new_symb
   method node : 'a -> node
   method numeral : 'a -> numeral
+  method op_appl : 'a -> op_appl
   method op_appl_or_binder : 'a -> op_appl_or_binder
   method op_arg : 'a -> op_arg
   method op_decl : 'a -> op_decl
   method op_def : 'a -> op_def
+  method op_def_or_theorem_or_assume : 'a -> op_def_or_theorem_or_assume
   method operator : 'a -> operator
   method proof : 'a -> proof
+  method reference : 'a -> int
+  method step : 'a -> step
   method strng : 'a -> strng
   method subst_in : 'a -> subst_in
+  method subst : 'a -> subst
   method theorem : 'a -> theorem
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol
   method use_or_hide : 'a -> use_or_hide

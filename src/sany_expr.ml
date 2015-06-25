@@ -7,69 +7,9 @@
  *)
 open Expr_ds
 open Commons
+open Any_expr
 
-
-type anyExpr =
-  | Nothing
-  | Any_location of location
-  | Any_level of level option
-  | Any_name of string
-  | Any_reference of int
-  | Any_node of node
-  | Any_expr of expr
-  | Any_expr_or_oparg of expr_or_op_arg
-  | Any_ap_subst_in of ap_subst_in
-  | Any_subst_in of subst_in
-  | Any_instance of instance
-  | Any_subst of subst
-  | Any_assume of assume
-  | Any_assume_ of assume_
-  | Any_theorem of theorem
-  | Any_theorem_ of theorem_
-  | Any_assume_prove of assume_prove
-  | Any_new_symb of new_symb
-  | Any_op_def of op_def
-  | Any_op_def_ of op_def_
-  | Any_module_instance of module_instance
-  | Any_module_instance_ of module_instance_
-  | Any_user_defined_op of user_defined_op
-  | Any_user_defined_op_ of user_defined_op_
-  | Any_builtin_op of builtin_op
-  | Any_op_arg of op_arg
-  | Any_formal_param of formal_param
-  | Any_formal_param_ of formal_param_
-  | Any_op_decl of op_decl
-  | Any_op_decl_ of op_decl_
-  | Any_proof of proof
-  | Any_omitted of omitted
-  | Any_obvious of obvious
-  | Any_expr_or_module_or_module_instance of expr_or_module_or_module_instance
-  | Any_defined_expr of defined_expr
-  | Any_by of by
-  | Any_steps of steps
-  | Any_step of step
-  | Any_def_step of  def_step
-  | Any_use_or_hide of use_or_hide
-  | Any_at of at
-  | Any_decimal of decimal
-  | Any_label of label
-  | Any_op_def_or_theorem_or_assume of op_def_or_theorem_or_assume
-  | Any_let_in of let_in
-  | Any_numeral of numeral
-  | Any_strng of strng
-  | Any_operator of operator
-  | Any_op_appl of op_appl
-  | Any_binder of binder
-  | Any_lambda of lambda
-  | Any_bound_symbol of bound_symbol
-  | Any_unbounded_bound_symbol of unbounded_bound_symbol
-  | Any_bounded_bound_symbol of bounded_bound_symbol
-  | Any_mule of mule
-  | Any_mule_ of  mule_
-  | Any_context of context
-  | Any_entry of (int * entry)
-
- and dentry = {
+type dentry = {
  fp    : (int * formal_param_) list;
  m     : (int * mule_)  list;
  opd   : (int * op_def_) list;
@@ -85,7 +25,7 @@ let unfold_bs (Any_bound_symbol s) = s
 let unfold_def  (Any_defined_expr x) = x
 let unfold_entry (Any_entry x) = x
 let unfold_expr (Any_expr x) = x
-let unfold_e_o (Any_expr_or_oparg e) = e
+let unfold_e_o (Any_expr_or_op_arg e) = e
 let unfold_fact  (Any_expr_or_module_or_module_instance x) = x
 let unfold_formal_param (Any_formal_param x) = x
 let unfold_module (Any_mule x) = x
@@ -516,7 +456,7 @@ method instance acc0 {Sany_ds.location; level; name; substs; params; } =
 
 method subst acc0 { Sany_ds.op; expr } =
   let Any_op_decl op, acc1 = self#op_decl acc0 op in
-  let Any_expr_or_oparg expr, acc =
+  let Any_expr_or_op_arg expr, acc =
     self#expr_or_op_arg (Nothing, acc1) expr in
   let s = { op = op; expr = expr; } in
   (Any_subst s, acc)
@@ -646,23 +586,20 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
 method user_defined_op acc0 = function
   | Sany_ds.UOP_ref x ->
      (Any_user_defined_op (UOP_ref x), snd acc0)
-  | Sany_ds.UOP ({ Sany_ds.location; level ; name ; arity ;
-                  body ; params ; recursive ; } as arg)->
-     match location, name with
-     (*     | None, "LAMBDA" -> self#lambda acc0 arg (*TODO: convert lambda expressions *)*)
-     | _ ->
-        let (Any_location location, acc1) = self#location acc0 location in
-        let (Any_level level, acc2) = self#level (Nothing, acc1) level in
-        let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
-        let handle_arg x (fp,_) = self#formal_param x fp in
-        let (args, acc) = fold handle_arg (Nothing, acc3)
-                               params unfold_formal_param in
-        let leibniz = List.map snd params in
-        let params = List.combine args leibniz in
-        let op = UOP {
-                 location; level; name; arity; body; params; recursive;
-                 } in
-        (Any_user_defined_op op, acc)
+  | Sany_ds.UOP { Sany_ds.location; level ; name ; arity ;
+                  body ; params ; recursive ; } ->
+     let (Any_location location, acc1) = self#location acc0 location in
+     let (Any_level level, acc2) = self#level (Nothing, acc1) level in
+     let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
+     let handle_arg x (fp,_) = self#formal_param x fp in
+     let (args, acc) = fold handle_arg (Nothing, acc3)
+                            params unfold_formal_param in
+     let leibniz = List.map snd params in
+     let params = List.combine args leibniz in
+     let op = UOP {
+              location; level; name; arity; body; params; recursive;
+              } in
+     (Any_user_defined_op op, acc)
 
 method name (_,acc) x = (Any_name x, acc)
 
@@ -787,10 +724,10 @@ method expr_or_assume_prove acc =
 method expr_or_op_arg acc = function
   | Sany_ds.EO_op_arg oa ->
      let Any_op_arg y, acc0 = self#op_arg acc oa in
-     (Any_expr_or_oparg (EO_op_arg y), acc0)
+     (Any_expr_or_op_arg (EO_op_arg y), acc0)
   | Sany_ds.EO_expr e ->
      let Any_expr y, acc0 = self#expr acc e in
-     (Any_expr_or_oparg (EO_expr y), acc0)
+     (Any_expr_or_op_arg (EO_expr y), acc0)
 
 method fmota acc = function
   | Sany_ds.FMOTA_formal_param x ->

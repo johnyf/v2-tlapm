@@ -2,8 +2,21 @@ open Commons
 open Expr_ds
 open Expr_visitor
 open Any_expr
-     
+
+(** A transformer template for expressions. It is a visitor with a special
+    accumulator of type macc, a tuple. The first element of macc is an anyExpr
+    which represents the transformed elemented of what is visited. The second
+    element is an accumulator for derived classes to pass on information.
+
+    The reason to use anyExpr is to allow to replace a syntax element by a
+    different one (e.g. in SANY, lambda expressions are defined operators which
+    are replaced by the actual lambda language construct. The first one is not
+    of type expr, but the second one is.). The default implementation just
+    duplicates the given tree.
+ *)
+
 type 'a macc =  anyExpr * 'a
+
 
 class ['a] expr_map : object
   method expr            : 'a macc -> expr -> 'a macc

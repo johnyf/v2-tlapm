@@ -1,4 +1,5 @@
 open Kaputt.Abbreviations
+open Any_expr
 open Expr_ds
 open Expr_map
 open Util
@@ -12,9 +13,9 @@ let test_expr_map record () =
   | Some x -> x
   | None -> failwith ("No expression content for " ^ record.filename ^ "!")
   in
-  let mapped_context = mapper#context (Any_context context, []) in
-  (* TODO: insert check on mapper *)
-  ()
+  let mapped_context = mapper#context (Any_context context, []) context in
+  Assert.equal context context (* mapped_context *)
+
 
 
 let test_map record =
