@@ -210,25 +210,81 @@ THEOREM Spec => []MutualExclusion
 -----------
 
  \*(flag[1] \/ turn = 1)
-Q1 == CS(0)
+QCS == CS(0)
+Q2 == Wait(0) /\ Wait(1)
+Q3 == Wait(0) /\ CS(1)
+Q4 == Wait(0) /\ pc[1]="a4"
+Q5 == Wait(0) /\ pc[1] \in {"a0","a1"} /\ \neg flag[1]
+Q6 == Wait(0) /\ pc[1] = "a2"
+Q7 == Wait(0) /\ Wait(1) /\ turn = 0
+Q8 == pc[0] = "a3b" /\ Wait(1) /\ turn = 0
+Q9 == Wait(0) /\ pc[1] \in {"a0","a1"} /\ \neg flag[1] /\ pc[0] = "a3b"
+Q10 == Wait(0) /\ pc[1] = "a2" /\ \neg flag[1] /\ pc[0] = "a3a"
 
-\* Liveness proof
+LEMMA ASSUME NEW STATE P, []<>P PROVE <>P BY PTL 
+
+LEMMA [][turn'=1]_turn /\ WF_turn(turn'=1) => <>(turn=1) \* original schema has (TRUE ~> turn=1), but that implies []<>turn=1 
+<1>1. TRUE /\ [turn'=1]_turn => TRUE' \/ (turn'=1) OMITTED
+<1>2. TRUE /\ <<turn'=1>>_turn => (turn=1)' OMITTED
+<1>3. ~(turn=1) => ENABLED <<turn'=1>>_turn OMITTED
+<1>.QED  BY <1>1, <1>2, <1>3, PTL
+
+\* Liveness proof -- not provable
+LEMMA WF1 ==
+  ASSUME NEW STATE P, NEW STATE Q, NEW ACTION N, NEW STATE v, NEW ACTION A,
+         (P /\ [N]_v => P' \/ Q'),
+         (P /\ <<A>>_v => Q'),
+         (P => ENABLED <<A>>_v)
+  PROVE  [][N]_v /\ WF_v(A) => (P ~> Q)
+BY PTL
+
+\*A == \neg [\neg pc[1]'="cs"]_vars
+
+
+LEMMA TypeOK /\ [][Next]_vars /\ WF_vars(a2(0)) /\ Q2 => (Q2 ~> (Q3 \/ QCS))
+<1>1. Q2 /\ [Next]_vars => (Q2' \/ (Q3 \/ QCS)')
+    \* <2>1 should need more expansion, is this a bug?
+    <2>1.ASSUME Q2, [Next]_vars 
+         PROVE  Q2' \/ Q3' \/ QCS' BY <2>1, LS4 DEF Q2, Wait, CS, vars
+    <2> QED BY <2>1
+<1>2. Q2 /\ <<a2(0)>>_vars => (Q3 \/ QCS)' OMITTED
+<1>3. Q2 => ENABLED ( <<a2(0)>>_vars ) OMITTED
+<1> QED BY <1>1, <1>2, <1>3, PTL
+
+LEMMA /\ Q2 ~> (Q3 \/ QCS)
+      /\ Q3 ~> Q4
+      /\ Q4 ~> Q5
+      /\ Q5 ~> (Q6 \/ Q7)
+      /\ Q6 ~> Q8
+      /\ Q7 ~> Q8
+      /\ Q8 ~> Q9
+      /\ Q9 ~> QCS 
+      => Q2 ~> QCS
+      BY LS4
+
 
 THEOREM FairSpec => Liveness
 <1>1. FairSpec => Wait(0) ~> CS(0)
     <2>1. FairSpec => ((Wait(0) /\ ENABLED<<proc(0)>>_vars) ~> CS(0))
+        <3>1. (FairSpec /\ Q2 => [][Q2']_vars)
+        <3>2. TRUE
+        <3> QED BY <3>1, <3>2, PTL
+    <2>2. FairSpec => Wait(0) /\ ~ENABLED<<proc(0)>>_vars ~> CS(0)
+    <2> QED BY <2>1, <2>2, PTL DEF FairSpec
+
+<1>2. FairSpec => Wait(1) ~> CS(1)
+    \* similarily to <1>1
+<1> QED BY <1>1, <1>2, PTL DEF Liveness
+
+THEOREM OldAttempt == FairSpec => Liveness
+<1>1. FairSpec => Wait(0) ~> CS(0)
+    <2>1. FairSpec => ((Wait(0) /\ ENABLED<<proc(0)>>_vars) ~> CS(0))
         <3>1. FairSpec => ((Wait(0) /\ ENABLED<<proc(0)>>_vars /\ (pc[1] = "a1")) ~> CS(0))
-            <4> DEFINE P == Wait(0) /\ ENABLED<<proc(0)>>_vars /\ (pc[1] = "a1")
-            <4>1 P /\ [Next]_vars => (P' \/  CS(0)')
-                
-            <4>2 P /\ <<Next /\proc(0)>>_vars =>  CS(0)'
-            <4>3 P => ENABLED<<proc(0)>>_vars
-                BY PTL DEF P
-            <4> QED BY <4>1, <4>2, <4>3, PTL DEF FairSpec, Spec, Fairness
         <3>2. FairSpec => ((Wait(0) /\ ENABLED<<proc(0)>>_vars /\ ~(pc[1] = "a1")) ~> CS(0))
         <3> QED BY <3>1, <3>2, PTL
     <2>2. FairSpec => Wait(0) /\ ~ENABLED<<proc(0)>>_vars ~> CS(0)
     <2> QED BY <2>1, <2>2, PTL DEF FairSpec
+
 <1>2. FairSpec => Wait(1) ~> CS(1)
     \* similarily to <1>1
 <1> QED BY <1>1, <1>2, PTL DEF Liveness

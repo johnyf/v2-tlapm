@@ -1,20 +1,20 @@
 digraph typedeps {
 
-nod -> ap_subst_in;
 nod -> assume_prove;
-nod -> def_step;
 nod -> expr;
-nod -> op_arg;
-nod -> instance;
-nod -> new_symb;
-nod -> proof;
-nod -> formal_param;
-nod -> mule;
-nod -> op_decl;
-nod -> op_def;
-nod -> assume;
-nod -> theorem;
-nod -> use_or_hide;
+//nod -> ap_subst_in;
+//nod -> def_step;
+//nod -> op_arg;
+//nod -> instance;
+//nod -> new_symb;
+//nod -> proof;
+//nod -> formal_param;
+//nod -> mule;
+//nod -> op_decl;
+//nod -> op_def;
+//nod -> assume;
+//nod -> theorem;
+//nod -> use_or_hide;
 
 expr -> at;
 expr -> decimal;
@@ -62,28 +62,15 @@ op_def -> module_instance;
 op_def -> user_defined_op;
 op_def -> builtin_op;
 
-
-
-
-
 user_defined_op -> expr;
 user_defined_op -> formal_param;
-
-
 
 lambda -> expr;
 lambda -> formal_param;
 
-
-
-builtin_op -> formal_param
+builtin_op -> formal_param;
 
 op_arg -> operator;
-
-
-
-
-
 
 op_decl -> op_declkind;
 
@@ -165,16 +152,16 @@ mule -> op_def  ;
 mule -> assume  ;
 mule -> theorem  ;
 
-//entry -> formal_param ;
-//entry -> mule ;
-//entry -> op_decl ;
-//entry -> op_def ;
-//entry -> theorem ;
-//entry -> assume ;
-//entry -> ap_subst_in;
+entry -> formal_param ;
+entry -> mule ;
+entry -> op_decl ;
+entry -> op_def ;
+entry -> theorem ;
+entry -> assume ;
+entry -> ap_subst_in;
 
 
-//context -> entry;
-//context -> mule;
+context -> entry;
+context -> mule;
 
 }

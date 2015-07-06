@@ -12,6 +12,8 @@ THEOREM T == x'=x
 
 I == INSTANCE sub WITH x <- 0
 
+IbT == 0' = 0
+
 THEOREM ASSUME I!T PROVE TRUE \* should not be true \* not exportable at the moment 
 
 \* THEOREM ASSUME I!T!1 = I!T!1  PROVE TRUE \* should not be true \* not exportable at the moment 
@@ -21,5 +23,5 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be true \* not exportable at the mom
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Mar 09 10:28:05 CET 2015 by marty
+\* Last modified Mon Jun 29 16:24:34 CEST 2015 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty
