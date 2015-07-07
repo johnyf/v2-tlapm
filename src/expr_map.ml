@@ -38,17 +38,12 @@ let rec mfold ?first:(first=true) (up:anyExpr -> 'c)
   match list with
   | x::xs ->
      let nacc = f start_acc x in
-     let any, _ = nacc in
+     let any = get_anyexpr nacc in
      let result = mfold ~first:false up f nacc xs in
      let rany, racc = result in
-     (* the first anyExpr is from the input macc and needs to be skipped *)
-     if first then (rany, racc) else
      (up any :: rany, racc)
   | [] ->
-     let any = get_anyexpr start_acc in
-     if first then ([], start_acc) else
-     ([up any], start_acc)
-
+     ([], start_acc)
 
 let fold f acc l =
   let up x = x in
@@ -57,6 +52,7 @@ let fold f acc l =
 
 let unpack_fold unpack f acc l =
   let anys, racc = mfold unpack f acc l in
+  assert ((List.length l) = (List.length anys));
   (anys, racc)
 
 
@@ -64,6 +60,10 @@ class ['a] expr_map = object(self)
 inherit ['a macc] visitor as super
    val macc_extract = new macc_extractor
    val id_extract = new id_extractor
+
+   (* values can't be accessed from other modules, need a getter *)
+   method get_macc_extractor = macc_extract
+   method get_id_extractor = id_extract
 
   (* parts of expressions *)
    method location acc l  =
@@ -130,15 +130,15 @@ inherit ['a macc] visitor as super
    (* arity *)
      let acc2 = self#expr acc1 body in
      let fparams, acc = unpack_fold id_extract#formal_param
-                           (fun x (fp,_) -> self#formal_param x fp)
-                           acc2 params in
+                                    (fun x (fp,_) -> self#formal_param x fp)
+                                    acc2 params in
      let leibnizflags = List.map snd params in
      let r = Any_lambda {
-     level = macc_extract#level acc1;
-     arity = arity;
-     body = macc_extract#expr acc2;
-     params = List.combine fparams leibnizflags;
-     } in
+             level = macc_extract#level acc1;
+             arity = arity;
+             body = macc_extract#expr acc2;
+             params = List.combine fparams leibnizflags;
+             } in
      set_anyexpr acc r
 
    method bound_symbol acc = function
@@ -148,7 +148,8 @@ inherit ['a macc] visitor as super
         (Any_bound_symbol bs, acc1)
      | B_unbounded_bound_symbol s ->
         let any, acc1 = self#unbounded_bound_symbol acc s in
-        let ubs = B_unbounded_bound_symbol (id_extract#unbounded_bound_symbol any) in
+        let ubs = B_unbounded_bound_symbol
+                  (id_extract#unbounded_bound_symbol any) in
         (Any_bound_symbol ubs, acc1)
 
    method bounded_bound_symbol acc { params; tuple; domain } =
@@ -195,7 +196,7 @@ inherit ['a macc] visitor as super
         let r = Any_mule (MOD_ref (macc_extract#reference acc1)) in
         set_anyexpr acc1 r
      | MOD {name; location; constants; variables;
-	    definitions; assumptions; theorems; } ->
+            definitions; assumptions; theorems; } ->
         let acc1 = self#name acc0 name in
         let acc2 = self#location acc1 location in
         let constants,   acc3 =
@@ -260,15 +261,21 @@ inherit ['a macc] visitor as super
         set_anyexpr acc1 r
      | OPDef (O_module_instance x) ->
         let acc1 = self#module_instance acc x in
-        let r = Any_op_def (OPDef (O_module_instance (macc_extract#module_instance acc1))) in
+        let r = Any_op_def
+                (OPDef
+                 (O_module_instance (macc_extract#module_instance acc1))) in
         set_anyexpr acc1 r
      | OPDef (O_builtin_op x)      ->
         let acc1 = self#builtin_op acc x in
-        let r = Any_op_def (OPDef (O_builtin_op (macc_extract#builtin_op acc1))) in
+        let r = Any_op_def
+                (OPDef
+                 (O_builtin_op (macc_extract#builtin_op acc1))) in
         set_anyexpr acc1 r
      | OPDef (O_user_defined_op x) ->
         let acc1 = self#user_defined_op acc x in
-        let r = Any_op_def (OPDef (O_user_defined_op (macc_extract#user_defined_op acc1))) in
+        let r = Any_op_def
+                (OPDef
+                 (O_user_defined_op (macc_extract#user_defined_op acc1))) in
         set_anyexpr acc1 r
 
    method theorem acc0 = function
@@ -339,8 +346,9 @@ inherit ['a macc] visitor as super
      | P_by { location; level; facts; defs; only} ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
-        let facts, acc3 = unpack_fold id_extract#expr_or_module_or_module_instance
-                   self#expr_or_module_or_module_instance acc2 facts in
+        let facts, acc3 =
+          unpack_fold id_extract#expr_or_module_or_module_instance
+                      self#expr_or_module_or_module_instance acc2 facts in
         let defs, acc = unpack_fold id_extract#defined_expr
                   self#defined_expr acc3 defs in
         (* skip the only tag *)
@@ -407,7 +415,8 @@ inherit ['a macc] visitor as super
      let acc2 = self#level acc1 level in
      let acc3 = self#name acc2 name in
      let substs, acc4 = unpack_fold id_extract#subst self#subst acc3 substs in
-     let params, acc = unpack_fold id_extract#formal_param self#formal_param acc4 params in
+     let params, acc = unpack_fold id_extract#formal_param
+                                   self#formal_param acc4 params in
      let r = Any_instance {
              location = macc_extract#location acc1;
              level = macc_extract#level acc2;
@@ -427,13 +436,13 @@ inherit ['a macc] visitor as super
      set_anyexpr acc r
 
    method assume_prove acc0 { location; level; new_symbols; assumes;
-			      prove; suffices; boxed; } =
+                              prove; suffices; boxed; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let new_symbols, acc3 = unpack_fold id_extract#new_symb
-		  self#new_symb acc2 new_symbols in
+                                         self#new_symb acc2 new_symbols in
      let assumes, acc4 = unpack_fold id_extract#assume_prove
-		  self#assume_prove acc3 assumes in
+                                     self#assume_prove acc3 assumes in
      let acc = self#expr acc4 prove in
      (* suffices and boxed are boolean flags*)
      let r = Any_assume_prove {
@@ -464,8 +473,6 @@ inherit ['a macc] visitor as super
                    | _ -> Some (macc_extract#expr acc);
      } in
      set_anyexpr acc r
-
-   (*TODO: continue*)
 
    method let_in acc0 {location; level; body; op_defs } =
      let acc1 = self#location acc0 location in
@@ -659,7 +666,7 @@ inherit ['a macc] visitor as super
       let r = (Any_entry (id, APSUBST_entry (macc_extract#ap_subst_in acc0))) in
       set_anyexpr acc0 r
 
-   method context acc {   entries; modules } =
+   method context acc { entries; modules } =
      let entries, acc1 = unpack_fold id_extract#entry self#entry acc entries in
      let modules, acc2 = unpack_fold id_extract#mule self#mule acc1 modules in
      let r = Any_context { entries; modules } in

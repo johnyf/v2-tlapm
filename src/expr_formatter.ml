@@ -77,8 +77,25 @@ object(self)
   inherit [fc] visitor as super
 
   (* parts of expressions *)
-  method location acc l : 'a = acc
-  method level acc l : 'a = acc
+  method location acc { column; line; filename } : 'a =
+    (*
+    fprintf (ppf acc) "(%s:l%d-%d c%d-%d)"
+            filename line.rbegin line.rend
+            column.rbegin column.rend;
+     *)
+    acc
+  method level acc l : 'a =
+    (*
+    let lstr = match l with
+    | None -> "(no level)"
+    | Some ConstantLevel -> "(Constant)"
+    | Some VariableLevel -> "(Variable)"
+    | Some ActionLevel -> "(Action)"
+    | Some TemporalLevel -> "(Temporal)"
+    in
+    fprintf (ppf acc) "%s" lstr;
+     *)
+    acc
 
   (* non-recursive expressions *)
   method decimal acc { location; level; mantissa; exponent;  } =
@@ -119,6 +136,16 @@ object(self)
     let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
     fprintf (ppf acc4) "%s" cparens;
     acc4
+
+  method lambda acc0 {level; arity; body; params} =
+    let acc1 = self#level acc0 level in
+    fprintf (ppf acc1) "LAMBDA ";
+    let acc2 = ppf_fold_with
+               (fun x (fp,_) -> self#formal_param x fp) acc1 params in
+    fprintf (ppf acc1) " : (";
+    let acc3 = self#expr acc2 body in
+    fprintf (ppf acc1) ")";
+    acc3
 
   method binder acc0 {location; level; operator; operand; bound_symbols} =
     let acc1 = self#location acc0 location in
@@ -188,7 +215,7 @@ object(self)
           let acc2 = ppf_fold_with self#op_decl acc0a constants in
           fprintf (ppf acc2) "%s" s_constantsnl;
           let s_variables, s_variablesnl =
-            if (constants == []) then "", "" else "VARIABLES ", "\n" in
+            if (variables == []) then "", "" else "VARIABLES ", "\n" in
           fprintf (ppf acc2) "%s" s_variables;
           let acc3 = ppf_fold_with self#op_decl acc2 variables in
           fprintf (ppf acc2) "%s" s_variablesnl;
@@ -259,6 +286,14 @@ object(self)
 
   method theorem acc0 thm =
     let { location; level; name; expr; proof; suffices } =
+      (*
+      (
+      match thm with
+      | THM_ref x ->
+         fprintf (ppf acc0) "THM_ref %d\n" x;
+      | _ -> ()
+      );
+       *)
       dereference_theorem (con acc0) thm in
        match undef acc0, name with
        | true, _ ->
@@ -283,7 +318,7 @@ object(self)
           acc0
        | _ -> failwith
                 ("Implementation error! Trying to pretty print a theorem's " ^
-                   "name without expanding, but the theorem does not have one.")
+                 "name without expanding, but the theorem does not have one.")
 
   method assume acc0  = function
     | ASSUME_ref x ->
@@ -411,6 +446,7 @@ object(self)
     (* ppf_newline acc; *)
     acc
 
+  (*TODO: new_decl not used *)
   method new_symb acc0 { location; level; op_decl; set } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
@@ -440,13 +476,15 @@ object(self)
     let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
     acc
 
-  (* TODO *)
+  (* TODO: this is not legal tla *)
   method subst_in acc0 ({ location; level; substs; body } : subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
+    fprintf (ppf acc2) "subst(";
     let acc3 = List.fold_left self#subst acc2 substs in
-    fprintf (ppf acc3) "(subst)";
+    fprintf (ppf acc3) ")(";
     let acc = self#expr acc3 body in
+    fprintf (ppf acc3) ")";
     acc
 
   (* TODO *)

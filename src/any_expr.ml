@@ -159,6 +159,9 @@ class ['a] any_extractor = object(self)
   method builtin_op acc =
     match self#extract acc with Any_builtin_op x -> x
                               | _ -> failwith (self#fmt acc)
+  method context acc =
+    match self#extract acc with Any_context x -> x
+                              | _ -> failwith (self#fmt acc)
   method decimal acc =
     match self#extract acc with Any_decimal x -> x
                               | _ -> failwith (self#fmt acc)

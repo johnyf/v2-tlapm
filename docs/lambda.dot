@@ -1,0 +1,154 @@
+digraph typedeps {
+
+nod -> assume_prove;
+nod -> expr;
+
+expr -> at [color=red];
+expr -> decimal;
+expr -> label;
+expr -> let_in [color=red];
+expr -> numeral;
+expr -> op_appl [color=red];
+expr -> strng;
+expr -> subst_in;
+expr -> binder;
+expr -> lambda;
+
+expr_or_op_arg -> expr;
+expr_or_op_arg -> op_arg [color=red];
+
+ap_subst_in -> subst;
+ap_subst_in -> nod;
+
+subst_in -> subst;
+subst_in -> expr;
+
+
+instance -> subst;
+instance -> formal_param;
+
+subst -> op_decl;
+subst -> expr_or_op_arg [color=red];
+
+assume -> expr;
+
+
+theorem ->  assume_prove;
+theorem ->  proof;
+
+
+assume_prove -> new_symb ;
+assume_prove -> assume_prove;
+assume_prove -> expr;
+
+
+new_symb ->  op_decl;
+new_symb ->  expr;
+
+op_def -> module_instance;
+op_def -> user_defined_op [color=red];
+op_def -> builtin_op;
+
+user_defined_op -> expr;
+user_defined_op -> formal_param;
+
+lambda -> expr;
+lambda -> formal_param;
+
+builtin_op -> formal_param;
+
+op_arg -> operator [color=red];
+
+op_decl -> op_declkind;
+
+proof -> omitted;
+proof -> obvious;
+proof -> by;
+proof -> steps;
+
+expr_or_module_or_module_instance -> expr;
+expr_or_module_or_module_instance -> mule;
+expr_or_module_or_module_instance -> module_instance;
+
+defined_expr -> user_defined_op [color=red];
+defined_expr -> module_instance;
+defined_expr -> theorem;
+defined_expr -> assume;
+
+by -> expr_or_module_or_module_instance;
+by -> defined_expr;
+
+
+steps -> step;
+
+step -> def_step;
+step -> use_or_hide;
+step -> instance;
+step -> theorem;
+
+def_step -> op_def;
+
+use_or_hide -> expr_or_module_or_module_instance;
+use_or_hide -> defined_expr;
+
+
+op_appl_or_binder -> op_appl [color=red];
+op_appl_or_binder -> binder;
+
+at -> op_appl_or_binder [color=red];
+
+
+
+label -> assume_prove;
+label -> formal_param;
+
+op_def_or_theorem_or_assume -> op_def [color=red];
+op_def_or_theorem_or_assume -> theorem;
+op_def_or_theorem_or_assume -> assume;
+
+let_in -> expr;
+let_in -> op_def_or_theorem_or_assume [color=red];
+
+operator -> formal_param;
+operator -> mule;
+operator -> op_decl;
+operator -> op_def [color=red];
+operator -> theorem;
+operator -> assume;
+operator -> ap_subst_in;
+
+op_appl -> operator [color=red];
+op_appl -> expr_or_op_arg;
+
+binder -> operator;
+binder -> expr_or_op_arg;
+binder -> bound_symbol;
+
+bound_symbol -> unbounded_bound_symbol;
+bound_symbol -> bounded_bound_symbol;
+
+unbounded_bound_symbol -> formal_param;
+bounded_bound_symbol -> formal_param;
+bounded_bound_symbol -> expr;
+
+
+
+mule -> op_decl ;
+mule -> op_decl ;
+mule -> op_def  ;
+mule -> assume  ;
+mule -> theorem  ;
+
+entry -> formal_param ;
+entry -> mule ;
+entry -> op_decl ;
+entry -> op_def ;
+entry -> theorem ;
+entry -> assume ;
+entry -> ap_subst_in;
+
+
+context -> entry;
+context -> mule;
+
+}

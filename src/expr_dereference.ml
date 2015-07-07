@@ -4,7 +4,13 @@ open List
 
 let find_entry unpack con i =
   let entries = con.entries in
-  let elem = assoc i entries in
+  let elem = try
+    assoc i entries
+    with
+    | Not_found ->
+       failwith ("Could not find entry for reference " ^
+                 (string_of_int i) ^ "!")
+  in
   unpack elem
 
 

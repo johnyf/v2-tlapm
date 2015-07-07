@@ -348,6 +348,7 @@ end
    | E_at x        -> self#at acc x
    | E_decimal x   -> self#decimal acc x
    | E_label x     -> self#label acc x
+   | E_lambda x    -> self#lambda acc x
    | E_let_in x    -> self#let_in acc x
    | E_numeral x   -> self#numeral acc x
    | E_op_appl x   -> self#op_appl acc x

@@ -2,6 +2,7 @@ open Kaputt.Abbreviations
 open Any_expr
 open Expr_ds
 open Expr_map
+open Expr_formatter
 open Util
 open Test_common
 
@@ -13,9 +14,14 @@ let test_expr_map record () =
   | Some x -> x
   | None -> failwith ("No expression content for " ^ record.filename ^ "!")
   in
-  let mapped_context = mapper#context (Any_context context, []) context in
-  Assert.equal context context (* mapped_context *)
-
+  let me = mapper#get_macc_extractor in
+  let mapped_context =
+    me#context (mapper#context (Any_context context, []) context) in
+  (*  let result = context = mapped_context in *)
+(*  Printf.printf "%s\n%b\n" record.filename result;
+  expr_formatter#context (Format.std_formatter, context, true, Module, 0)
+                         context; *)
+  Assert.equal context mapped_context
 
 
 let test_map record =

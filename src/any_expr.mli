@@ -86,6 +86,7 @@ class ['a] any_extractor : object
   method bound_symbol : 'a -> bound_symbol
   method bounded_bound_symbol : 'a -> bounded_bound_symbol
   method builtin_op : 'a -> builtin_op
+  method context : 'a -> context
   method decimal : 'a -> decimal
   method def_step : 'a -> def_step
   method defined_expr : 'a -> defined_expr

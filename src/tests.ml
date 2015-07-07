@@ -1,6 +1,7 @@
 open Printf
 open Test_common
 open Kaputt.Abbreviations
+open Kaputt.Test
 
 let t1 =
   Test.make_simple_test
@@ -45,16 +46,20 @@ let files flt =
 
 let () =
   let results = List.map (fun fn -> mkTestResult fn) (files id) in
-  (* The semantics of ASSUME T PROVE X are not well defined yet, if T is a
-     theorem. Remove the test for now *)
+  (* In the XML format, the expression ASSUME I!T PROVE X uses a theorem
+     reference for I!T, but in reality is in an AP substitution. Remove the
+     test case till this is fixed.
+  *)
   let fmt_filter r = r.filename <> (addpath "withsubmodule")
   in
+  let without_broken = List.filter fmt_filter results in
   let tests =
     List.concat [
         Test_util.get_tests;
         Test_sany.get_tests results;
         Test_map.get_tests results;
-        Test_formatter.get_tests (List.filter fmt_filter results;) (* *)
+        Test_correct_lambda.get_tests without_broken;
+        Test_formatter.get_tests without_broken (* *)
       ] in
   match check_xmloutput with
   | true  ->
