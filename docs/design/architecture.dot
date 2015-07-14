@@ -1,0 +1,16 @@
+digraph architecture {
+//rotate=90
+rank = same;
+rankdir = LR;
+node [shape=box];
+javasany [label="SANY\n(java)"];
+xml [label="SANY\n(xml)"];
+sany [label="SANY\n(ocaml: sany_ds.mli)"];
+expr_ds [label="Internal expression datastructure\n(expr_ds.mli)"];
+obligation [label="Proof obligation (?.mli)"];
+backend [label="Backend\n(veriT, Zenon, Isabelle, LS4)"];
+
+javasany -> xml -> sany -> expr_ds -> obligation -> backend;
+expr_ds -> expr_ds;
+obligation -> obligation;
+}
