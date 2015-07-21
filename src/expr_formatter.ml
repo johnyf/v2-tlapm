@@ -502,9 +502,11 @@ object(self)
   method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
+    fprintf (ppf acc2) "apsubstin(";
     let acc3 = List.fold_left self#subst acc2 substs in
-    fprintf (ppf acc3) "(apsubstin)";
+    fprintf (ppf acc3) ")(";
     let acc = self#node acc3 body in
+    fprintf (ppf acc) ")";
     acc
 
   (* TODO *)

@@ -48,7 +48,7 @@ open Commons
 
 *)
 
-(** Represents a node which can be instantiated via ap_subst_in *)
+(** Represents a node which can be instantiated via ap_subst_in*)
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove

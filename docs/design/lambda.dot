@@ -27,7 +27,7 @@ subst_in -> expr;
 instance -> subst;
 instance -> formal_param;
 
-subst -> op_decl;       
+subst -> op_decl;
 subst -> expr_or_op_arg [color=red];
 
 assume -> expr;

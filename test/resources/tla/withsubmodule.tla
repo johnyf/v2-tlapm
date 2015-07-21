@@ -23,5 +23,5 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be true \* not exportable at the mom
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Jun 29 16:24:34 CEST 2015 by marty
+\* Last modified Wed Jul 08 10:56:12 CEST 2015 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty
