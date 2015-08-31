@@ -275,3 +275,9 @@ let multiset_equal_lists l1 l2 =
   let s1 = List.sort l1 in
   let s2 = List.sort l2 in
   s1 = s2
+
+(*
+(* an (inefficient) implementation of flat_map *)
+let flat_map f =
+  List.fold_left (fun x y -> List.append x (f y)) []
+ *)

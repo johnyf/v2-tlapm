@@ -39,6 +39,12 @@ type op_decl_kind =
   | NewAction
   | NewTemporal
 
+type prover =
+  | Isabelle
+  | Zenon
+  | SMT
+  | LS4
+
 let mkDummyRange = { rbegin = 0; rend = 0 }
 let mkDummyLocation = { column = mkDummyRange ;
                         line = mkDummyRange;

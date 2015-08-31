@@ -70,6 +70,12 @@ A: Go to http://cs.nyu.edu/~exact/core/gmp/index.html and download gmp-dynamic-c
    contains cyggmp-3.dll. It needs to be put into /usr/local/lib/tlaps/Isabelle2011-1/contrib/polyml-5.4.0/x86-cygwin
    in the distribution.
 
+Q: How do temporal operators (\EE and \AA) work?
+A: Disregarding stuttering steps, \sigma |= \EE x : F[x] is true if there exists
+   a behaviour \tau where each state agrees on the evaluation of variables up to
+   the evaluation of x (i.e. \sigma_1 =_x \tau_1, ... ). If F[x] is a state
+   formula, it will still only evaluated in \tau_1.
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet points?
@@ -101,4 +107,3 @@ A: Unknown, an incomplete list is:
 
 Q: how to unify ASSUME NEW i ... with an eigenvariable in an assumption?
 A: use the PICK operator?
-

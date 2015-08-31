@@ -2,8 +2,7 @@ open Expr_ds
 open Expr_utils
 open List
 
-let find_entry unpack con i =
-  let entries = con.entries in
+let find_entry unpack entries i =
   let elem = try
     assoc i entries
     with
@@ -14,29 +13,30 @@ let find_entry unpack con i =
   unpack elem
 
 
-let dereference_user_defined_op context = function
+let dereference_user_defined_op term_db = function
   | UOP d -> d
   | UOP_ref r ->
-     let opd = find_entry unpack_opdef_entry context r in
+     let opd = find_entry unpack_opdef_entry term_db r in
      match opd with
      | O_user_defined_op (UOP op) -> op
      | _ -> failwith ("The id " ^ (string_of_int r) ^
                       " does refer to a user defined operator!")
-let dereference_formal_param context = function
+let dereference_formal_param term_db = function
   | FP fp -> fp
   | FP_ref i ->
-     find_entry unpack_fp_entry context i
+     find_entry unpack_fp_entry term_db i
 
-let dereference_op_decl context = function
+let dereference_op_decl term_db = function
     | OPD opd -> opd
     | OPD_ref x ->
-       find_entry unpack_opdecl_entry context x
+       find_entry unpack_opdecl_entry term_db x
 
-let dereference_op_def context = function
+let dereference_op_def term_db = function
   | OPDef d -> d
   | OPDef_ref x ->
-     find_entry unpack_opdef_entry context x
-let dereference_theorem context =  function
+     find_entry unpack_opdef_entry term_db x
+
+let dereference_theorem term_db =  function
   | THM t -> t
   | THM_ref x ->
-     find_entry unpack_thm_entry context x
+     find_entry unpack_thm_entry term_db x

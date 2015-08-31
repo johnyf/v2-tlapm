@@ -1,3 +1,5 @@
+(* #warnings "-8" *)
+
 (** Provides a conversion from the xml datastructures which directly mirror
     the sany datastructures to the internal ones defined in Expr_ds.mli
 

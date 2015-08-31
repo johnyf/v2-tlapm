@@ -21,6 +21,8 @@ let undef (_, _, expand, _, _) = expand
 let nesting (_, _, _, n, _) = n
 let ndepth (_, _, _,  _, n) = n
 
+let tdb   (_, { entries; modules; }, _, _, _) = entries
+
 (* sets the expand flag of the accumulator *)
 let set_expand (x,y,_,n, d) v = (x,y,v,n,d)
 
@@ -186,7 +188,7 @@ object(self)
 
   method formal_param acc0 fp =
     let { location; level; name; arity; } : formal_param_ =
-      dereference_formal_param (con acc0) fp in
+      dereference_formal_param (tdb acc0) fp in
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = self#name acc2 name in
@@ -236,7 +238,7 @@ object(self)
 
   method op_decl acc0 opdec =
     let { location ; level ; name ; arity ; kind ; } =
-      dereference_op_decl (con acc0) opdec in
+      dereference_op_decl (tdb acc0) opdec in
        (* the kind is only relevant in the new_symb rule *)
        (* terminal node *)
        let acc1 = self#location acc0 location in
@@ -246,13 +248,13 @@ object(self)
        acc3
 
   method op_def acc opdef =
-    match dereference_op_def (con acc) opdef  with
+    match dereference_op_def (tdb acc) opdef  with
     | O_module_instance x ->
        self#module_instance acc x
     | O_builtin_op x      ->
        self#builtin_op acc x
     | O_user_defined_op x ->
-       let op = dereference_user_defined_op (con acc) x
+       let op = dereference_user_defined_op (tdb acc) x
        in
        match nesting acc, undef acc with
        | Module, _ ->
@@ -281,8 +283,15 @@ object(self)
           let acc0b = reset_expand acc0a acc in
           acc0b
        | ProofStep, _ ->
+          (* TODO: check if this is ok *)
+          let acc0 = disable_expand acc in
+          let acc0a = self#user_defined_op acc0 x in
+          let acc0b = reset_expand acc0a acc in
+          acc0b
+(*          
           failwith ("TODO: implement printing of op definitions in " ^
                     "proof step environments.")
+ *)
 
   method theorem acc0 thm =
     let { location; level; name; expr; proof; suffices } =
@@ -294,7 +303,7 @@ object(self)
       | _ -> ()
       );
        *)
-      dereference_theorem (con acc0) thm in
+      dereference_theorem (tdb acc0) thm in
        match undef acc0, name with
        | true, _ ->
           fprintf (ppf acc0) "THEOREM ";
@@ -378,7 +387,7 @@ object(self)
      | S_instance i -> self#instance acc0 i
      | S_theorem t ->
         (* dereference theorem *)
-        let thm = dereference_theorem (con acc0) t  in
+        let thm = dereference_theorem (tdb acc0) t  in
         let stepname = match thm.name with
         | Some name -> name
         | None ->
@@ -451,7 +460,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "NEW ";
-    let od = dereference_op_decl (con acc0) op_decl in
+    let od = dereference_op_decl (tdb acc0) op_decl in
     let new_decl = match od.kind with
          | NewConstant -> "CONSTANT "
          | NewVariable -> "VARIABLE "
@@ -537,7 +546,7 @@ object(self)
   method user_defined_op acc0 op =
     let { location; level ; name ; arity ;
           body ; params ; recursive ; } =
-      dereference_user_defined_op (con acc0) op in
+      dereference_user_defined_op (tdb acc0) op in
     match nesting acc0, undef acc0, recursive with
     | _, true, false -> (* expand the definition *)
        let acc1 = self#location acc0 location in

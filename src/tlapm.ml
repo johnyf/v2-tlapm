@@ -1,5 +1,7 @@
 open Sany
 open Tlapm_args
+open Obligation
+open Extract_obligations
 
 module Clocks = struct
   include Timing

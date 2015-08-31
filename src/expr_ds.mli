@@ -143,7 +143,7 @@ and assume_ = {
   expr              : expr
 }
 
-(** The union of theorem statements an references to them. *)
+(** The union of theorem statements and references to them. *)
 and theorem =
 | THM_ref of int
 | THM of theorem_
@@ -159,6 +159,17 @@ and theorem_ = {
   expr              : assume_prove;
   proof             : proof;
   suffices          : bool
+}
+
+and theorem_def =
+  | THMDef_ref of int
+  | THMDef of theorem_def_
+
+and theorem_def_ = {
+location : location;
+level : level option;
+name : string option;
+expr : assume_prove;
 }
 
 (** The ASSUME ... PROVE statement of TLA.
@@ -535,10 +546,13 @@ type entry =
   ASSUME_entry of assume_ |
   APSUBST_entry of ap_subst_in
 
+
+type term_db = (int * entry) list
+
 (** In contrast to the {!module:Sany_ds} context, entries
     for different elements are separate.
 *)
 type context = {
-  entries : (int * entry) list;
+  entries : term_db;
   modules : mule list;
 }

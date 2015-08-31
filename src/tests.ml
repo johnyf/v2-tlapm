@@ -37,8 +37,8 @@ let files flt =
            "Quantifiers";
            (*           "exec"; *)
            "proofsteps";
-           (* "priming_stephan"; *)
-           "withsubmodule";
+           "priming_stephan";
+           (* "withsubmodule"; has incorrect use of theorem *)
            "OneBit";
            (* contains duplicates of multiple modules, takes long to load *)
            (*"pharos";  *)
@@ -59,6 +59,7 @@ let () =
         Test_sany.get_tests results;
         Test_map.get_tests results;
         Test_correct_lambda.get_tests without_broken;
+        Test_extract_obligations.get_tests without_broken;
         Test_formatter.get_tests without_broken (* *)
       ] in
   match check_xmloutput with

@@ -39,6 +39,12 @@ type op_decl_kind =
   | NewAction
   | NewTemporal
 
+type prover =
+  | Isabelle
+  | Zenon
+  | SMT
+  | LS4
+
 (** Creates a range from 0 to 0. *)
 val mkDummyRange : int_range
 

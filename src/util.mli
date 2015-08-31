@@ -99,7 +99,7 @@ val ( @$ ) : ('a -> 'b) -> 'a -> 'b
 *)
 
 (** {3 List utils } *)
-val flat_map : ('a -> 'a list) -> 'a list -> 'a list
+val flat_map : ('a -> 'b list) -> 'a list -> 'b list
 (** The composition of map and flatten. *)
 
 (** [find_ordering pairs] *)
@@ -122,7 +122,7 @@ val multiset_equal_lists : 'a list -> 'a list -> bool
 (** {3 String utils} *)
 (** [mkString ~front ~middle ~back fmt list ] *)
 val mkString : ?front:string -> ?middle:string -> ?back:string  ->
-	       ( 'a -> string) -> 'a list -> string
+               ( 'a -> string) -> 'a list -> string
 (** Creates a string from the given
     list by mapping fmt on each element, using ~middle as a seperator. The
     string ~front is prepended, while ~back is appended.
@@ -130,7 +130,7 @@ val mkString : ?front:string -> ?middle:string -> ?back:string  ->
 
 (** [mkString ~front ~middle ~back fmt list ] *)
 val fmtPair : ?front:string -> ?middle:string -> ?back:string  ->
-	      ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
+              ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
 (** Creates a string from the given
     list by mapping fmt on each element, using ~middle as a seperator. The
     string ~front is prepended, while ~back is appended.

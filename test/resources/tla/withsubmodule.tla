@@ -8,13 +8,19 @@ VARIABLE x
 
 THEOREM T == x'=x
 
+THEOREM ASSUME T PROVE FALSE
+
 ====================
 
 I == INSTANCE sub WITH x <- 0
 
 IbT == 0' = 0
 
-THEOREM ASSUME I!T PROVE TRUE \* should not be true \* not exportable at the moment 
+THEOREM T2 == ASSUME NEW CONSTANT x PROVE x'=x
+
+THEOREM ASSUME IbT PROVE TRUE \* this is not accepted by the toolbox
+
+THEOREM ASSUME I!T PROVE TRUE \* should not be accepted by the toolbox too, but it is. leads to malformed xml export. 
 
 \* THEOREM ASSUME I!T!1 = I!T!1  PROVE TRUE \* should not be true \* not exportable at the moment 
 
@@ -23,5 +29,5 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be true \* not exportable at the mom
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Jul 08 10:56:12 CEST 2015 by marty
+\* Last modified Wed Sep 02 11:07:40 CEST 2015 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty

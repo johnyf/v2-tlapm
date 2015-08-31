@@ -18,6 +18,7 @@ let test_expr_map record () =
   let mapped_context =
     me#context (mapper#context (Nothing, []) context) in
   let result = context = mapped_context in
+  record.explicit_lambda_context <- Some mapped_context;
   Printf.printf "%s\n%b\n" record.filename result;
   expr_formatter#context (Format.std_formatter, mapped_context, true, Module, 0)
                          mapped_context; (* *)

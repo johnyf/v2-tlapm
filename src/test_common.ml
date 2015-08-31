@@ -2,13 +2,17 @@ type test_result = {
     filename : string;
     mutable sany_context : Sany_ds.context option;
     mutable expr_context : Expr_ds.context option;
+    mutable explicit_lambda_context : Expr_ds.context option;
+    mutable obligations  : Obligation.obligation list;
 }
 
-let mkTestResult ?sc ?ec name =
+let mkTestResult ?sc ?ec ?lc ?ob:(ob=[]) name =
   {
     filename = name;
     sany_context = sc;
     expr_context = ec;
+    explicit_lambda_context = lc;
+    obligations  = ob;
   }
 
 let exhandler f =
