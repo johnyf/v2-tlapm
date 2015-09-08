@@ -19,9 +19,10 @@ let test_expr_map record () =
     me#context (mapper#context (Nothing, []) context) in
   let result = context = mapped_context in
   record.explicit_lambda_context <- Some mapped_context;
-  Printf.printf "%s\n%b\n" record.filename result;
+  Printf.printf "Lambda conversion test of %s %b\n" record.filename result;
+  (* (* don't print the lambda versions right now *)
   expr_formatter#context (Format.std_formatter, mapped_context, true, Module, 0)
-                         mapped_context; (* *)
+                         mapped_context;  *)
   (*  Assert.equal context mapped_context *)
   ()
 

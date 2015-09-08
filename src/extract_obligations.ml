@@ -5,6 +5,9 @@ open Expr_visitor
 open Obligation
 open Expr_prover_parser
 
+(* customized failwith for obligation extraction *)
+let failwith_msg msg = failwith ("Error extracting obligation: " ^ msg)
+
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
@@ -82,9 +85,30 @@ let rec split_provers term_db = function
      let (provers, exprs) = split_provers term_db xs in
      (provers,x::exprs)
 
-(* TODO let get_theorem_facts bys = List.filter (fun x -> ) *)
+let split_theorem_facts term_db facts =
+  (* split facts into list of theorem_ and rest *)
+  let split_theorem_facts_ term_db =
+    List.fold_left
+    (fun r fact ->
+     let (thms, rest) = r in
+     match fact with
+     | EMM_expr (E_op_appl appl) ->
+        (
+        match appl.operator, appl.operands with
+        | FMOTA_theorem thm, [] ->
+           (dereference_theorem term_db thm :: thms, rest)
+        | _ ->
+           (thms, fact::rest)
+        )
+     | _ ->
+        (thms, fact::rest)
+    )
+    ([],[])
+  in
+  (* during fold we prepended, reverse lists to preserve order *)
+  let (thms, facts) = split_theorem_facts_ term_db facts in
+  (List.rev thms, List.rev facts)
 
-let failwith_msg msg = failwith ("Error extracting obligation: " ^ msg)
 
 (* the actual visitor subclass *)
 class ['a] extract_obligations =
@@ -112,9 +136,8 @@ method op_def acc opdef =
 
 method theorem acc thm =
   let cc = get_cc acc in
-  let nesting = get_nesting acc in
-  let thmi  = dereference_theorem cc.term_db thm in
-  let racc = match thmi.proof with
+  let current_thmi  = dereference_theorem cc.term_db thm in
+  let racc = match current_thmi.proof with
   | P_omitted _ -> acc
   | P_obvious _ -> acc
   | P_by by ->
@@ -135,9 +158,24 @@ method theorem acc thm =
           failwith_msg "don't know what to do with assume in BY DEF!"
        ) by.defs in
      let expanded_defs = List.append cc.expanded_defs additional_defs in
+     let thm_assumptions, other_bys =
+       split_theorem_facts cc.term_db other_bys in
+     (* self references only insert the assumptions - split up *)
+     let own_thm, thm_assumptions =
+       List.partition (fun (thm : theorem_) ->
+                       thm.name = current_thmi.name)
+                      thm_assumptions in
+     let thm_assumptions =
+       List.map (fun (t:theorem_) -> t.expr) thm_assumptions in
+     let own_assumptions = (* TODO: don't duplicate and eror check *)
+       Util.flat_map (fun (t:theorem_) -> t.expr.assumes) own_thm in
      (* extend assumptions with usable facts *)
-     let assumes = List.append thmi.expr.assumes cc.usable_facts in
-     let goal = { thmi.expr with assumes} in
+     let assumes = List.concat [
+                   own_assumptions;
+                   thm_assumptions;
+                   cc.usable_facts;
+                   ] in
+     let goal = { current_thmi.expr with assumes} in
      let obligation = {
      goal;
      expanded_defs;
@@ -157,6 +195,6 @@ method theorem acc thm =
   | P_noproof -> acc
   in
   let theorems = thm :: cc.theorems in
-  let usable_facts = List.append cc.usable_facts [thmi.expr] in
+  let usable_facts = List.append cc.usable_facts [current_thmi.expr] in
   update_cc racc { cc with theorems; usable_facts }
 end

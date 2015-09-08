@@ -7,7 +7,7 @@ open Format
 
 let test_sany record () =
   ignore (
-      let context = match record.expr_context with
+      let context = match record.explicit_lambda_context with
         | Some c -> c
         | None ->
            failwith ("Test implementation error! No expression context "^
@@ -17,8 +17,7 @@ let test_sany record () =
       (*      pp_set_margin std_formatter 80; *)
       fprintf std_formatter "@[<v 0>%s:@\n" record.filename;
       let init = (std_formatter, context, true, Module, 0) in
-      let fmt_string =
-        expr_formatter#context init context in
+      ignore ( expr_formatter#context init context );
       fprintf std_formatter "@]@.";
       ()
     )
