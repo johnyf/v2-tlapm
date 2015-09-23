@@ -272,7 +272,6 @@ and user_defined_op_ = {
   recursive         : bool;
 }
 
-                      
 (** A lambda abstraction. The difference to binders is that it works on formal
     parameters, not variables.
  *)

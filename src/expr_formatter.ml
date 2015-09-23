@@ -4,7 +4,7 @@ open Expr_visitor
 open Expr_utils
 open Expr_dereference
 open Util
-
+open Expr_prover_parser
 open List
 open Format
 
@@ -131,12 +131,51 @@ object(self)
   method op_appl acc0 {location; level; operator; operands} =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let acc3 = self#operator acc2 operator in
-    let oparens, cparens = if (operands <> []) then ("(",")") else ("","") in
-    fprintf (ppf acc3) "%s" oparens;
-    let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
-    fprintf (ppf acc4) "%s" cparens;
-    acc4
+    let acc = match match_infix_op (tdb acc2) operator with
+    | true ->
+       (* infix binary operators *)
+       fprintf (ppf acc2) "(";
+       let left, right = match operands with
+       | [l;r] -> l,r
+       | _ -> failwith "Binary operator does not have 2 arguments!"
+       in
+       let acc3 = self#expr_or_op_arg acc2 left in
+       fprintf (ppf acc3) " ";
+       let acc4 = self#operator acc3 operator in
+       fprintf (ppf acc4) " ";
+       let acc5 = self#expr_or_op_arg acc4 right in
+       fprintf (ppf acc5) ")";
+       acc5
+    | false -> (
+       match match_ternary_op (tdb acc2) operator with
+       | Some name ->
+          (* ternary binary operators *)
+          let str_begin,str_middle,str_end = expand_ternary_name name in
+          fprintf (ppf acc2) "(";
+          let op1, op2, op3 = match operands with
+          | [o1;o2;o3] -> o1,o2,o3
+          | _ -> failwith "Binary operator does not have 2 arguments!"
+          in
+          fprintf (ppf acc2) "(%s " str_begin;
+          let acc3 = self#expr_or_op_arg acc2 op1 in
+          fprintf (ppf acc3) " %s " str_middle;
+          let acc4 = self#expr_or_op_arg acc3 op2 in
+          fprintf (ppf acc4) " %s " str_end;
+          let acc5 = self#expr_or_op_arg acc4 op3 in
+          fprintf (ppf acc5) ")";
+          acc5
+       | _ ->
+          (* other operators *)
+          let acc3 = self#operator acc2 operator in
+          let oparens, cparens =
+            if (operands <> []) then ("(",")") else ("","") in
+          fprintf (ppf acc3) "%s" oparens;
+          let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
+          fprintf (ppf acc4) "%s" cparens;
+          acc4
+    )
+    in
+    acc
 
   method lambda acc0 {level; arity; body; params} =
     let acc1 = self#level acc0 level in
@@ -335,7 +374,7 @@ object(self)
        let acc2 = match domain with
        | None -> acc1
        | Some d ->
-          fprintf (ppf acc1) " \in ";
+          fprintf (ppf acc1) " \\in ";
           self#expr acc1 d
        in
        fprintf (ppf acc2) " ";
