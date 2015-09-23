@@ -72,6 +72,7 @@ class ['a] expr_map : object
   method op_decl         : 'a macc -> op_decl -> 'a macc
   method op_def          : 'a macc -> op_def -> 'a macc
   method theorem         : 'a macc -> theorem -> 'a macc
+  method statement       : 'a macc -> statement -> 'a macc
   method assume          : 'a macc -> assume -> 'a macc
   method assume_prove    : 'a macc -> assume_prove -> 'a macc
   method new_symb        : 'a macc -> new_symb -> 'a macc

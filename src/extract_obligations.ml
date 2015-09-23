@@ -4,6 +4,7 @@ open Expr_dereference
 open Expr_visitor
 open Obligation
 open Expr_prover_parser
+open Util
 
 (* customized failwith for obligation extraction *)
 let failwith_msg msg = failwith ("Error extracting obligation: " ^ msg)
@@ -134,7 +135,18 @@ method op_def acc opdef =
   let definitions = opdef :: cc.definitions in
   update_cc acc { cc with definitions }
 
+method private parse_by_def = function
+  | UMTA_user_defined_op uop ->
+     [OPDef (O_user_defined_op uop)]
+  | UMTA_module_instance mi ->
+     failwith_msg "don't know what to do with module instance in BY DEF!"
+  | UMTA_theorem thm ->
+     failwith_msg "don't know what to do with theorem in BY DEF!"
+  | UMTA_assume assume ->
+     failwith_msg "don't know what to do with assume in BY DEF!"
+
 method theorem acc thm =
+  (* TODO: this assumes thmi.statement = ST_FORMULA sthg *)
   let cc = get_cc acc in
   let current_thmi  = dereference_theorem cc.term_db thm in
   let racc = match current_thmi.proof with
@@ -145,18 +157,7 @@ method theorem acc thm =
               are not supported yet  *)
      let provers, other_bys = split_provers cc.term_db by.facts in
      (* parse by def and add it to visible defs *)
-     let additional_defs : op_def list =
-       Util.flat_map
-       (function
-       | UMTA_user_defined_op uop ->
-          [OPDef (O_user_defined_op uop)]
-       | UMTA_module_instance mi ->
-          failwith_msg "don't know what to do with module instance in BY DEF!"
-       | UMTA_theorem thm ->
-          failwith_msg "don't know what to do with theorem in BY DEF!"
-       | UMTA_assume assume ->
-          failwith_msg "don't know what to do with assume in BY DEF!"
-       ) by.defs in
+     let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
      let expanded_defs = List.append cc.expanded_defs additional_defs in
      let thm_assumptions, other_bys =
        split_theorem_facts cc.term_db other_bys in
@@ -166,16 +167,29 @@ method theorem acc thm =
                        thm.name = current_thmi.name)
                       thm_assumptions in
      let thm_assumptions =
-       List.map (fun (t:theorem_) -> t.expr) thm_assumptions in
+       flat_map (fun (t:theorem_) ->
+                 match t.statement with
+                 | ST_FORMULA f -> [f]
+                 | _ -> [] (* TODO: check *)
+                )
+                thm_assumptions in
      let own_assumptions = (* TODO: don't duplicate and eror check *)
-       Util.flat_map (fun (t:theorem_) -> t.expr.assumes) own_thm in
+       flat_map (fun (t:theorem_) ->
+                 match t.statement with
+                 | ST_FORMULA {assumes; _ } -> assumes
+                 | _ -> [] (* TODO: check *)
+                ) own_thm in
      (* extend assumptions with usable facts *)
      let assumes = List.concat [
                    own_assumptions;
                    thm_assumptions;
                    cc.usable_facts;
                    ] in
-     let goal = { current_thmi.expr with assumes} in
+     let goal = match current_thmi.statement with
+     | ST_FORMULA f ->
+        { f with assumes}
+     | _ -> failwith "not yet implemented!" (*TODO implement pick etc *)
+     in
      let obligation = {
      goal;
      expanded_defs;
@@ -195,6 +209,10 @@ method theorem acc thm =
   | P_noproof -> acc
   in
   let theorems = thm :: cc.theorems in
-  let usable_facts = List.append cc.usable_facts [current_thmi.expr] in
+  let usable_facts = match current_thmi.statement with
+  | ST_FORMULA f -> List.append cc.usable_facts [f]
+  | ST_SUFFICES f -> List.append cc.usable_facts [f]
+  | _ -> failwith "not yet implemented!" (* todo implement usuable facts updating *)
+  in
   update_cc racc { cc with theorems; usable_facts }
 end

@@ -2,7 +2,7 @@ open Expr_ds
 open Commons
 
 type nesting = Module | Expression | ProofStep | By
-type fc = Format.formatter * context * bool * nesting * int
+type fc = Format.formatter * term_db * bool * nesting * int
 
 class formatter :
 object
@@ -28,6 +28,7 @@ object
   method op_decl         : fc -> op_decl -> fc
   method op_def          : fc -> op_def -> fc
   method theorem         : fc -> theorem -> fc
+  method statement       : fc -> statement -> fc
   method assume          : fc -> assume -> fc
   method assume_prove    : fc -> assume_prove -> fc
   method new_symb        : fc -> new_symb -> fc

@@ -349,18 +349,24 @@ method theorem acc0 = function
      let Any_location location, acc1 = self#location acc0 location in
      let Any_level level,       acc2 = self#level (Nothing, acc1) level in
      let ap = match expr with
-     | EA_expr e -> assume_proves_from_expr e
-     | EA_assume_prove ap -> ap in
+     | Sany_ds.EA_expr e -> assume_proves_from_expr e
+     | Sany_ds.EA_assume_prove ap ->
+        (* TODO: parse PICK, CASE *)
+        ap
+     in
      let Any_assume_prove expr, acc3 =
        self#assume_prove (Nothing,acc2) ap in
+     let statement = match suffices with
+     | false -> ST_FORMULA expr
+     | true -> ST_SUFFICES expr
+     in
      let Any_proof proof, acc4 = self#proof (Nothing, acc3) proof  in
      let t = {
      location;
      level;
      name;
-     expr;
+     statement;
      proof;
-     suffices;
      } in
      (Any_theorem (THM t), acc4)
 
@@ -529,8 +535,8 @@ method label acc0 ({Sany_ds.location; level; name;
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level,       acc2 = self#level (Nothing, acc1) level in
   let ap = match body with
-  | EA_expr e -> assume_proves_from_expr e
-  | EA_assume_prove ap -> ap in
+  | Sany_ds.EA_expr e -> assume_proves_from_expr e
+  | Sany_ds.EA_assume_prove ap -> ap in
   let Any_assume_prove body, acc3 = self#assume_prove (Nothing, acc2) ap in
   let params, acc =
     fold self#formal_param (Nothing, acc3) params unfold_formal_param  in
@@ -600,7 +606,8 @@ method user_defined_op acc0 = function
      let params = List.combine args leibniz in
      let op = UOP {
               location; level; name; arity; body; params; recursive;
-              } in
+              }
+     in
      (Any_user_defined_op op, acc)
 
 method name (_,acc) x = (Any_name x, acc)

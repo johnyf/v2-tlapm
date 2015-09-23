@@ -16,7 +16,7 @@ let test_sany record () =
       (* let fmt = new formatter in *)
       (*      pp_set_margin std_formatter 80; *)
       fprintf std_formatter "@[<v 0>%s:@\n" record.filename;
-      let init = (std_formatter, context, true, Module, 0) in
+      let init = (std_formatter, context.entries, true, Module, 0) in
       ignore ( expr_formatter#context init context );
       fprintf std_formatter "@]@.";
       ()

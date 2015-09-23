@@ -18,6 +18,7 @@ type anyExpr =
   | Any_assume_ of assume_
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
+  | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
   | Any_op_def of op_def
@@ -82,6 +83,7 @@ let format_anyexpr = function
   | Any_assume_ _ -> "assume_"
   | Any_theorem _ -> "theorem"
   | Any_theorem_ _ -> "theorem_"
+  | Any_statement _ -> "statement"
   | Any_assume_prove _ -> "assume_prove"
   | Any_new_symb _ -> "new_symb"
   | Any_op_def _ -> "op_def"
@@ -126,7 +128,6 @@ let format_anyexpr = function
   | Any_mule_ _ -> " mule_"
   | Any_context _ -> "context"
   | Any_entry _ -> "(int * entry)"
-
 
 
 class ['a] any_extractor = object(self)
@@ -182,7 +183,7 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method expr_or_module_or_module_instance acc =
     match self#extract acc with Any_expr_or_module_or_module_instance x -> x
-
+                              | _ -> failwith (self#fmt acc)
   method formal_param acc =
     match self#extract acc with Any_formal_param x -> x
                               | _ -> failwith (self#fmt acc)
@@ -249,9 +250,12 @@ class ['a] any_extractor = object(self)
   method reference acc =
     match self#extract acc with Any_reference x -> x
                               | _ -> failwith (self#fmt acc)
+  method statement acc =
+    match self#extract acc with Any_statement x -> x
+                              | _ -> failwith (self#fmt acc)
   method step acc =
     match self#extract acc with Any_step x -> x
-
+                              | _ -> failwith (self#fmt acc)
   method strng acc =
     match self#extract acc with Any_strng x -> x
                               | _ -> failwith (self#fmt acc)

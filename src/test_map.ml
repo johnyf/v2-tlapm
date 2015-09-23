@@ -21,17 +21,22 @@ let test_expr_map record () =
 (*  Printf.printf "%s\n%b\n" record.filename result;
   expr_formatter#context (Format.std_formatter, context, true, Module, 0)
                          context; *)
-  Assert.equal context mapped_context
+  Assert.equal ~msg:"Data-structures must be identical after id map!"
+               context mapped_context
 
 
 let test_map record =
   Test.make_assert_test
     ~title: ("mapping on expr ds trees " ^ record.filename)
     (fun () -> ())
+    (test_expr_map record)
+(* (* Assert.equal throws an exception - this only works if there are no
+      assertions inside *)
     (fun () ->
      Assert.no_raise ~msg:"Unexpected exception raised."
                      (fun () -> exhandler ( test_expr_map record )  )
     )
+ *)
     (fun () -> ()  )
 
 

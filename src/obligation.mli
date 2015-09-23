@@ -1,6 +1,6 @@
 open Commons
 open Expr_ds
-
+     
 type obligation = {
 (* actual obligation, without expansion *)
 goal : assume_prove;
@@ -22,3 +22,4 @@ assumptions       : assume list ;
 theorems          : theorem list ;
 
 }
+

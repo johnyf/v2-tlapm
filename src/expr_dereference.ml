@@ -12,7 +12,6 @@ let find_entry unpack entries i =
   in
   unpack elem
 
-
 let dereference_user_defined_op term_db = function
   | UOP d -> d
   | UOP_ref r ->
@@ -21,6 +20,7 @@ let dereference_user_defined_op term_db = function
      | O_user_defined_op (UOP op) -> op
      | _ -> failwith ("The id " ^ (string_of_int r) ^
                       " does refer to a user defined operator!")
+
 let dereference_formal_param term_db = function
   | FP fp -> fp
   | FP_ref i ->

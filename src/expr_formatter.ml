@@ -12,16 +12,15 @@ open Format
 type nesting = Module | Expression | ProofStep | By
 (* We need to pass on the formatter, the contect for unfolding references and a
    flag if to unfold *)
-type fc = Format.formatter * context * bool * nesting * int
+type fc = Format.formatter * term_db * bool * nesting * int
 
 (* these are extractors for the accumulator type  *)
 let ppf   (ppf, _, _, _, _) = ppf
-let con   (_, context, _, _, _) = context
+let tdb   (_, db, _, _, _) = db
 let undef (_, _, expand, _, _) = expand
 let nesting (_, _, _, n, _) = n
 let ndepth (_, _, _,  _, n) = n
 
-let tdb   (_, { entries; modules; }, _, _, _) = entries
 
 (* sets the expand flag of the accumulator *)
 let set_expand (x,y,_,n, d) v = (x,y,v,n,d)
@@ -288,21 +287,13 @@ object(self)
           let acc0a = self#user_defined_op acc0 x in
           let acc0b = reset_expand acc0a acc in
           acc0b
-(*          
+(*
           failwith ("TODO: implement printing of op definitions in " ^
                     "proof step environments.")
  *)
 
   method theorem acc0 thm =
-    let { location; level; name; expr; proof; suffices } =
-      (*
-      (
-      match thm with
-      | THM_ref x ->
-         fprintf (ppf acc0) "THM_ref %d\n" x;
-      | _ -> ()
-      );
-       *)
+    let { location; level; name; statement; proof; } =
       dereference_theorem (tdb acc0) thm in
        match undef acc0, name with
        | true, _ ->
@@ -313,10 +304,10 @@ object(self)
           | Module, Some name -> name ^ " == "
           | _ -> ""
           in
-          let s = if suffices then "SUFFICES " else "" in
-          fprintf (ppf acc2) "%s %s" named s;
+          (* let s = if suffices then "SUFFICES " else "" in *)
+          fprintf (ppf acc2) "%s" named;
           let acc2a = nest_expr acc2 in
-          let acc3 = self#assume_prove acc2a expr in
+          let acc3 = self#statement acc2a statement in
           let acc3a = nest_proof acc3 in
           let acc4 = self#proof acc3a proof  in
           let acc4a = reset_nesting acc4 acc0 in
@@ -328,6 +319,28 @@ object(self)
        | _ -> failwith
                 ("Implementation error! Trying to pretty print a theorem's " ^
                  "name without expanding, but the theorem does not have one.")
+
+  (*TODO: check *)
+  method statement acc0 = function
+    | ST_FORMULA f -> self#assume_prove acc0 f
+    | ST_SUFFICES f ->
+       fprintf (ppf acc0) "SUFFICES ";
+       self#assume_prove acc0 f
+    | ST_CASE f ->
+       fprintf (ppf acc0) "CASE ";
+       self#expr acc0 f
+    | ST_PICK {variable; domain; formula } ->
+       fprintf (ppf acc0) "PICK ";
+       let acc1 = self#formal_param acc0 variable in
+       let acc2 = match domain with
+       | None -> acc1
+       | Some d ->
+          fprintf (ppf acc1) " \in ";
+          self#expr acc1 d
+       in
+       fprintf (ppf acc2) " ";
+       let acc3 = self#expr acc0 formula in
+       acc3
 
   method assume acc0  = function
     | ASSUME_ref x ->
@@ -545,7 +558,7 @@ object(self)
 
   method user_defined_op acc0 op =
     let { location; level ; name ; arity ;
-          body ; params ; recursive ; } =
+          body ; params ; recursive } =
       dereference_user_defined_op (tdb acc0) op in
     match nesting acc0, undef acc0, recursive with
     | _, true, false -> (* expand the definition *)

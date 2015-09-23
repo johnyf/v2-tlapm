@@ -156,9 +156,20 @@ and theorem_ = {
   location          : location;
   level             : level option;
   name              : string option;
-  expr              : assume_prove;
+  statement         : statement;
   proof             : proof;
-  suffices          : bool
+}
+
+and statement =
+  | ST_FORMULA of assume_prove
+  | ST_SUFFICES of assume_prove
+  | ST_CASE of expr
+  | ST_PICK of pick
+
+and pick = {
+variable : formal_param;
+domain   : expr option; (* TODO see if we can narrow this down *)
+formula  : expr;
 }
 
 and theorem_def =
@@ -258,10 +269,10 @@ and user_defined_op_ = {
   arity             : int;
   body              : expr;
   params            : (formal_param * bool (*is leibniz*)) list;
-  recursive         : bool
+  recursive         : bool;
 }
 
-
+                      
 (** A lambda abstraction. The difference to binders is that it works on formal
     parameters, not variables.
  *)

@@ -283,7 +283,7 @@ inherit ['a macc] visitor as super
         let acc1 = self#reference acc0 x in
         let r = Any_theorem (THM_ref (macc_extract#reference acc1)) in
         set_anyexpr acc1 r
-     | THM { location; level; name; expr; proof; suffices } ->
+     | THM { location; level; name; statement; proof;  } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let nameopt, acc3 = match name with
@@ -292,7 +292,7 @@ inherit ['a macc] visitor as super
            let acc3_ = self#name acc2 n in
            (Some (macc_extract#name acc3_), acc3_)
         in
-        let acc4 = self#assume_prove acc3 expr in
+        let acc4 = self#statement acc3 statement in
         let acc5 = self#proof acc4 proof  in
         (* skip suffices *)
         let r = Any_theorem
@@ -300,11 +300,39 @@ inherit ['a macc] visitor as super
                  location = macc_extract#location acc1;
                  level = macc_extract#level acc2;
                  name = nameopt;
-                 expr = macc_extract#assume_prove acc4;
+                 statement = macc_extract#statement acc4;
                  proof = macc_extract#proof acc5;
-                 suffices;
                  }) in
         set_anyexpr acc5 r
+
+   method statement acc0 = function
+     | ST_FORMULA f ->
+        let acc1 = self#assume_prove acc0 f in
+        let anys = (Any_statement (ST_FORMULA (macc_extract#assume_prove acc1)))
+        in set_anyexpr acc1 anys
+     | ST_SUFFICES f ->
+        let acc1 = self#assume_prove acc0 f in
+        let anys = (Any_statement (ST_SUFFICES (macc_extract#assume_prove acc1)))
+        in set_anyexpr acc1 anys
+     | ST_CASE f ->
+        let acc1 = self#expr acc0 f in
+        let anys = (Any_statement (ST_CASE (macc_extract#expr acc1))) in
+        set_anyexpr acc1 anys
+     | ST_PICK {variable; domain; formula; } ->
+        let acc1 = self#formal_param acc0 variable in
+        let acc2, domain = match domain with
+        | None -> acc1, None
+        | Some d ->
+           let acc2_ = self#expr acc1 d in
+           (acc2_, Some (macc_extract#expr acc2_))
+        in
+        let acc3 = self#expr acc2 formula in
+        let anys = {
+        variable = macc_extract#formal_param acc1;
+        domain;
+        formula = macc_extract#expr acc3;
+        } in
+        set_anyexpr acc3 (Any_statement (ST_PICK anys))
 
    method assume acc0  = function
      | ASSUME_ref x ->
@@ -584,7 +612,7 @@ inherit ['a macc] visitor as super
         let r = (Any_user_defined_op (UOP_ref (macc_extract#reference acc))) in
         set_anyexpr acc r
      | UOP { location; level ; name ; arity ;
-             body ; params ; recursive ; } ->
+             body ; params ;  recursive; } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc3 = self#name acc2 name in
@@ -593,7 +621,6 @@ inherit ['a macc] visitor as super
         let fps, leibniz = List.split params in
         let fparams, acc = unpack_fold id_extract#formal_param
                                        self#formal_param acc4 fps in
-        (* skip recursive flag *)
         let params = List.combine fparams leibniz in
         let r = Any_user_defined_op (UOP {
         location = macc_extract#location acc1;

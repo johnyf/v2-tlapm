@@ -34,6 +34,7 @@ object
   method op_decl         : 'a -> op_decl -> 'a
   method op_def          : 'a -> op_def -> 'a
   method theorem         : 'a -> theorem -> 'a
+  method statement       : 'a -> statement -> 'a
   method assume          : 'a -> assume -> 'a
   method assume_prove    : 'a -> assume_prove -> 'a
   method new_symb        : 'a -> new_symb -> 'a

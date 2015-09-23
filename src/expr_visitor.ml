@@ -25,6 +25,7 @@ object
   method op_decl         : 'a -> op_decl -> 'a
   method op_def          : 'a -> op_def -> 'a
   method theorem         : 'a -> theorem -> 'a
+  method statement       : 'a -> statement -> 'a
   method assume          : 'a -> assume -> 'a
   method assume_prove    : 'a -> assume_prove -> 'a
   method new_symb        : 'a -> new_symb -> 'a
@@ -174,16 +175,27 @@ end
 
    method theorem acc0 = function
    | THM_ref x -> self#reference acc0 x
-   | THM { location; level; name; expr; proof; suffices } ->
+   | THM { location; level; name; statement; proof; } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc2a = match name with
        | None -> acc2
        | Some n -> self#name acc2 n in
-     let acc3 = self#assume_prove acc2a expr in
+     let acc3 = self#statement acc2a statement in
      let acc4 = self#proof acc3 proof  in
-     (* skip suffices *)
      acc4
+
+   method statement acc0 = function
+     | ST_FORMULA f -> self#assume_prove acc0 f
+     | ST_SUFFICES f -> self#assume_prove acc0 f
+     | ST_CASE f -> self#expr acc0 f
+     | ST_PICK {variable; domain; formula} ->
+        let acc1 = self#formal_param acc0 variable in
+        let acc2 = match domain with
+        | None -> acc1
+        | Some d -> self#expr acc1 d in
+        let acc3 = self#expr acc2 formula in
+        acc3
 
    method assume acc0  = function
    | ASSUME_ref x -> self#reference acc0 x
@@ -314,7 +326,7 @@ end
    method user_defined_op acc0 = function
    | UOP_ref x -> self#reference acc0 x
    | UOP { location; level ; name ; arity ;
-           body ; params ; recursive ; } ->
+           body ; params ;  } ->
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = self#name acc2 name in

@@ -6,6 +6,8 @@ open Util
 open Test_common
 open Format
 open Obligation
+open Obligation_formatter
+
 
 let fmt_prover = function
   | Isabelle -> "Isabelle"
@@ -28,11 +30,18 @@ let test_extract_obligations record () =
         List.fold_left eo#mule (cc, [], Module, None) context.modules in
       match obs with
       | [] -> Printf.printf "%s no obligations extracted!\n" record.filename;
-      | _  -> List.map (fun o ->
-                let pstr = mkString fmt_prover (o.provers) in
-                Printf.printf "%s obligation provers : %s\n" record.filename pstr
-               ) obs;
-      ()
+      | _  ->
+         (
+         let print_obl o =
+           let pstr = mkString fmt_prover (o.provers) in
+           Printf.printf "%s obligation provers : %s\n" record.filename pstr;
+           Printf.printf "%d assumptions\n" (List.length o.goal.assumes);
+           fmt_obligation std_formatter o;
+           Printf.printf "\n(end of obligation)\n";
+         in 
+         List.map print_obl  obs;
+         ()
+         )
     )
 
 let create_test record =

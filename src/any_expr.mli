@@ -23,6 +23,7 @@ type anyExpr =
   | Any_assume_ of assume_
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
+  | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
   | Any_op_def of op_def
@@ -116,6 +117,7 @@ class ['a] any_extractor : object
   method operator : 'a -> operator
   method proof : 'a -> proof
   method reference : 'a -> int
+  method statement : 'a -> statement
   method step : 'a -> step
   method strng : 'a -> strng
   method subst_in : 'a -> subst_in
