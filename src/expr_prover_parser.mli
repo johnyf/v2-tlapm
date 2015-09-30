@@ -3,6 +3,8 @@ open Expr_ds
 
 val match_constant : term_db -> expr -> string option
 
+val match_function : term_db -> expr -> (string * expr_or_op_arg list) option
+
 val expr_to_prover : term_db -> expr -> prover option
 
 (* val match_prefix_op : term_db -> operator ->

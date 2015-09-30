@@ -1,56 +1,8 @@
 open Commons
 open Expr_ds
-open Expr_visitor
-open Any_expr
+open Expr_map
 
-
-(** A transformer template for expressions. It is a visitor with a special
-    accumulator of type macc, a tuple. The first element of macc is an anyExpr
-    which represents the transformed elemented of what is visited. The second
-    element is an accumulator for derived classes to pass on information.
-
-    The reason to use anyExpr is to allow to replace a syntax element by a
-    different one (e.g. in SANY, lambda expressions are defined operators which
-    are replaced by the actual lambda language construct. The first one is not
-    of type expr, but the second one is.). The default implementation just
-    duplicates the given tree.
- *)
-
-type 'a macc =  anyExpr * 'a
-
-(** Extracts the anyAxpr from a macc. *)
-val get_anyexpr : 'a macc -> anyExpr
-
-(** Extracts the accumulator for derived classes from a macc. *)
-val get_acc : 'a macc -> 'a
-
-(** Sets the accumulator for derived classes from a macc. *)
-val set_acc : 'a macc -> 'a -> 'a macc
-
-(** Sets the anyExpr of the first argument to the one given as second. *)
-val set_anyexpr : 'a macc -> anyExpr -> 'a macc
-
-(** Sets the anyExpr of the macc passed to that of the second macc. *)
-val update_anyexpr : 'a macc -> 'a macc -> 'a macc
-
-val unpack_fold : (anyExpr -> 'a) -> ('b macc -> 'c -> 'b macc) -> 'b macc ->
-                  'c list -> ('a list * 'b macc)
-
-(** This is an any_extractor which extracts the anyExpr from the macc first. *)
-class ['b] macc_extractor : object
-  inherit ['b macc] any_extractor
-  method extract : 'b macc -> anyExpr
-end
-
-(** This is an any_extractor which directly extracts from an anyExpr. *)
-class id_extractor : object
-  inherit [anyExpr] any_extractor
-  method extract : anyExpr -> anyExpr
-end
-
-class ['a] expr_map : object
-(*  val id_extract   :  id_extractor
-  val macc_extract : 'a macc_extractor *)
+class ['a] expr_parse_theorems : object
   method get_id_extractor   : id_extractor
   method get_macc_extractor : 'a macc_extractor
   method expr            : 'a macc -> expr -> 'a macc

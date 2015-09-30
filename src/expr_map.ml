@@ -12,6 +12,9 @@ let get_anyexpr (any,acc) = any
 (** Extracts the accumulator for derived classes from a macc. *)
 let get_acc (any,acc) = acc
 
+(** Sets the accumulator for derived classes from a macc. *)
+let set_acc (any,_) acc = (any, acc)
+
 (** Sets the anyExpr of the first argument to the one given as second. *)
 let set_anyexpr (_,acc) any = (any,acc)
 

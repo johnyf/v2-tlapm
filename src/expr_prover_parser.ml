@@ -3,20 +3,27 @@ open Expr_ds
 open Expr_dereference
 open List
 
-let match_constant term_db = function
-  | E_op_appl appl  -> (
-     match appl.operator with
-     | FMOTA_op_def opd -> (
+let match_function term_db = function
+  | E_op_appl appl  ->
+     (
+     match appl.operator, appl.operands with
+     | FMOTA_op_def opd, args ->
+        (
         match dereference_op_def term_db opd with
         | O_user_defined_op uop ->
            let uopi = dereference_user_defined_op term_db uop in
-           Some uopi.name
+           Some (uopi.name, args)
         | O_builtin_op bop ->
-           Some bop.name
+           Some (bop.name, args)
         | _ ->  None
-     )
+        )
      | _ ->  None
-  )
+     )
+  | _ -> None
+
+let match_constant term_db expr =
+  match match_function term_db expr with
+  | Some (name, []) -> Some name
   | _ -> None
 
 let expr_to_prover term_db expr =
