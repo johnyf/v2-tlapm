@@ -39,8 +39,7 @@ let test_extract_obligations record () =
            fmt_obligation std_formatter o;
            Printf.printf "\n(end of obligation)\n";
          in 
-         List.map print_obl  obs;
-         ()
+         ignore (List.map print_obl  obs)
          )
     )
 

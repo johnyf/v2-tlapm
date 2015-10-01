@@ -321,21 +321,15 @@ inherit ['a macc] visitor as super
         let acc1 = self#expr acc0 f in
         let anys = (Any_statement (ST_CASE (macc_extract#expr acc1))) in
         set_anyexpr acc1 anys
-     | ST_PICK {variable; domain; formula; } ->
-        let acc1 = self#formal_param acc0 variable in
-        let acc2, domain = match domain with
-        | None -> acc1, None
-        | Some d ->
-           let acc2_ = self#expr acc1 d in
-           (acc2_, Some (macc_extract#expr acc2_))
-        in
-        let acc3 = self#expr acc2 formula in
+     | ST_PICK {variables; formula; } ->
+        let (variables, acc1) = unpack_fold id_extract#bound_symbol
+                                            self#bound_symbol acc0 variables in
+        let acc2 = self#expr acc1 formula in
         let anys = {
-        variable = macc_extract#formal_param acc1;
-        domain;
-        formula = macc_extract#expr acc3;
+        variables;
+        formula = macc_extract#expr acc2;
         } in
-        set_anyexpr acc3 (Any_statement (ST_PICK anys))
+        set_anyexpr acc2 (Any_statement (ST_PICK anys))
 
    method assume acc0  = function
      | ASSUME_ref x ->

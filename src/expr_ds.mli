@@ -167,8 +167,7 @@ and statement =
   | ST_PICK of pick
 
 and pick = {
-variable : formal_param;
-domain   : expr option; (* TODO see if we can narrow this down *)
+variables : bound_symbol list;
 formula  : expr;
 }
 
@@ -512,6 +511,7 @@ and binder = {
   location          : location;
   level             : level option;
   operator          : operator;
+  (* TODO:  check if we really only need one operand *)
   operand           : expr_or_op_arg;
   bound_symbols     : bound_symbol list
 }

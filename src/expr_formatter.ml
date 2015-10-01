@@ -110,7 +110,7 @@ object(self)
     acc
 
   method strng acc {location; level; value} =
-    fprintf (ppf acc) "%s" value;
+    fprintf (ppf acc) "\"%s\"" value;
     acc
 
   method op_arg acc {location; level; argument } =
@@ -368,18 +368,12 @@ object(self)
     | ST_CASE f ->
        fprintf (ppf acc0) "CASE ";
        self#expr acc0 f
-    | ST_PICK {variable; domain; formula } ->
+    | ST_PICK {variables; formula } ->
        fprintf (ppf acc0) "PICK ";
-       let acc1 = self#formal_param acc0 variable in
-       let acc2 = match domain with
-       | None -> acc1
-       | Some d ->
-          fprintf (ppf acc1) " \\in ";
-          self#expr acc1 d
-       in
-       fprintf (ppf acc2) " ";
-       let acc3 = self#expr acc0 formula in
-       acc3
+       let acc1 = ppf_fold_with ~str:", " self#bound_symbol acc0 variables in
+       fprintf (ppf acc1) " ";
+       let acc2 = self#expr acc1 formula in
+       acc2
 
   method assume acc0  = function
     | ASSUME_ref x ->

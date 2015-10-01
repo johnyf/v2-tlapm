@@ -59,6 +59,7 @@ let () =
         Test_sany.get_tests results;
         Test_map.get_tests results;
         Test_correct_lambda.get_tests without_broken;
+        Test_parse_theorems.get_tests without_broken;
         Test_extract_obligations.get_tests without_broken;
         Test_formatter.get_tests without_broken (* *)
       ] in

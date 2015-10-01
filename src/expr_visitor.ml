@@ -189,13 +189,10 @@ end
      | ST_FORMULA f -> self#assume_prove acc0 f
      | ST_SUFFICES f -> self#assume_prove acc0 f
      | ST_CASE f -> self#expr acc0 f
-     | ST_PICK {variable; domain; formula} ->
-        let acc1 = self#formal_param acc0 variable in
-        let acc2 = match domain with
-        | None -> acc1
-        | Some d -> self#expr acc1 d in
-        let acc3 = self#expr acc2 formula in
-        acc3
+     | ST_PICK {variables; formula} ->
+        let acc1 = List.fold_left self#bound_symbol acc0 variables in
+        let acc2 = self#expr acc1 formula in
+        acc2
 
    method assume acc0  = function
    | ASSUME_ref x -> self#reference acc0 x

@@ -6,8 +6,9 @@ open List
 let match_function term_db = function
   | E_op_appl appl  ->
      (
-     match appl.operator, appl.operands with
-     | FMOTA_op_def opd, args ->
+     let args = appl.operands in
+     match appl.operator with
+     | FMOTA_op_def opd ->
         (
         match dereference_op_def term_db opd with
         | O_user_defined_op uop ->
@@ -15,7 +16,7 @@ let match_function term_db = function
            Some (uopi.name, args)
         | O_builtin_op bop ->
            Some (bop.name, args)
-        | _ ->  None
+        | O_module_instance _ ->  None (* TODO: decide what to do in this case *)
         )
      | _ ->  None
      )
