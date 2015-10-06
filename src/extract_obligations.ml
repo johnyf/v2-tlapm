@@ -145,74 +145,90 @@ method private parse_by_def = function
   | UMTA_assume assume ->
      failwith_msg "don't know what to do with assume in BY DEF!"
 
+
+method private by_formula acc (thmi:theorem_) (by:by) formula =
+  (* TODO: the context isn't correct, statements like PICK etc
+              are not supported yet  *)
+  let cc = get_cc acc in
+  let provers, other_bys = split_provers cc.term_db by.facts in
+  (* parse by def and add it to visible defs *)
+  let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
+  let expanded_defs = List.append cc.expanded_defs additional_defs in
+  let thm_assumptions, other_bys =
+    split_theorem_facts cc.term_db other_bys in
+  (* self references only insert the assumptions - split up *)
+  let own_thm, thm_assumptions =
+    List.partition (fun (thm : theorem_) ->
+                    thm.name = thmi.name)
+                   thm_assumptions in
+  let thm_assumptions =
+    flat_map (fun (t:theorem_) ->
+              match t.statement with
+              | ST_FORMULA f -> [f]
+              | _ -> [] (* TODO: check *)
+             )
+             thm_assumptions in
+  let own_assumptions = (* TODO: don't duplicate and eror check *)
+    flat_map (fun (t:theorem_) ->
+              match t.statement with
+              | ST_FORMULA {assumes; _ } -> assumes
+              | _ -> [] (* TODO: check *)
+             ) own_thm in
+  (* extend assumptions with usable facts *)
+  let assumes = List.concat [
+                own_assumptions;
+                thm_assumptions;
+                cc.usable_facts;
+                ] in
+  let obligation = {
+  goal = formula;
+  expanded_defs;
+  
+  constants = cc.constants;
+  variables = cc.variables;
+  definitions = cc.definitions;
+  assumptions = cc.assumptions;
+  theorems = cc.theorems;
+  
+  provers;
+  term_db = cc.term_db;
+  } in
+  let racc = enqueue_obligation acc [obligation] in
+  let theorems = THM thmi :: cc.theorems in
+  let usable_facts = List.append cc.usable_facts [formula]  in
+  update_cc racc { cc with theorems; usable_facts }
+
+
+method private by_suffices acc thm by formula =
+  Printf.printf "Extracting suffices!\n";
+  acc
+
+method private by_case acc thm by formula =
+  Printf.printf "Extracting case!\n";
+  acc
+
+method private by_pick acc thm by formula =
+  Printf.printf "Extracting pick!\n";
+  acc
+
 method theorem acc thm =
   (* TODO: this assumes thmi.statement = ST_FORMULA sthg *)
   let cc = get_cc acc in
-  let current_thmi  = dereference_theorem cc.term_db thm in
-  let racc = match current_thmi.proof with
+  let thmi  = dereference_theorem cc.term_db thm in
+  let racc = match thmi.proof with
   | P_omitted _ -> acc
   | P_obvious _ -> acc
   | P_by by ->
-     (* TODO: the context isn't correct, statements like PICK etc
-              are not supported yet  *)
-     let provers, other_bys = split_provers cc.term_db by.facts in
-     (* parse by def and add it to visible defs *)
-     let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
-     let expanded_defs = List.append cc.expanded_defs additional_defs in
-     let thm_assumptions, other_bys =
-       split_theorem_facts cc.term_db other_bys in
-     (* self references only insert the assumptions - split up *)
-     let own_thm, thm_assumptions =
-       List.partition (fun (thm : theorem_) ->
-                       thm.name = current_thmi.name)
-                      thm_assumptions in
-     let thm_assumptions =
-       flat_map (fun (t:theorem_) ->
-                 match t.statement with
-                 | ST_FORMULA f -> [f]
-                 | _ -> [] (* TODO: check *)
-                )
-                thm_assumptions in
-     let own_assumptions = (* TODO: don't duplicate and eror check *)
-       flat_map (fun (t:theorem_) ->
-                 match t.statement with
-                 | ST_FORMULA {assumes; _ } -> assumes
-                 | _ -> [] (* TODO: check *)
-                ) own_thm in
-     (* extend assumptions with usable facts *)
-     let assumes = List.concat [
-                   own_assumptions;
-                   thm_assumptions;
-                   cc.usable_facts;
-                   ] in
-     let goal = match current_thmi.statement with
-     | ST_FORMULA f ->
-        { f with assumes}
-     | _ -> failwith "not yet implemented!" (*TODO implement pick etc *)
-     in
-     let obligation = {
-     goal;
-     expanded_defs;
-
-     constants = cc.constants;
-     variables = cc.variables;
-     definitions = cc.definitions;
-     assumptions = cc.assumptions;
-     theorems = cc.theorems;
-
-     provers;
-     term_db = cc.term_db;
-     } in
-     enqueue_obligation acc [obligation]
+     (
+     match thmi.statement with
+     | ST_FORMULA f -> self#by_formula acc thmi by f
+     | ST_SUFFICES f -> self#by_suffices acc thmi by f
+     | ST_CASE f -> self#by_case acc thmi by f
+     | ST_PICK f -> self#by_pick acc thmi by f
+     )
   | P_steps steps ->
      List.fold_left self#step acc steps.steps
   | P_noproof -> acc
   in
-  let theorems = thm :: cc.theorems in
-  let usable_facts = match current_thmi.statement with
-  | ST_FORMULA f -> List.append cc.usable_facts [f]
-  | ST_SUFFICES f -> List.append cc.usable_facts [f]
-  | _ -> failwith "not yet implemented!" (* todo implement usuable facts updating *)
-  in
-  update_cc racc { cc with theorems; usable_facts }
+  racc
 end

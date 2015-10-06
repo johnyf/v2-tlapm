@@ -28,55 +28,56 @@ method theorem acc thm = match thm with
      | ST_FORMULA { location; level; new_symbols;
                     assumes; prove; suffices; boxed; } ->
         (
-        if assumes <> [] then super#theorem acc thm
-        else
-        match
-        match_function (tdb acc) prove with
-          | Some ("$Case", args) ->
-             Printf.printf "found a case?";
-             (* TODO: match correctly *)
-             super#theorem acc thm
-          | Some ("$Pfcase", args) ->
-             Printf.printf "found a pfcase?\n";
-             (* TODO: match correctly *)
-             super#theorem acc thm
-          | Some (name, args) ->
-             Printf.printf "nope:%s.\n" name;
-             super#theorem acc thm
-          | None ->
-             (
-             match prove with
-             | E_binder { operator = FMOTA_op_def opd ;
+        match assumes, prove, match_function (tdb acc) prove with
+        | _::_, _, _ -> super#theorem acc thm
+        | _, _, Some ("$Pfcase", args) ->
+           (* Printf.printf "Case!"; *)
+           (* recurse on subterms *)
+           let acc1 = super#theorem acc thm in
+           let extract = self#get_macc_extractor in
+           let THM {location; level; name; statement; proof } =
+             extract#theorem acc1 in
+           (* create new theorem and update accumulator *)
+           let statement = match args with
+           | [EO_expr expr] -> ST_CASE expr
+           | [EO_op_arg _] ->
+              failwith "Don't know what to do with op arg passed to case step!"
+           | _ ->
+              failwith "Step case operator expects exactly one argument!"
+           in
+           let thm = THM {location; level; name; statement; proof } in
+           set_anyexpr acc1 (Any_theorem thm)
+        | _, E_binder { operator = FMOTA_op_def opd ;
                           operand;
-                          bound_symbols; _ } ->
-                (
-                match dereference_op_def (tdb acc) opd with
-                | O_user_defined_op uop  ->
-                   (
-                   match dereference_user_defined_op (tdb acc) uop with
-                   |  { name = "$Pick"; _  } ->
-                       (
-                       Printf.printf "Pick!";
-                       let formula = match operand with
-                       | EO_expr expr -> expr
-                       | EO_op_arg _ ->
-                          failwith ("Don't know what to do with an op_arg as" ^
-                                    " parameter for PICK!")
-                       in
-                       let acc1 = super#theorem acc thm in
-                       let statement = ST_PICK { variables = bound_symbols;
-                                                 formula; } in
-                       let thm = THM { location; level; name; statement; proof;}  in
-                       acc1
-                       )
-                   | _ -> super#theorem acc thm
-                   )
-                | _ -> super#theorem acc thm
-                )
-             | _ ->
-                Printf.printf "no!\n";
-                super#theorem acc thm
-             )
+                          bound_symbols; _ }, None ->
+           (
+           match dereference_op_def (tdb acc) opd with
+           | O_builtin_op { name = "$Pick"; _  } ->
+              (
+              (* Printf.printf "Pick!"; *)
+              (* recurse on subterms *)
+              let acc1 = super#theorem acc thm in
+              let extract = self#get_macc_extractor in
+              let THM {location; level; name; statement; proof } =
+                extract#theorem acc1 in
+              (* change formula to pick version *)
+              let formula = match operand with
+              | EO_expr expr -> expr
+              | EO_op_arg _ ->
+                 failwith ("Don't know what to do with an op_arg as" ^
+                           " parameter for PICK!")
+              in
+
+              let statement = ST_PICK { variables = bound_symbols;
+                                        formula; } in
+              (* create new theorem and update accumulator *)
+              let thm = THM { location; level; name; statement; proof;}  in
+              set_anyexpr acc1 (Any_theorem thm)
+              )
+           | _ -> super#theorem acc thm
+           )
+        | _ ->
+           super#theorem acc thm
         )
      | _ ->
         (* skip other proof step *)

@@ -17,11 +17,11 @@ let fmt_prover = function
 
 let test_extract_obligations record () =
   ignore (
-      let context = match record.explicit_lambda_context with
+      let context = match record.explicit_steps_context with
         | Some c -> c
         | None ->
            failwith ("Test implementation error! No expression context "^
-                     "with corrected lamba expressions " ^
+                     "with corrected proof steps " ^
                      "available in record for file " ^ record.filename )
       in
       let cc = emptyCurrentContext context.entries in
