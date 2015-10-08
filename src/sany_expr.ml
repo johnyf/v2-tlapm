@@ -351,14 +351,13 @@ method theorem acc0 = function
      let ap = match expr with
      | Sany_ds.EA_expr e -> assume_proves_from_expr e
      | Sany_ds.EA_assume_prove ap ->
-        (* TODO: parse PICK, CASE *)
         ap
      in
      let Any_assume_prove expr, acc3 =
        self#assume_prove (Nothing,acc2) ap in
      let statement = match suffices with
      | false -> ST_FORMULA expr
-     | true -> ST_SUFFICES expr
+     | true ->  ST_SUFFICES expr
      in
      let Any_proof proof, acc4 = self#proof (Nothing, acc3) proof  in
      let t = {

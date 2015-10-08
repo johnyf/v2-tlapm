@@ -1,3 +1,4 @@
+open List
 open Commons
 open Expr_ds
 open Expr_dereference
@@ -67,7 +68,7 @@ let update_nesting (cc,o,_,a) n = (cc,o,n,a)
 (* convenience function adding one obligation to the accumulator *)
 let enqueue_obligation acc newobs =
   let obs = get_obligations acc in
-  update_obligations acc (List.append obs newobs)
+  update_obligations acc (append obs newobs)
 
 
 (* extracts prover tags from by list *)
@@ -86,10 +87,9 @@ let rec split_provers term_db = function
      let (provers, exprs) = split_provers term_db xs in
      (provers,x::exprs)
 
+(* split facts into list of theorem_ and rest *)
 let split_theorem_facts term_db facts =
-  (* split facts into list of theorem_ and rest *)
-  let split_theorem_facts_ term_db =
-    List.fold_left
+  let split_theorem_facts_ term_db = fold_left
     (fun r fact ->
      let (thms, rest) = r in
      match fact with
@@ -108,7 +108,7 @@ let split_theorem_facts term_db facts =
   in
   (* during fold we prepended, reverse lists to preserve order *)
   let (thms, facts) = split_theorem_facts_ term_db facts in
-  (List.rev thms, List.rev facts)
+  (rev thms, rev facts)
 
 
 (* the actual visitor subclass *)
@@ -147,18 +147,16 @@ method private parse_by_def = function
 
 
 method private by_formula acc (thmi:theorem_) (by:by) formula =
-  (* TODO: the context isn't correct, statements like PICK etc
-              are not supported yet  *)
   let cc = get_cc acc in
   let provers, other_bys = split_provers cc.term_db by.facts in
   (* parse by def and add it to visible defs *)
   let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
-  let expanded_defs = List.append cc.expanded_defs additional_defs in
+  let expanded_defs = append cc.expanded_defs additional_defs in
   let thm_assumptions, other_bys =
     split_theorem_facts cc.term_db other_bys in
   (* self references only insert the assumptions - split up *)
   let own_thm, thm_assumptions =
-    List.partition (fun (thm : theorem_) ->
+    partition (fun (thm : theorem_) ->
                     thm.name = thmi.name)
                    thm_assumptions in
   let thm_assumptions =
@@ -175,7 +173,7 @@ method private by_formula acc (thmi:theorem_) (by:by) formula =
               | _ -> [] (* TODO: check *)
              ) own_thm in
   (* extend assumptions with usable facts *)
-  let assumes = List.concat [
+  let assumes = concat [
                 own_assumptions;
                 thm_assumptions;
                 cc.usable_facts;
@@ -183,19 +181,19 @@ method private by_formula acc (thmi:theorem_) (by:by) formula =
   let obligation = {
   goal = formula;
   expanded_defs;
-  
+
   constants = cc.constants;
   variables = cc.variables;
   definitions = cc.definitions;
   assumptions = cc.assumptions;
   theorems = cc.theorems;
-  
+
   provers;
   term_db = cc.term_db;
   } in
   let racc = enqueue_obligation acc [obligation] in
   let theorems = THM thmi :: cc.theorems in
-  let usable_facts = List.append cc.usable_facts [formula]  in
+  let usable_facts = append cc.usable_facts [formula]  in
   update_cc racc { cc with theorems; usable_facts }
 
 
@@ -212,7 +210,6 @@ method private by_pick acc thm by formula =
   acc
 
 method theorem acc thm =
-  (* TODO: this assumes thmi.statement = ST_FORMULA sthg *)
   let cc = get_cc acc in
   let thmi  = dereference_theorem cc.term_db thm in
   let racc = match thmi.proof with
@@ -221,14 +218,29 @@ method theorem acc thm =
   | P_by by ->
      (
      match thmi.statement with
-     | ST_FORMULA f -> self#by_formula acc thmi by f
-     | ST_SUFFICES f -> self#by_suffices acc thmi by f
-     | ST_CASE f -> self#by_case acc thmi by f
-     | ST_PICK f -> self#by_pick acc thmi by f
+     | ST_FORMULA f ->
+        if f.suffices then
+        failwith "Incorrect suffices flag in non-suffices formula!"
+        else
+        self#by_formula acc thmi by f
+     | ST_SUFFICES f ->
+        self#by_suffices acc thmi by f
+     | ST_CASE f ->
+        self#by_case acc thmi by f
+     | ST_PICK f ->
+        self#by_pick acc thmi by f
      )
   | P_steps steps ->
-     List.fold_left self#step acc steps.steps
+     let acc0 = fold_left self#step acc steps.steps in
+     (* we need to reset the current context, usable facts etc are not
+        visible outside the sub-proof *)
+     update_cc acc0 (get_cc acc)
   | P_noproof -> acc
   in
+  let no_oldobs = length (get_obligations acc) in
+  let no_newobs = length (get_obligations racc) in
+  (* assert that no obligations were lost*)
+  if (no_newobs < no_oldobs) then failwith "lost obligations!";
+  Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
   racc
 end

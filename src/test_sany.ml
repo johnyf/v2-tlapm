@@ -20,6 +20,38 @@ let internal_ds_names =
     method name acc n = Util.add_missing acc [n]
   end
 
+(* extractor counting suffices in expr tree *)
+class expr_suffices_scanner =
+object
+inherit [int * int] Expr_visitor.visitor as super
+
+method statement (flags, constrs) = function
+  | Expr_ds.ST_FORMULA f ->
+     let flags = if f.Expr_ds.suffices then flags+1 else flags in
+     super#statement (flags, constrs) (Expr_ds.ST_FORMULA f)
+  | Expr_ds.ST_SUFFICES f ->
+     let flags = if f.Expr_ds.suffices then flags+1 else flags in
+     super#statement (flags, constrs+1) (Expr_ds.ST_SUFFICES f)
+  | _ as st ->
+     super#statement (flags, constrs) st
+end
+
+(* extractor counting suffices in sany tree *)
+class sany_suffices_scanner =
+object
+inherit [int * int] visitor as super
+
+method theorem (flags, constrs) = function
+  | (THM_ref _) as t -> super#theorem (flags,constrs) t
+  | (THM {expr; _ }) as t  ->
+     match expr with
+     | EA_expr e -> super#theorem (flags, constrs) t
+     | EA_assume_prove f ->
+        let flags = if f.suffices then flags+1 else flags in
+        super#theorem (flags, constrs) t
+end
+
+(* test setup *)
 let test_sany record () =
   let channel = open_in record.filename in
   let tree = exhandler (fun () -> import_xml channel) in
@@ -39,6 +71,21 @@ let test_sany record () =
   record.expr_context <- Some etree;
   tree
 
+let test_suffices {sany_context; expr_context; _ } () =
+  match sany_context, expr_context with
+  | Some sc, Some ec ->
+     let sany_counter = new sany_suffices_scanner in
+     let expr_counter = new expr_suffices_scanner in
+     let (flags,_) = sany_counter#context (0,0) sc in
+     let (eflags, constrs) = expr_counter#context (0,0) ec in
+     Assert.equal ~msg:("Number of suffices flags in sany DS is different from"
+                        ^ " suffices constructors in expr DS!") flags constrs;
+     Assert.equal ~msg:("Number of suffices flags in expr DS is different from"
+                        ^ " suffices constructors in expr DS!") eflags constrs;
+     ()
+  | _ ->
+     failwith "Could not extract sany/expr context from test record."
+
 let test_xml record =
   Test.make_assert_test
     ~title: ("xml parsing " ^ record.filename)
@@ -49,5 +96,12 @@ let test_xml record =
     )
     (fun () -> ()  )
 
+let test_xml_suffices record =
+  Test.make_assert_test
+    ~title: ("suffices check after xml parsing " ^ record.filename)
+    (fun () -> ())
+    (fun () -> exhandler ( test_suffices record )  )
+    (fun () -> ()  )
 
-let get_tests records = List.map test_xml records
+let get_tests records = List.append (List.map test_xml records)
+                                    (List.map test_xml_suffices records)
