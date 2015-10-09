@@ -51,7 +51,7 @@ method theorem (flags, constrs) = function
         super#theorem (flags, constrs) t
 end
 
-(* test setup *)
+(* *** test setup *** *)
 let test_sany record () =
   let channel = open_in record.filename in
   let tree = exhandler (fun () -> import_xml channel) in
@@ -79,7 +79,9 @@ let test_suffices {sany_context; expr_context; _ } () =
      let (flags,_) = sany_counter#context (0,0) sc in
      let (eflags, constrs) = expr_counter#context (0,0) ec in
      Assert.equal ~msg:("Number of suffices flags in sany DS is different from"
-                        ^ " suffices constructors in expr DS!") flags constrs;
+                        ^ " suffices constructors in expr DS! "
+                        ^ (string_of_int flags) ^ ":" ^ (string_of_int constrs))
+                  flags constrs;
      Assert.equal ~msg:("Number of suffices flags in expr DS is different from"
                         ^ " suffices constructors in expr DS!") eflags constrs;
      ()

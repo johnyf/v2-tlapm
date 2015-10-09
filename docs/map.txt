@@ -1,0 +1,75 @@
+(*  Common data-structures *)
+src/commons.ml     : Defines location, prover types, etc.
+src/sany_ds.mli    : Defines the SANY datastructures
+src/expr_ds.mli    : Defines the Expression datastructures
+src/any_expr.ml    : Defines a catchall type for the datatypes in expr_ds
+src/obligation.mli : Defines the obligation datastructure
+
+(* XML Parsing *)
+src/xml_utils.ml : auxiliary functions for xml parsing
+src/sany.ml      : converts from xml to sany ds
+
+(* SANY *)
+src/sany_builtin_extractor.ml : visitor which collects all builtins
+src/sany_expr.ml              : converts sany to expr ds
+src/sany_visitor.ml           : visitor pattern for sany ds
+
+(* Expressions *)
+(** Templates **)
+src/expr_map.ml               : map pattern for expr ds
+src/expr_visitor.ml           : visitor pattern for expr ds
+
+(** Transformations **)
+src/expr_add_theorem_defs.ml  : adds theorem statements to the definition table (stub)
+src/expr_betareduce.ml        : beta reduction (just a stub for now)
+src/expr_correct_lambda.ml    : replaces definitions LAMBDA with the lambda type
+                                of expr ds
+src/expr_dereference.ml       : helper functions to find a referenced expression
+                                in the term db
+src/expr_formatter.ml         : formats expr_ds
+src/expr_parse_theorems.ml    : replaces operators $Pfcase, $Pick, $Suffices by
+                                explicit type constructors
+src/expr_prover_parser.ml     : converts the constants Zenon, SMT, etc. to
+                                sum types
+src/expr_utils.ml             : helper functions to handle the term db
+
+(* Obligations *)
+src/extract_obligations.ml    : collects obligations from an expr ds
+src/obligation_formatter.ml   : formats an obligation
+
+(* General  *)
+src/util.ml                   : helper functions for printing, ordering tree
+                                nodes, etc.
+src/tlapm.ml                  : Main entry point (only converts tla to xml right now)
+
+(* Unit testing *)
+src/test_common.ml              : Defines the test datastructure
+src/tests.ml                    : Entrypoint for test setup
+
+(** unit tests, in order of application **)
+src/test_util.ml                : Tests utils
+src/test_sany.ml                : Tests xml to sany and sany to expr parsing
+src/test_map.ml                 : Tests the map pattern
+src/test_correct_lambda.ml      : Tests for lambda replacement
+src/test_parse_theorems.ml      : Tests the theorem operator replacement
+src/test_extract_obligations.ml : Tests obligation extraction
+src/test_formatter.ml           : Tests the expression formatter
+
+(* unused files from old pm *)
+src/config.ml
+src/errors.ml
+src/ext.ml
+src/expr.ml
+src/fpfile.ml
+src/loc.ml
+src/method.ml
+src/params.ml
+src/property.ml
+src/revision.ml
+src/sysconf.ml
+src/timing.ml
+src/tlapm_args.ml
+src/toolbox.ml
+src/toolbox_msg.ml
+src/types.ml
+src/version.ml
