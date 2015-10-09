@@ -20,7 +20,6 @@ src/expr_map.ml               : map pattern for expr ds
 src/expr_visitor.ml           : visitor pattern for expr ds
 
 (** Transformations **)
-src/expr_add_theorem_defs.ml  : adds theorem statements to the definition table (stub)
 src/expr_betareduce.ml        : beta reduction (just a stub for now)
 src/expr_correct_lambda.ml    : replaces definitions LAMBDA with the lambda type
                                 of expr ds
