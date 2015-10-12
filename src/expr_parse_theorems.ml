@@ -22,7 +22,7 @@ object(self)
 inherit ['a ptacc] expr_map as super
 
 method private parse_formula acc ({ location; level; new_symbols;
-                    assumes; prove; suffices; boxed; } as f) thm =
+                    assumes; prove; suffices; boxed; }) thm =
   match assumes, prove, match_function (tdb acc) prove with
   |  _::_, _, _ ->
       (* nonempty assumptions are a normal formula, don't change *)
@@ -33,8 +33,11 @@ method private parse_formula acc ({ location; level; new_symbols;
       (* recurse on subterms *)
       let acc1 = super#theorem acc thm in
       let extract = self#get_macc_extractor in
-      let THM {location; level; name; statement; proof } =
-        extract#theorem acc1 in
+      let {location; level; name; statement; proof } =
+        match extract#theorem acc1 with
+        | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
+        | THM x -> x
+      in
       (* create new theorem and update accumulator *)
       let statement = match args with
       | [EO_expr expr] -> ST_CASE expr
@@ -57,8 +60,11 @@ method private parse_formula acc ({ location; level; new_symbols;
          (* recurse on subterms *)
          let acc1 = super#theorem acc thm in
          let extract = self#get_macc_extractor in
-         let THM {location; level; name; statement; proof } =
-           extract#theorem acc1 in
+         let {location; level; name; statement; proof } =
+           match extract#theorem acc1 with
+           | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
+           | THM x -> x
+         in
          (* change formula to pick version *)
          let formula = match operand with
          | EO_expr expr -> expr
@@ -77,18 +83,45 @@ method private parse_formula acc ({ location; level; new_symbols;
   | _ ->
      super#theorem acc thm
 
+method private parse_suffices acc {location; level; new_symbols;
+                                   assumes; prove; suffices; boxed;} t =
+  match assumes, prove with
+  | _::_, _ ->
+  (* SUFFICES ASSUME ... PROVE ... should already be handled *)
+     super#theorem acc (THM t)
+  | [], exp ->
+     (* SUFFICES F still has the operator we need to strip *)
+     match match_function (tdb acc) exp with
+     | None -> failwith "Expected suffices as prove operator!"
+     | Some ("$Suffices", [EO_expr expr]) ->
+        let acc1 = self#expr acc expr in
+        let extract = self#get_macc_extractor in
+        let prove = extract#expr acc1 in
+        let ap = { location; level; new_symbols; assumes;
+                   prove; boxed; suffices; } in
+        let acc2 = self#proof acc1 t.proof in
+        let proof = extract#proof acc2 in
+        let thm = THM {location = t.location; level = t.level; name = t.name;
+                   statement = ST_SUFFICES ap; proof; } in
+        set_anyexpr acc (Any_theorem thm)
+     | Some ("$Suffices", [EO_op_arg oa]) ->
+        failwith "suffices found, but has an op arg, not an expr as argument!";
+     | Some ("$Suffices", args) ->
+        failwith "Expected only one argument of suffices!"
+     | Some (name, _ ) ->
+        failwith ("Expected application of suffices, but found " ^ name)
 
 method theorem acc thm = match thm with
   | THM_ref i -> super#theorem acc thm
-  | THM ({ location; level; name; statement; proof; } as t) ->
+  | THM ({ location; level; name; statement; proof; } as thmi) ->
      (
      match statement with
      | ST_FORMULA f ->
         self#parse_formula acc f thm
      | ST_SUFFICES f ->
-        Printf.printf "ghg\n";
-        (* skip other proof step *)
-        super#theorem acc thm
+        Printf.printf "ghg %s\n" (Commons.format_location location);
+     (* remove suffices constant *)
+        self#parse_suffices acc f thmi
      | _ ->
         (* skip other proof step *)
         super#theorem acc thm

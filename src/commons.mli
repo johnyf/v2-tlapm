@@ -50,3 +50,5 @@ val mkDummyRange : int_range
 
 (** Creates a location at line 0 to 0, column 0 to 0. *)
 val mkDummyLocation : location
+
+val format_location : location -> string

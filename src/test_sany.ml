@@ -107,5 +107,5 @@ let test_xml_suffices record =
     (fun () -> exhandler ( test_suffices record )  )
     (fun () -> ()  )
 
-let get_tests records = List.append (List.map test_xml records) []
-              (* disabled for push (List.map test_xml_suffices records) *)
+let get_tests records = List.append (List.map test_xml records)
+                                    (List.map test_xml_suffices records) (**)

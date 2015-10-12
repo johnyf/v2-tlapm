@@ -12,13 +12,16 @@ method expr acc = function
 
 (* *)
 method expr_or_op_arg acc eo = match eo with
-| EO_op_arg ({ location; level; argument  } ) ->
+| EO_op_arg ({ location; level; argument  } as eoi ) ->
    ( match argument with
      | FMOTA_op_def
        (OPDef
         (O_user_defined_op
-         (UOP {location; level; name="LAMBDA"; arity; body; params;})) ) ->
-        (* TODO: exclude real user definitions called LAMBDA *)
+         (UOP ({location; level; name="LAMBDA"; arity; body; params;} as uop))) ) ->
+        (* remark: LAMBDA is a keyword, there are no real user
+           definitions called like that *)
+        (* Printf.printf "replacing a lambda at %s %s!\n"
+                        (Commons.format_location eoi.location) uop.name; *)
         let acc1 = self#level acc level in
         let acc2 = self#expr acc1 body in
         let fparams, leibniz = List.split params in

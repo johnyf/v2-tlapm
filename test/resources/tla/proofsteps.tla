@@ -81,9 +81,7 @@ THEOREM FALSE
 
 
 
-
-
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 08 16:22:27 CEST 2015 by marty
+\* Last modified Mon Oct 12 10:28:04 CEST 2015 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty
