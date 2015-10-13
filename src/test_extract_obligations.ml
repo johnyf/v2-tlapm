@@ -38,7 +38,7 @@ let test_extract_obligations record () =
            Printf.printf "%d assumptions\n" (List.length o.goal.assumes);
            fmt_obligation std_formatter o;
            Printf.printf "\n(end of obligation)\n";
-         in 
+         in
          ignore (List.map print_obl  obs)
          )
     )

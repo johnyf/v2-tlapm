@@ -483,11 +483,9 @@ object(self)
                              prove; suffices; boxed; } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let s_suffices, s_prove = match (suffices, new_symbols, assumes) with
-      | (true,  [], []) -> failwith "Suffices may only occur with assumptions!"
-      | (false, [], []) -> "", ""
-      | (false, _,  _) ->  "ASSUME ", " PROVE "
-      | (true,  _,  _) -> "SUFFICES ASSUME ", " PROVE "
+    let s_suffices, s_prove = match (new_symbols, assumes) with
+    | ( [], []) -> "", ""  (* empty antecedent *)
+    | ( _,  _) ->  "ASSUME ", " PROVE "
     in
     fprintf (ppf acc2) "%s" s_suffices;
     let acc3 = ppf_fold_with

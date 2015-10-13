@@ -10,7 +10,7 @@
 open Expr_ds
 open Commons
 open Any_expr
-
+(*
 type dentry = {
  fp    : (int * formal_param_) list;
  m     : (int * mule_)  list;
@@ -20,6 +20,7 @@ type dentry = {
  a     : (int * assume_) list;
  aps   : (int * ap_subst_in) list;
  }
+ *)
 
 let unfold_assumption (Any_assume x) = x
 let unfold_assume_prove (Any_assume_prove x) = x
@@ -42,6 +43,9 @@ let unfold_subst (Any_subst x) = x
 
 
 type builtin_store = (int * builtin_op) list
+
+let get_builtin_store (b,_) = b
+let get_entries (_,e) = e
 
 (**
   Applies the function f to the element y with the accumulator extracted from x.
@@ -81,15 +85,53 @@ let extract_location (expr : Sany_ds.expr) = match expr with
 | Sany_ds.E_subst_in { Sany_ds.location; level; } -> location
 
 (** wraps an expression into an assume-prove with empty assumptions *)
-let assume_proves_from_expr (expr : Sany_ds.expr) =  {
+let assume_proves_from_expr (expr : Sany_ds.expr) suffices =  {
 Sany_ds.location = extract_location expr;
 level = None;
 assumes = [];
 prove = expr;
-suffices = false;
+suffices;
 boxed = false; (* TODO: check if this is true *)
 }
 
+(* dereferences an opdef *)
+let dr_opd (entries : Sany_ds.entry list) = function
+  | Sany_ds.OPDef_ref r ->
+     (
+     match List.filter (fun x -> x.Sany_ds.uid = r) entries with
+     | [] -> failwith "Could not find opdef!"
+     | [{reference = Sany_ds.FMOTA_op_def OPDef  od; _}] ->
+        od
+     | _ -> failwith "Lookup problem!"
+     )
+  | Sany_ds.OPDef x -> x
+
+(* dereferences an builtin op *)
+let dr_bop (entries : Sany_ds.entry list) = function
+  | Sany_ds.BOP_ref r ->
+     (
+     match List.filter (fun x -> x.Sany_ds.uid = r) entries with
+     | [] -> failwith "Could not find opdef!"
+     | [{reference = Sany_ds.FMOTA_op_def OPDef (O_builtin_op (BOP od)); _}] ->
+        od
+     | _ -> failwith "Lookup problem!"
+     )
+  | Sany_ds.BOP x -> x
+
+
+(* check if an expr is a suffices operator *)
+let check_suffices entries = function
+  | Sany_ds.E_op_appl {operator = FMOTA_op_def opd; operands;_} -> (
+     match dr_opd entries opd with
+     | O_builtin_op op ->
+        let name = (dr_bop entries op).name in
+        let found = (name = "$Suffices") in
+        found
+     | _ ->
+        false
+  )
+  | _ ->
+     false
 
 (**
  This visitor converts sany_ds datastructures into expr_ds datastructures. Since
@@ -102,7 +144,7 @@ boxed = false; (* TODO: check if this is true *)
  internal datastructure.
  *)
 class converter = object(self)
-inherit [anyExpr * builtin_store] Sany_visitor.visitor as super
+inherit [anyExpr * (builtin_store * Sany_ds.entry list)] Sany_visitor.visitor as super
 
 method node acc = function
   | Sany_ds.N_ap_subst_in x  ->
@@ -349,12 +391,15 @@ method theorem acc0 = function
      let Any_location location, acc1 = self#location acc0 location in
      let Any_level level,       acc2 = self#level (Nothing, acc1) level in
      let ap = match expr with
-     | Sany_ds.EA_expr e -> assume_proves_from_expr e
+     | Sany_ds.EA_expr expr ->
+        let entries = get_entries acc2 in
+        let s = check_suffices entries expr in
+        assume_proves_from_expr expr s
      | Sany_ds.EA_assume_prove ap ->
         ap
      in
      let Any_assume_prove expr, acc3 =
-       self#assume_prove (Nothing,acc2) ap in
+       self#assume_prove (Nothing,acc2) ap  in
      let statement = match suffices with
      | false -> ST_FORMULA expr
      | true ->  ST_SUFFICES expr
@@ -476,7 +521,10 @@ method assume_prove acc0 { Sany_ds.location; level; assumes;
   let sany_assumes2 =
     List.map (function
              | Sany_ds.NEA_expr expr ->
-                Sany_ds.NEA_assume_prove (assume_proves_from_expr expr)
+                let entries = get_entries acc2 in
+                let s = check_suffices entries expr in
+                let ap = assume_proves_from_expr expr s in
+                Sany_ds.NEA_assume_prove ap
              | x -> x (* rest is unchanged *)
              ) assumes in
   (* divide into new_symb and assume-proves *)
@@ -534,7 +582,10 @@ method label acc0 ({Sany_ds.location; level; name;
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level,       acc2 = self#level (Nothing, acc1) level in
   let ap = match body with
-  | Sany_ds.EA_expr e -> assume_proves_from_expr e
+  | Sany_ds.EA_expr expr ->
+     let entries = get_entries acc2 in
+     let s = check_suffices entries expr in
+     assume_proves_from_expr expr s
   | Sany_ds.EA_assume_prove ap -> ap in
   let Any_assume_prove body, acc3 = self#assume_prove (Nothing, acc2) ap in
   let params, acc =
@@ -567,10 +618,10 @@ method module_instance acc0 = function
      (Any_module_instance (MI mi), acc2)
 
 (* TODO: proper replacement *)
-method builtin_op (_, acc0) = function
+method builtin_op (_, (bstore, entries)) = function
   | Sany_ds.BOP_ref x ->
-     let op = List.assoc x acc0 in
-     (Any_builtin_op op, acc0)
+     let op = List.assoc x bstore in
+     (Any_builtin_op op, (bstore, entries))
   | Sany_ds.BOP {Sany_ds.location; level; name; arity; params } ->
      failwith "Implementation error: builtins shouldn't be converted anymore!"
 
@@ -615,6 +666,9 @@ method reference (_, acc) x =
   failwith "Implementation error: references should be handled implicitly!"
 
 method context acc { Sany_ds.entries; modules } =
+  (* extend accumulator by term db entries *)
+  let (ae, (b,_)) = acc in
+  let acc = (ae, (b,entries)) in
   let entries,  acc0 = fold self#entry acc entries unfold_entry in
   let modules, acc1 = fold self#mule (Nothing, acc0) modules unfold_module in
   let c = {
@@ -628,7 +682,7 @@ method entry acc0 { Sany_ds.uid; reference } =
   (* builtin operators need to be taken from the builtin store *)
   | Sany_ds.FMOTA_op_def (Sany_ds.OPDef (Sany_ds.O_builtin_op _)) ->
      let _, acc = acc0 in
-     let x = List.assoc uid acc in
+     let x = List.assoc uid (get_builtin_store acc) in
      (Any_entry (uid, OPDef_entry (O_builtin_op x)), acc)
   (* remaining cases *)
   | Sany_ds.FMOTA_formal_param x ->
@@ -766,18 +820,18 @@ end
 let converter_instance = new converter
 
 let convert_expr ?builtins:(b=[]) x =
-  match converter_instance#expr ( Nothing, b ) x with
+  match converter_instance#expr ( Nothing, (b,[]) ) x with
   | Any_expr e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
 let convert_context ?builtins:(b=[]) x =
-  match converter_instance#context ( Nothing, b ) x with
+  match converter_instance#context ( Nothing, (b,[]) ) x with
   | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
 let convert_module ?builtins:(b=[]) x =
-  match converter_instance#mule (Nothing, b) x with
+  match converter_instance#mule (Nothing, (b,[])) x with
   | Any_mule e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
 let convert_formal_param ?builtins:(b=[]) x =
-  match converter_instance#formal_param (Nothing, b) x with
+  match converter_instance#formal_param (Nothing, (b,[])) x with
   | Any_formal_param e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
