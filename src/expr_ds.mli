@@ -161,10 +161,17 @@ and theorem_ = {
 }
 
 and statement =
+  (* these statements have proofs *)
   | ST_FORMULA of assume_prove
   | ST_SUFFICES of assume_prove
   | ST_CASE of expr
   | ST_PICK of pick
+  | ST_QED
+  (* these don't have proofs but are represented as theorems in SANY
+   *)
+  | ST_HAVE of expr
+  | ST_TAKE of expr
+  | ST_WITNESS of expr
 
 and pick = {
 variables : bound_symbol list;
@@ -276,6 +283,7 @@ and user_defined_op_ = {
  *)
 and lambda = {
 (*TODO: check if a lambda abstraction has a level*)
+  location          : location;
   level             : level option;
   arity             : int;
   body              : expr;

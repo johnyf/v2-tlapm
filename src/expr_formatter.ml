@@ -374,6 +374,18 @@ object(self)
        fprintf (ppf acc1) " ";
        let acc2 = self#expr acc1 formula in
        acc2
+    | ST_HAVE f ->
+       fprintf (ppf acc0) "HAVE ";
+       self#expr acc0 f
+    | ST_TAKE f ->
+       fprintf (ppf acc0) "TAKE ";
+       self#expr acc0 f
+    | ST_WITNESS f ->
+       fprintf (ppf acc0) "WITNESS ";
+       self#expr acc0 f
+    | ST_QED ->
+       fprintf (ppf acc0) "QED ";
+       acc0
 
   method assume acc0  = function
     | ASSUME_ref x ->
@@ -551,7 +563,7 @@ object(self)
     let acc = List.fold_left self#formal_param acc4 params in
     acc
 
-  (* TODO *)
+  (* TODO this is not legal tla *)
   method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in

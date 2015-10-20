@@ -29,12 +29,13 @@ inherit [int * int * location list] Expr_visitor.visitor as super
 method statement (flags, constrs, locs) = function
   | Expr_ds.ST_FORMULA f ->
      let flags = if f.Expr_ds.suffices then flags+1 else flags in
-     let locs = if f.Expr_ds.suffices then f.location::locs else locs in
+     let locs = if f.Expr_ds.suffices then f.Expr_ds.location::locs else locs in
      super#statement (flags, constrs, locs) (Expr_ds.ST_FORMULA f)
   | Expr_ds.ST_SUFFICES f ->
-     if (not f.suffices)
+     if (not f.Expr_ds.suffices)
      then failwith "Suffices constructor without flag inside!";
-     super#statement (flags+1, constrs+1, f.location::locs) (Expr_ds.ST_SUFFICES f)
+     super#statement (flags+1, constrs+1, f.Expr_ds.location::locs)
+                     (Expr_ds.ST_SUFFICES f)
   | _ as st ->
      super#statement (flags, constrs, locs) st
 end

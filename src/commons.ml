@@ -51,5 +51,8 @@ let mkDummyLocation = { column = mkDummyRange ;
                         filename = "Dummy" }
 
 let format_location {filename; column; line} =
-  filename ^ ":" ^ (string_of_int line.rbegin) ^ "," ^ (string_of_int column.rbegin) ^ "-"
-                 ^ (string_of_int line.rend) ^ "," ^ (string_of_int column.rend) 
+  filename ^ ":"
+  ^ (string_of_int line.rbegin) ^ ","
+  ^ (string_of_int column.rbegin) ^ "-"
+  ^ (string_of_int line.rend) ^ ","
+  ^ (string_of_int column.rend)

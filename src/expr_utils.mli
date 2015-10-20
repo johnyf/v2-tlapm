@@ -1,4 +1,5 @@
 (** Some basic operations on the expression datastructures. *)
+open Commons
 open Expr_ds
 
 (** Extracts the formal parameter from an entry *)
@@ -21,3 +22,12 @@ val unpack_assume_entry : entry -> assume_
 
 (** Extracts the ap subst from an entry *)
 val unpack_apsubst_entry : entry -> ap_subst_in
+
+(** Extracts a location from an expression *)
+val extract_location : expr -> location
+
+(** Extracts a location from an expression *)
+val extract_level : expr -> level option
+
+(** Wraps an expression into an assume-prove with empty assumptions *)
+val assume_prove_from_expr : expr -> bool -> assume_prove

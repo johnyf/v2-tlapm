@@ -193,6 +193,10 @@ end
         let acc1 = List.fold_left self#bound_symbol acc0 variables in
         let acc2 = self#expr acc1 formula in
         acc2
+     | ST_QED  -> acc0
+     | ST_HAVE expr -> self#expr acc0 expr
+     | ST_TAKE expr -> self#expr acc0 expr
+     | ST_WITNESS expr -> self#expr acc0 expr
 
    method assume acc0  = function
    | ASSUME_ref x -> self#reference acc0 x

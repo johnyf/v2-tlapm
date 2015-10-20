@@ -29,6 +29,9 @@ variables         : op_decl list;
 definitions       : op_def list ;
 assumptions       : assume list ;
 theorems          : theorem list ;
+
+(* the own step has to be treated differently, so we keep it seperate *)
+self_step : theorem option;
 }
 
 type 'a eoacc = current_context * obligation list * nesting * 'a

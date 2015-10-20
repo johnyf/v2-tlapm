@@ -1,14 +1,20 @@
+open Printf
 open List
 open Commons
 open Expr_ds
+open Expr_utils
 open Expr_dereference
 open Expr_visitor
 open Obligation
 open Expr_prover_parser
 open Util
 
+
 (* customized failwith for obligation extraction *)
-let failwith_msg msg = failwith ("Error extracting obligation: " ^ msg)
+let failwith_msg loc msg =
+  let e = sprintf "Error extracting obligation at %s: %s"
+                  (format_location loc) msg in
+  failwith e
 
 (* used to track the nesting level throughout a proof *)
 type nesting =
@@ -37,6 +43,9 @@ variables         : op_decl list;
 definitions       : op_def list ;
 assumptions       : assume list ;
 theorems          : theorem list ;
+
+(* the own step has to be treated differently, so we keep it seperate *)
+self_step : theorem option;
 }
 
 let emptyCurrentContext term_db = {
@@ -49,6 +58,7 @@ variables = [];
 definitions = [];
 assumptions = [];
 theorems = [];
+self_step = None;
 }
 
 
@@ -135,6 +145,7 @@ method op_def acc opdef =
   let definitions = opdef :: cc.definitions in
   update_cc acc { cc with definitions }
 
+(*
 method private parse_by_def = function
   | UMTA_user_defined_op uop ->
      [OPDef (O_user_defined_op uop)]
@@ -152,6 +163,7 @@ method private by_formula acc (thmi:theorem_) (by:by) formula =
   (* parse by def and add it to visible defs *)
   let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
   let expanded_defs = append cc.expanded_defs additional_defs in
+  (* parse by references to theorems *)
   let thm_assumptions, other_bys =
     split_theorem_facts cc.term_db other_bys in
   (* self references only insert the assumptions - split up *)
@@ -179,6 +191,7 @@ method private by_formula acc (thmi:theorem_) (by:by) formula =
                 cc.usable_facts;
                 ] in
   let obligation = {
+  o_type = Formula;
   goal = formula;
   expanded_defs;
 
@@ -195,40 +208,86 @@ method private by_formula acc (thmi:theorem_) (by:by) formula =
   let theorems = THM thmi :: cc.theorems in
   let usable_facts = append cc.usable_facts [formula]  in
   update_cc racc { cc with theorems; usable_facts }
+ *)
 
+method private update_cc_formula acc (thmi:theorem_) formula =
+  let cc = get_cc acc in
+  (* TODO: boxed flag might be wrong *)
+  let goal = {formula with assumes = []; } in
+  let (vs, cs, acs, ss, ts) =
+    fold_left (fun (vs,cs,acs,ss,ts) sym ->
+               let decl = sym.op_decl  in
+               let decli = dereference_op_decl cc.term_db decl in
+               match decli.kind with
+               | NewVariable -> (decl::vs,cs,acs,ss,ts)
+               | NewConstant -> (vs,decl::cs,acs,ss,ts)
+               | NewAction   -> (vs,cs,decl::acs,ss,ts)
+               | NewState    -> (vs,cs,acs,decl::ss,ts)
+               | NewTemporal -> (vs,cs,acs,ss,decl::ts)
+               | _ ->
+                  failwith_msg decli.location
+                               "Unexpected operator kind in ASSUME NEW construct!"
+              ) ([],[],[],[],[]) formula.new_symbols in
+  let constants = append cc.constants (rev cs) in
+  (* TODO: should we extend the context by action and temporal variables? *)
+  let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
+  (cc, { cc with goal = Some goal; constants; variables;  })
 
-method private by_suffices acc thm by formula =
-  Printf.printf "Extracting suffices!\n";
-  acc
+method private update_cc_case acc (thmi:theorem_) formula =
+  let cc = get_cc acc in
+  (* TODO: boxed flag might be wrong *)
+  let toprove = match cc.goal with
+  | None -> failwith_msg thmi.location
+                         "Encountered case statement without active goal!"
+  | Some f -> f
+  in
+  let location = extract_location formula in
+  let flevel = extract_level formula in
+  let level = match toprove.level, flevel with
+  (* TODO: check if the level recomputation is correct *)
+  | Some l, Some f when l > f -> Some l
+  | Some l, Some f (* l <= f *) -> Some f
+  | Some l, None   (* only l *) -> None
+  | None,   Some f (* only f *) -> None
+  | None,   None -> None
+  in
+  let assumes = append toprove.assumes [assume_prove_from_expr formula false] in
+  let suffices = false in
+  let boxed = false in (* TODO: need to recompute boxed flag *)
+  let ap =  {toprove with location; level; assumes; suffices; boxed; } in
+  (cc,cc)
 
-method private by_case acc thm by formula =
-  Printf.printf "Extracting case!\n";
-  acc
-
-method private by_pick acc thm by formula =
-  Printf.printf "Extracting pick!\n";
-  acc
 
 method theorem acc thm =
   let cc = get_cc acc in
   let thmi  = dereference_theorem cc.term_db thm in
-  let racc = match thmi.proof with
+  (* we prepare one context for proving the statement and one for continuing *)
+  let (outer_cc, inner_cc) = match thmi.statement with
+  | ST_FORMULA f ->
+     self#update_cc_formula acc thmi f
+  | ST_SUFFICES f ->
+     let (x,y) = self#update_cc_formula acc thmi f in
+     (y,x)
+  | ST_CASE f ->
+     self#update_cc_case acc thmi f
+(*
+  | ST_PICK f ->
+     self#by_pick acc thmi by f
+  | ST_HAVE e ->
+     acc (* TODO *)
+  | ST_TAKE f ->
+     acc (* TODO *)
+  | ST_WITNESS f ->
+     acc (* TODO *)
+  | ST_QED ->
+     acc
+ *)
+  in
+(*  let racc = match thmi.proof with
   | P_omitted _ -> acc
   | P_obvious _ -> acc
   | P_by by ->
      (
-     match thmi.statement with
-     | ST_FORMULA f ->
-        if f.suffices then
-        failwith "Incorrect suffices flag in non-suffices formula!"
-        else
-        self#by_formula acc thmi by f
-     | ST_SUFFICES f ->
-        self#by_suffices acc thmi by f
-     | ST_CASE f ->
-        self#by_case acc thmi by f
-     | ST_PICK f ->
-        self#by_pick acc thmi by f
      )
   | P_steps steps ->
      let acc0 = fold_left self#step acc steps.steps in
@@ -236,11 +295,12 @@ method theorem acc thm =
         visible outside the sub-proof *)
      update_cc acc0 (get_cc acc)
   | P_noproof -> acc
-  in
+  in *)
   let no_oldobs = length (get_obligations acc) in
-  let no_newobs = length (get_obligations racc) in
+(*  let no_newobs = length (get_obligations racc) in
   (* assert that no obligations were lost*)
   if (no_newobs < no_oldobs) then failwith "lost obligations!";
   Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
-  racc
+  racc *)
+  acc
 end

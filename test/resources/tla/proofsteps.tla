@@ -5,8 +5,8 @@ EXTENDS TLAPS, Testing, Naturals
 D(P,Q) == P /\ Q
 
 THEOREM T == ASSUME NEW P, NEW Q PROVE D(P,Q) => P \/ Q
-<1>. USE DEF D
-<1>1. P => P \/ Q OBVIOUS 
+<1> USE DEF D
+<1>1. P => P \/ Q OBVIOUS
 <1>2. Q => P \/ Q OBVIOUS
 <1>3. Q => P \/ Q OBVIOUS
 <1> QED BY <1>1, <1>2
@@ -78,10 +78,16 @@ THEOREM FALSE
 <1>2 FALSE BY <1>1, ShouldFail
 <1> QED BY <1>2
 
+VARIABLE x
+Invariant == TRUE
+Next == TRUE
+vars == <<x>>
 
+THEOREM ASSUME Invariant, [Next]_vars PROVE Invariant'
+<1> QED BY PTL
 
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Oct 12 10:28:04 CEST 2015 by marty
+\* Last modified Mon Oct 26 14:31:07 CET 2015 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty

@@ -8,6 +8,7 @@
     unwraps the results of converter for a few particular types.
  *)
 open Expr_ds
+open Expr_builtins
 open Commons
 open Any_expr
 (*
@@ -74,15 +75,16 @@ let fold f (anyexpr, acc0) l unwrap =
   let unwrapped_list = List.map unwrap (List.rev anylist) in
   (unwrapped_list, acc)
 
-let extract_location (expr : Sany_ds.expr) = match expr with
-| Sany_ds.E_at { Sany_ds.location; level } -> location
-| Sany_ds.E_decimal { Sany_ds.location; level; } -> location
-| Sany_ds.E_label { Sany_ds.location; level; } -> location
-| Sany_ds.E_let_in { Sany_ds.location; level; } -> location
-| Sany_ds.E_numeral { Sany_ds.location; level; } -> location
-| Sany_ds.E_op_appl { Sany_ds.location; level; } -> location
-| Sany_ds.E_string { Sany_ds.location; level; } -> location
-| Sany_ds.E_subst_in { Sany_ds.location; level; } -> location
+let extract_location (expr : Sany_ds.expr) =
+  match expr with
+  | Sany_ds.E_at { Sany_ds.location; level } -> location
+  | Sany_ds.E_decimal { Sany_ds.location; level; } -> location
+  | Sany_ds.E_label { Sany_ds.location; level; } -> location
+  | Sany_ds.E_let_in { Sany_ds.location; level; } -> location
+  | Sany_ds.E_numeral { Sany_ds.location; level; } -> location
+  | Sany_ds.E_op_appl { Sany_ds.location; level; } -> location
+  | Sany_ds.E_string { Sany_ds.location; level; } -> location
+  | Sany_ds.E_subst_in { Sany_ds.location; level; } -> location
 
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_proves_from_expr (expr : Sany_ds.expr) suffices =  {
@@ -266,8 +268,17 @@ method op_appl acc0 ({Sany_ds.location; level; operator;
      (Any_op_appl op_appl, acc4)
   | _ ->
      let operand = match operands with
+     | [] -> (*failwith ("Unhandled case of binder without body at "
+                       ^ (format_location location)) *)
+        let operator = FMOTA_op_def (OPDef (O_builtin_op builtin_true)) in
+        EO_expr (E_op_appl {location;
+                            level = builtin_true.level;
+                            operator;
+                            operands = [];
+                           })
      | [x] -> x
-     | _ -> failwith "A binder must have exactly one formula it applies to!"
+     | _ -> failwith ("A binder must have exactly one formula it applies to at "
+                      ^ (format_location location))
      in
      let bound_symbols, acc =
        fold self#bound_symbol (Nothing, acc4) bound_symbols unfold_bs in

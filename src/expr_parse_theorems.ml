@@ -48,6 +48,26 @@ method private parse_formula acc ({ location; level; new_symbols;
       in
       let thm = THM {location; level; name; statement; proof } in
       set_anyexpr acc1 (Any_theorem thm)
+  |  _, _, Some ("$Have", args) ->
+      (* HAVE proof step *)
+      (* recurse on subterms *)
+      let acc1 = super#theorem acc thm in
+      let extract = self#get_macc_extractor in
+      let {location; level; name; statement; proof } =
+        match extract#theorem acc1 with
+        | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
+        | THM x -> x
+      in
+      (* create new theorem and update accumulator *)
+      let statement = match args with
+      | [EO_expr expr] -> ST_CASE expr
+      | [EO_op_arg _] ->
+         failwith "Don't know what to do with op arg passed to case step!"
+      | _ ->
+         failwith "Step case operator expects exactly one argument!"
+      in
+      let thm = THM {location; level; name; statement; proof } in
+      set_anyexpr acc1 (Any_theorem thm)
   |  _, E_binder { operator = FMOTA_op_def opd ;
                    operand;
                    bound_symbols; _ }, None ->

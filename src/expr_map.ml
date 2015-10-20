@@ -128,8 +128,9 @@ inherit ['a macc] visitor as super
              } in
      set_anyexpr acc r
 
-   method lambda acc ({level; arity; body; params; } : lambda) =
-     let acc1 = self#level acc level in
+   method lambda acc ({location; level; arity; body; params; } : lambda) =
+     let acc0 = self#location acc location in
+     let acc1 = self#level acc0 level in
    (* arity *)
      let acc2 = self#expr acc1 body in
      let fparams, acc = unpack_fold id_extract#formal_param
@@ -137,6 +138,7 @@ inherit ['a macc] visitor as super
                                     acc2 params in
      let leibnizflags = List.map snd params in
      let r = Any_lambda {
+             location = macc_extract#location acc0;
              level = macc_extract#level acc1;
              arity = arity;
              body = macc_extract#expr acc2;
@@ -330,6 +332,21 @@ inherit ['a macc] visitor as super
         formula = macc_extract#expr acc2;
         } in
         set_anyexpr acc2 (Any_statement (ST_PICK anys))
+     | ST_HAVE f ->
+        let acc1 = self#expr acc0 f in
+        let anys = (Any_statement (ST_HAVE (macc_extract#expr acc1))) in
+        set_anyexpr acc1 anys
+     | ST_TAKE f ->
+        let acc1 = self#expr acc0 f in
+        let anys = (Any_statement (ST_TAKE (macc_extract#expr acc1))) in
+        set_anyexpr acc1 anys
+     | ST_WITNESS f ->
+        let acc1 = self#expr acc0 f in
+        let anys = (Any_statement (ST_WITNESS (macc_extract#expr acc1))) in
+        set_anyexpr acc1 anys
+     | ST_QED ->
+        let anys = (Any_statement ST_QED) in
+        set_anyexpr acc0 anys
 
    method assume acc0  = function
      | ASSUME_ref x ->

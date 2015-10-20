@@ -35,6 +35,7 @@ let files flt =
            "instanceA" ;
            "Euclid";
            "Quantifiers";
+           "case_take_use_hide";
            (*           "exec"; *)
            "proofsteps";
            "priming_stephan";

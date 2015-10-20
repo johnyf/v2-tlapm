@@ -7,7 +7,7 @@ open Format
 
 let test_sany record () =
   ignore (
-      let context = match record.explicit_lambda_context with
+      let context = match record.explicit_steps_context with
         | Some c -> c
         | None ->
            failwith ("Test implementation error! No expression context "^

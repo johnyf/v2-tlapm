@@ -1,7 +1,18 @@
 open Commons
 open Expr_ds
-     
+
+type obligation_type =
+  | Formula
+  | Suffices
+  | Have
+  | Take
+  | Witness
+  | Qed
+
 type obligation = {
+(* the type of the obligation -- if we defer checking of properties *)
+o_type : obligation_type;
+
 (* actual obligation, without expansion *)
 goal : assume_prove;
 
@@ -22,4 +33,3 @@ assumptions       : assume list ;
 theorems          : theorem list ;
 
 }
-
