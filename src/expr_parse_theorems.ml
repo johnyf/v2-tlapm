@@ -1,3 +1,4 @@
+open Commons
 open Expr_ds
 open Expr_map
 open Expr_utils
@@ -29,7 +30,7 @@ method private parse_formula acc ({ location; level; new_symbols;
       super#theorem acc thm
   |  _, _, Some ("$Pfcase", args) ->
       (* CASE proof step *)
-      (* Printf.printf "Case!"; *)
+       (* Printf.printf "Case!"; *)
       (* recurse on subterms *)
       let acc1 = super#theorem acc thm in
       let extract = self#get_macc_extractor in
@@ -60,7 +61,7 @@ method private parse_formula acc ({ location; level; new_symbols;
       in
       (* create new theorem and update accumulator *)
       let statement = match args with
-      | [EO_expr expr] -> ST_CASE expr
+      | [EO_expr expr] -> ST_HAVE expr
       | [EO_op_arg _] ->
          failwith "Don't know what to do with op arg passed to case step!"
       | _ ->
@@ -73,10 +74,10 @@ method private parse_formula acc ({ location; level; new_symbols;
                    bound_symbols; _ }, None ->
       (* pick proof step *)
       (
-      match dereference_op_def (tdb acc) opd with
-      | O_builtin_op { name = "$Pick"; _  } ->
+      match opd with
+      | O_builtin_op { name = "$Pick";  _  } ->
          (
-         (* Printf.printf "Pick!"; *)
+         Printf.printf "Pick! %s" (format_location location); (* *)
          (* recurse on subterms *)
          let acc1 = super#theorem acc thm in
          let extract = self#get_macc_extractor in
@@ -100,6 +101,20 @@ method private parse_formula acc ({ location; level; new_symbols;
          )
       | _ -> super#theorem acc thm
       )
+  |  _, _, Some("$Qed", []) ->
+      (* Qed proof step *)
+      (* Printf.printf "Qed!"; *)
+      (* recurse on subterms *)
+      let acc1 = super#theorem acc thm in
+      let extract = self#get_macc_extractor in
+      (* create new theorem and update accumulator *)
+      let thmi =
+        match extract#theorem acc1 with
+        | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
+        | THM x -> x
+      in
+      let thm = THM { thmi with statement = ST_QED }  in
+      set_anyexpr acc1 (Any_theorem thm)
   | _ ->
      super#theorem acc thm
 

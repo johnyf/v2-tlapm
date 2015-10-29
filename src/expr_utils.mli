@@ -12,7 +12,7 @@ val unpack_mod_entry : entry -> mule_
 val unpack_opdecl_entry : entry -> op_decl_
 
 (** Extracts the operator definition from an entry *)
-val unpack_opdef_entry : entry -> op_def_
+val unpack_opdef_entry : entry -> op_def
 
 (** Extracts the theorem from an entry *)
 val unpack_thm_entry : entry -> theorem_

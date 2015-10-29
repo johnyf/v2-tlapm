@@ -225,16 +225,11 @@ and new_symb = {
   set               : expr option;
 }
 
-(** An operator definition or a reference to one.
-*)
-and op_def =
-  | OPDef_ref of int
-  | OPDef of op_def_
 
 (** An operator definition, either by instantiating a module,
     a user defined operator or a builtin operator.
 *)
-and op_def_ =
+and op_def =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
   | O_builtin_op of builtin_op
@@ -559,7 +554,7 @@ type entry =
   FP_entry of formal_param_ |
   MOD_entry of mule_ |
   OPDec_entry of op_decl_ |
-  OPDef_entry of op_def_ |
+  OPDef_entry of op_def |
   THM_entry of theorem_ |
   ASSUME_entry of assume_ |
   APSUBST_entry of ap_subst_in

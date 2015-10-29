@@ -270,7 +270,7 @@ method op_appl acc0 ({Sany_ds.location; level; operator;
      let operand = match operands with
      | [] -> (*failwith ("Unhandled case of binder without body at "
                        ^ (format_location location)) *)
-        let operator = FMOTA_op_def (OPDef (O_builtin_op builtin_true)) in
+        let operator = FMOTA_op_def (O_builtin_op builtin_true) in
         EO_expr (E_op_appl {location;
                             level = builtin_true.level;
                             operator;
@@ -385,16 +385,17 @@ method op_decl acc0 = function
      (Any_op_decl opdec, acc2)
 
 method op_def acc0 = function
-  | Sany_ds.OPDef_ref x -> (Any_op_def (OPDef_ref x), snd acc0)
+  | Sany_ds.OPDef_ref x ->
+     failwith "We should not have OPDef_ref anymore."
   | Sany_ds.OPDef (Sany_ds.O_module_instance x) ->
      let Any_module_instance mi, acc = self#module_instance acc0 x in
-     (Any_op_def (OPDef (O_module_instance mi)), acc)
+     (Any_op_def (O_module_instance mi), acc)
   | Sany_ds.OPDef (Sany_ds.O_builtin_op x)      ->
      let Any_builtin_op bi, acc = self#builtin_op acc0 x in
-     (Any_op_def (OPDef (O_builtin_op bi)), acc)
+     (Any_op_def (O_builtin_op bi), acc)
   | Sany_ds.OPDef (Sany_ds.O_user_defined_op x) ->
      let Any_user_defined_op op, acc = self#user_defined_op acc0 x in
-     (Any_op_def (OPDef (O_user_defined_op op)), acc)
+     (Any_op_def (O_user_defined_op op), acc)
 
 method theorem acc0 = function
   | Sany_ds.THM_ref x -> (Any_theorem (THM_ref x), snd acc0)
@@ -703,7 +704,7 @@ method entry acc0 { Sany_ds.uid; reference } =
      let Any_mule (MOD x), acc = self#mule acc0 x in
      (Any_entry (uid, MOD_entry x), acc)
   | Sany_ds.FMOTA_op_def x ->
-     let Any_op_def (OPDef x), acc = self#op_def acc0 x in
+     let Any_op_def x, acc = self#op_def acc0 x in
      (Any_entry (uid, OPDef_entry x), acc)
   | Sany_ds.FMOTA_op_decl x ->
      let Any_op_decl (OPD x), acc = self#op_decl acc0 x in

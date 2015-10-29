@@ -285,8 +285,7 @@ object(self)
        fprintf (ppf acc3) "%s" name ;
        acc3
 
-  method op_def acc opdef =
-    match dereference_op_def (tdb acc) opdef  with
+  method op_def acc = function
     | O_module_instance x ->
        self#module_instance acc x
     | O_builtin_op x      ->
@@ -326,10 +325,10 @@ object(self)
           let acc0a = self#user_defined_op acc0 x in
           let acc0b = reset_expand acc0a acc in
           acc0b
-(*
+  (*
           failwith ("TODO: implement printing of op definitions in " ^
                     "proof step environments.")
- *)
+   *)
 
   method theorem acc0 thm =
     let { location; level; name; statement; proof; } =
@@ -672,13 +671,13 @@ object(self)
     | "$UnboundedForall" -> "\\A"
 (*    | "$WF" as x  -> failwith ("Unknown operator " ^ x ^"!")
     | "$Nop" as x -> failwith ("Unknown operator " ^ x ^"!") *)
-    | "$Qed" -> "QED"
-    | "$Pfcase" -> "CASE"
-    | "$Have" -> "HAVE"
-    | "$Take" -> "TAKE"
-    | "$Pick" -> "PICK"
-    | "$Witness" -> "WITNESS"
-    | "$Suffices" -> "SUFFICES"
+    (*    | "$Qed" -> "QED" *)
+    (*    | "$Pfcase" -> "CASE" *)
+    (*    | "$Have" -> "HAVE" *)
+    (*    | "$Take" -> "TAKE" *)
+    (*    | "$Pick" -> "PICK" *)
+    (*    | "$Witness" -> "WITNESS" *)
+    (*    | "$Suffices" -> "SUFFICES" *)
     | x -> x (* catchall case *)
 end
 

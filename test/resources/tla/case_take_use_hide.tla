@@ -31,5 +31,5 @@ THEOREM T1 == \A x \in Nat: Even(x+x)
 
 =============================================================================
 \* Modification History
-\* Last modified Tue Oct 27 11:32:59 CET 2015 by marty
+\* Last modified Thu Oct 29 12:15:07 CET 2015 by marty
 \* Created Mon Oct 26 15:01:26 CET 2015 by marty

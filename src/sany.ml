@@ -107,9 +107,9 @@ let read_opref i =
     | "FormalParamNodeRef"    -> rr (fun x -> FMOTA_formal_param (FP_ref x) )
     | "ModuleNodeRef"         -> rr (fun x -> FMOTA_module (MOD_ref x) )
     | "OpDeclNodeRef"         -> rr (fun x -> FMOTA_op_decl (OPD_ref x) )
-    | "ModuleInstanceKindRef" -> rr (fun x -> FMOTA_op_def (OPDef_ref x) )
-    | "UserDefinedOpKindRef"  -> rr (fun x -> FMOTA_op_def (OPDef_ref x) )
-    | "BuiltInKindRef"        -> rr (fun x -> FMOTA_op_def (OPDef_ref x) )
+    | "ModuleInstanceKindRef" -> rr (fun x -> FMOTA_op_def (OPDef (O_module_instance (MI_ref x) )))
+    | "UserDefinedOpKindRef"  -> rr (fun x -> FMOTA_op_def (OPDef (O_user_defined_op (UOP_ref x) )))
+    | "BuiltInKindRef"        -> rr (fun x -> FMOTA_op_def (OPDef (O_builtin_op (BOP_ref x)) ))
     | "TheoremNodeRef"        -> rr (fun x -> FMOTA_theorem (THM_ref x) )
     | "AssumeNodeRef"         -> rr (fun x -> FMOTA_assume (ASSUME_ref x) )
     | _ -> failwith ("Found tag " ^ name ^
@@ -244,14 +244,16 @@ and read_let i :let_in	=
   let location = read_optlocation i in
   let level = get_optlevel i in
   let body = get_data_in i "body" read_expr in
-  let mkOPDref x = OTA_op_def (OPDef_ref x) in
+  let mkOPDrefM x = OTA_op_def (OPDef (O_module_instance (MI_ref x))) in
+  let mkOPDrefU x = OTA_op_def (OPDef (O_user_defined_op (UOP_ref x))) in
+  let mkOPDrefB x = OTA_op_def (OPDef (O_builtin_op (BOP_ref x))) in
   let mkAref x = OTA_assume (ASSUME_ref x) in
   let mkTref x = OTA_theorem (THM_ref x) in
   let mkRef name f inp = read_ref inp name f in
   let op_defs = get_children_choice_in i "opDefs" [
-    ((=) "ModuleInstanceKindRef", mkRef "ModuleInstanceKindRef" mkOPDref);
-    ((=) "UserDefinedOpKindRef",  mkRef "UserDefinedOpKindRef" mkOPDref);
-    ((=) "BuiltInKindRef",        mkRef "BuiltInKindRef" mkOPDref);
+    ((=) "ModuleInstanceKindRef", mkRef "ModuleInstanceKindRef" mkOPDrefM);
+    ((=) "UserDefinedOpKindRef",  mkRef "UserDefinedOpKindRef" mkOPDrefU);
+    ((=) "BuiltInKindRef",        mkRef "BuiltInKindRef" mkOPDrefB);
     ((=) "AssumeNodeRef",         mkRef "AssumeNodeRef" mkAref);
     ((=) "TheoremNodeRef",        mkRef "TheoremNodeRef" mkTref);
     ((=) "AssumeNode",            (fun i -> OTA_assume (read_assume i)));
@@ -290,13 +292,17 @@ and read_opappl i =
   in
   let bound_symbols = match (peek i) with
     | `El_start ((_,name), _) ->
-      open_tag i "boundSymbols";
-      let bs = get_children_choice i [
-	((=) "unbound",
-	 (fun i -> B_unbounded_bound_symbol (read_unbounded_param i)) );
-	((=) "bound",
-	 (fun i -> B_bounded_bound_symbol (read_bounded_param i)) )
-      ] in
+       open_tag i "boundSymbols";
+       let handle_unbound i =
+         B_unbounded_bound_symbol (read_unbounded_param i) in
+       let handle_bound i =
+         B_bounded_bound_symbol (read_bounded_param i) in
+      let bs =
+        get_children_choice i [
+                            ((=) "unbound", handle_unbound );
+                            ((=) "bound", handle_bound
+                            )  ]
+      in
       close_tag i "boundSymbols";
       bs
     | _ -> []
@@ -312,7 +318,7 @@ and read_opappl i =
   close_tag i "OpApplNode";
   ret
 
-and read_stringnode i : strng	=
+and read_stringnode i : strng =
   open_tag i "StringNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
@@ -398,12 +404,15 @@ and read_node i = get_child_choice i [
     (read_ref i "ModuleNodeRef" (fun x -> MOD_ref x)));
   ((=) "OpDeclNodeRef",         fun i -> N_op_decl
     (read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x)));
-  ((=) "ModuleInstanceKindRef", fun i -> N_op_def
-    (read_ref i "ModuleInstanceKindRef" (fun x -> OPDef_ref x)));
-  ((=) "UserDefinedOpKindRef",  fun i -> N_op_def
-    (read_ref i "UserDefinedOpKindRef" (fun x -> OPDef_ref x)));
-  ((=) "BuiltInKindRef",        fun i -> N_op_def
-    (read_ref i "BuiltInKindRef" (fun x -> OPDef_ref x)));
+  ((=) "ModuleInstanceKindRef",
+   fun i -> N_op_def (read_ref i "ModuleInstanceKindRef"
+                               (fun x -> OPDef (O_module_instance (MI_ref x)))));
+  ((=) "UserDefinedOpKindRef",
+   fun i -> N_op_def (read_ref i "UserDefinedOpKindRef"
+                               (fun x -> OPDef (O_user_defined_op (UOP_ref x)))));
+  ((=) "BuiltInKindRef",
+   fun i -> N_op_def (read_ref i "BuiltInKindRef"
+                               (fun x -> OPDef (O_builtin_op (BOP_ref x)))));
   ((=) "AssumeNodeRef",         fun i -> N_assume
     (read_ref i "AssumeNodeRef" (fun x -> ASSUME_ref x)));
   ((=) "TheoremNodeRef",        fun i -> N_theorem
@@ -670,11 +679,16 @@ and read_defstep i   =
   open_tag i "DefStepNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let mkRef name inp = read_ref inp name (fun x->OPDef_ref x) in
+  let mkRefM name inp =
+    read_ref inp name (fun x -> OPDef (O_module_instance (MI_ref x))) in
+  let mkRefU name inp =
+    read_ref inp name (fun x -> OPDef (O_user_defined_op (UOP_ref  x))) in
+  let mkRefB name inp =
+    read_ref inp name (fun x -> OPDef (O_builtin_op (BOP_ref x))) in
   let defs = get_children_choice i [
-    ((=) "ModuleInstanceKindRef", mkRef "ModuleInstanceKindRef");
-    ((=) "UserDefinedOpKindRef", mkRef "UserDefinedOpKindRef");
-    ((=) "BuiltInKindRef", mkRef "BuiltInKindRef");
+    ((=) "ModuleInstanceKindRef", mkRefM "ModuleInstanceKindRef");
+    ((=) "UserDefinedOpKindRef", mkRefU "UserDefinedOpKindRef");
+    ((=) "BuiltInKindRef", mkRefB "BuiltInKindRef");
   ] in
   close_tag i "DefStepNode";
   {
@@ -734,16 +748,21 @@ and read_module i =
   let loc = get_child i "location" read_optlocation in
   let name = get_data_in i "uniquename" read_string in
   let read_varconst_ref i = read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x ) in
-  let mkOpdefrefHandler name i = read_ref i name (fun x -> OPDef_ref x) in
+  let mkOpdefrefHandlerM name i =
+    read_ref i name (fun x -> OPDef (O_module_instance (MI_ref x))) in
+  let mkOpdefrefHandlerU name i =
+    read_ref i name (fun x -> OPDef (O_user_defined_op (UOP_ref x))) in
+  let mkOpdefrefHandlerB name i =
+    read_ref i name (fun x -> OPDef (O_builtin_op (BOP_ref x))) in
   let mkAssumerefHandler name i = read_ref i name (fun x -> ASSUME_ref x) in
   (* print_string name; *)
   let ropdec name = get_children_in  i name "OpDeclNodeRef" read_varconst_ref in
   let constants = ropdec "constants" in
   let variables = ropdec "variables" in
   let definitions = get_children_choice_in i "definitions" [
-    ((=) "ModuleNodeRef",        mkOpdefrefHandler "ModuleNodeRef") ;
-    ((=) "UserDefinedOpKindRef", mkOpdefrefHandler "UserDefinedOpKindRef")  ;
-    ((=) "BuiltInKindRef",       mkOpdefrefHandler "BuiltInKindRef")  ;
+    ((=) "ModuleNodeRef",        mkOpdefrefHandlerM "ModuleNodeRef") ;
+    ((=) "UserDefinedOpKindRef", mkOpdefrefHandlerU "UserDefinedOpKindRef")  ;
+    ((=) "BuiltInKindRef",       mkOpdefrefHandlerB "BuiltInKindRef")  ;
   ]
   in
   let assumptions = get_children_choice_in i "assumptions" [

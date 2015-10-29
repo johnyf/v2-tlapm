@@ -260,27 +260,20 @@ inherit ['a macc] visitor as super
         set_anyexpr acc3 r
 
    method op_def acc = function
-     | OPDef_ref x ->
-        let acc1 = self#reference acc x in
-        let r = Any_op_def (OPDef_ref (macc_extract#reference acc1)) in
-        set_anyexpr acc1 r
-     | OPDef (O_module_instance x) ->
+     | O_module_instance x ->
         let acc1 = self#module_instance acc x in
         let r = Any_op_def
-                (OPDef
-                 (O_module_instance (macc_extract#module_instance acc1))) in
+                (O_module_instance (macc_extract#module_instance acc1)) in
         set_anyexpr acc1 r
-     | OPDef (O_builtin_op x)      ->
+     | O_builtin_op x      ->
         let acc1 = self#builtin_op acc x in
         let r = Any_op_def
-                (OPDef
-                 (O_builtin_op (macc_extract#builtin_op acc1))) in
+                 (O_builtin_op (macc_extract#builtin_op acc1)) in
         set_anyexpr acc1 r
-     | OPDef (O_user_defined_op x) ->
+     | O_user_defined_op x ->
         let acc1 = self#user_defined_op acc x in
         let r = Any_op_def
-                (OPDef
-                 (O_user_defined_op (macc_extract#user_defined_op acc1))) in
+                 (O_user_defined_op (macc_extract#user_defined_op acc1)) in
         set_anyexpr acc1 r
 
    method theorem acc0 = function
@@ -671,11 +664,13 @@ inherit ['a macc] visitor as super
       in
       set_anyexpr acc0 (Any_entry (id, MOD_entry entry))
    | OPDef_entry x ->
-      let acc0 = self#op_def acc (OPDef x) in
+      let acc0 = self#op_def acc x in
       let entry = match id_extract#op_def (get_anyexpr acc0) with
-      | OPDef x -> x
-      | OPDef_ref _ ->
+      | O_module_instance (MI_ref _) ->
          failwith "Implementation error: entries may not contain references!"
+      | O_user_defined_op (UOP_ref _) ->
+         failwith "Implementation error: entries may not contain references!"
+      | x -> x
       in
       set_anyexpr acc0 (Any_entry (id, OPDef_entry entry))
    | OPDec_entry x ->

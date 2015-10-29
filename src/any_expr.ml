@@ -22,7 +22,6 @@ type anyExpr =
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
   | Any_op_def of op_def
-  | Any_op_def_ of op_def_
   | Any_module_instance of module_instance
   | Any_module_instance_ of module_instance_
   | Any_user_defined_op of user_defined_op
@@ -87,7 +86,6 @@ let format_anyexpr = function
   | Any_assume_prove _ -> "assume_prove"
   | Any_new_symb _ -> "new_symb"
   | Any_op_def _ -> "op_def"
-  | Any_op_def_ _ -> "op_def_"
   | Any_module_instance _ -> "module_instance"
   | Any_module_instance_ _ -> "module_instance_"
   | Any_user_defined_op _ -> "user_defined_op"

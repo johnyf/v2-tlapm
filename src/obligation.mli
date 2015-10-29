@@ -10,9 +10,6 @@ type obligation_type =
   | Qed
 
 type obligation = {
-(* the type of the obligation -- if we defer checking of properties *)
-o_type : obligation_type;
-
 (* actual obligation, without expansion *)
 goal : assume_prove;
 

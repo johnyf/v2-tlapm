@@ -31,7 +31,7 @@ assumptions       : assume list ;
 theorems          : theorem list ;
 
 (* the own step has to be treated differently, so we keep it seperate *)
-self_step : theorem option;
+self_assumptions : (theorem_ * assume_prove list) list;
 }
 
 type 'a eoacc = current_context * obligation list * nesting * 'a

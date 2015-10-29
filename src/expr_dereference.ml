@@ -31,12 +31,38 @@ let dereference_op_decl term_db = function
     | OPD_ref x ->
        find_entry unpack_opdecl_entry term_db x
 
-let dereference_op_def term_db = function
-  | OPDef d -> d
-  | OPDef_ref x ->
-     find_entry unpack_opdef_entry term_db x
+let dereference_user_defined_op term_db = function
+  | UOP d -> d
+  | UOP_ref x ->
+     match find_entry unpack_opdef_entry term_db x with
+     | O_user_defined_op (UOP op) -> op
+     | O_user_defined_op _ ->
+        failwith "Self-reference in term db!"
+     | _ ->
+        let str = Printf.sprintf
+                  "The id %d does not refer to a user defined operator!" x
+        in
+        failwith str
+
+let dereference_module_instance term_db = function
+  | MI d -> d
+  | MI_ref x ->
+     match find_entry unpack_opdef_entry term_db x with
+     | O_module_instance (MI m) -> m
+     | O_module_instance _ ->
+        failwith "Self-reference in term db!"
+     | _ ->
+        let str = Printf.sprintf
+                  "The id %d does not refer to a user defined operator!" x
+        in
+        failwith str
 
 let dereference_theorem term_db =  function
   | THM t -> t
   | THM_ref x ->
      find_entry unpack_thm_entry term_db x
+
+let dereference_assume term_db =  function
+  | ASSUME t -> t
+  | ASSUME_ref x ->
+     find_entry unpack_assume_entry term_db x

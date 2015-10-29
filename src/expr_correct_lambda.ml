@@ -15,9 +15,8 @@ method expr_or_op_arg acc eo = match eo with
 | EO_op_arg ({ location; level; argument  } as eoi ) ->
    ( match argument with
      | FMOTA_op_def
-       (OPDef
-        (O_user_defined_op
-         (UOP ({location; level; name="LAMBDA"; arity; body; params;} as uop))) ) ->
+       (O_user_defined_op
+        (UOP ({location; level; name="LAMBDA"; arity; body; params;} as uop))) ->
         (* remark: LAMBDA is a keyword, there are no real user
            definitions called like that *)
         (* Printf.printf "replacing a lambda at %s %s!\n"

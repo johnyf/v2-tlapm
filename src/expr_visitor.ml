@@ -139,7 +139,7 @@ end
    method mule acc0 = function
    | MOD_ref i -> self#reference acc0 i
    | MOD {name; location; constants; variables;
-	  definitions; assumptions; theorems; } ->
+          definitions; assumptions; theorems; } ->
      let acc0a = self#name acc0 name in
      let acc1 = self#location acc0a location in
      let acc2 = List.fold_left self#op_decl acc1 constants in
@@ -168,10 +168,9 @@ end
      acc3
 
    method op_def acc = function
-   | OPDef_ref x -> self#reference acc x
-   | OPDef (O_module_instance x) -> self#module_instance acc x
-   | OPDef (O_builtin_op x)      -> self#builtin_op acc x
-   | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
+   | O_module_instance x -> self#module_instance acc x
+   | O_builtin_op x      -> self#builtin_op acc x
+   | O_user_defined_op x -> self#user_defined_op acc x
 
    method theorem acc0 = function
    | THM_ref x -> self#reference acc0 x
@@ -251,13 +250,13 @@ end
      acc
 
    method assume_prove acc0 { location; level; new_symbols; assumes;
-			      prove; suffices; boxed; } =
+                              prove; suffices; boxed; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
      let acc3 = List.fold_left
-		  self#new_symb acc2 new_symbols in
+                self#new_symb acc2 new_symbols in
      let acc4 = List.fold_left
-		  self#assume_prove acc3 assumes in
+                self#assume_prove acc3 assumes in
      let acc = self#expr acc4 prove in
      (* suffices and boxed are boolean flags*)
      acc
@@ -345,7 +344,7 @@ end
    method entry acc (id, e) = match e with
    | FP_entry x -> self#formal_param acc (FP x)
    | MOD_entry x -> self#mule acc (MOD x)
-   | OPDef_entry x -> self#op_def acc (OPDef x)
+   | OPDef_entry x -> self#op_def acc x
    | OPDec_entry x -> self#op_decl acc (OPD x)
    | THM_entry x -> self#theorem acc (THM x)
    | ASSUME_entry x -> self#assume acc (ASSUME x)

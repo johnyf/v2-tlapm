@@ -45,7 +45,7 @@ assumptions       : assume list ;
 theorems          : theorem list ;
 
 (* the own step has to be treated differently, so we keep it seperate *)
-self_step : theorem option;
+self_assumptions : (theorem_ * assume_prove list) list;
 }
 
 let emptyCurrentContext term_db = {
@@ -58,7 +58,7 @@ variables = [];
 definitions = [];
 assumptions = [];
 theorems = [];
-self_step = None;
+self_assumptions = [];
 }
 
 
@@ -145,70 +145,71 @@ method op_def acc opdef =
   let definitions = opdef :: cc.definitions in
   update_cc acc { cc with definitions }
 
-(*
-method private parse_by_def = function
+method private parse_by_def term_db = function
   | UMTA_user_defined_op uop ->
-     [OPDef (O_user_defined_op uop)]
+     [O_user_defined_op uop]
   | UMTA_module_instance mi ->
-     failwith_msg "don't know what to do with module instance in BY DEF!"
+     let mii = dereference_module_instance term_db mi in
+     failwith_msg mii.location "don't know what to do with module instance in BY DEF!"
   | UMTA_theorem thm ->
-     failwith_msg "don't know what to do with theorem in BY DEF!"
+     let thmi = dereference_theorem term_db thm in
+     failwith_msg thmi.location "don't know what to do with theorem in BY DEF!"
   | UMTA_assume assume ->
-     failwith_msg "don't know what to do with assume in BY DEF!"
+     let assi = dereference_assume term_db assume in
+     failwith_msg assi.location "don't know what to do with assume in BY DEF!"
 
-
-method private by_formula acc (thmi:theorem_) (by:by) formula =
+method private by acc (by : by) =
   let cc = get_cc acc in
+  (* filter provers from by.facts. No prover means use deafault. *)
   let provers, other_bys = split_provers cc.term_db by.facts in
+  let provers =
+    match provers with
+    | [] -> [Default]
+    | x -> x
+  in
   (* parse by def and add it to visible defs *)
-  let additional_defs : op_def list =  flat_map self#parse_by_def by.defs in
+  let additional_defs : op_def list =
+    flat_map (self#parse_by_def cc.term_db) by.defs in
   let expanded_defs = append cc.expanded_defs additional_defs in
   (* parse by references to theorems *)
   let thm_assumptions, other_bys =
     split_theorem_facts cc.term_db other_bys in
-  (* self references only insert the assumptions - split up *)
-  let own_thm, thm_assumptions =
-    partition (fun (thm : theorem_) ->
-                    thm.name = thmi.name)
-                   thm_assumptions in
+  (* self references need special treatment -- find them *)
+  let relevant_self_assumption_pairs =
+    filter (fun (t,_) -> mem t thm_assumptions ) cc.self_assumptions in
+  (* ... remove them from the theorem list *)
   let thm_assumptions =
-    flat_map (fun (t:theorem_) ->
-              match t.statement with
-              | ST_FORMULA f -> [f]
-              | _ -> [] (* TODO: check *)
-             )
-             thm_assumptions in
-  let own_assumptions = (* TODO: don't duplicate and eror check *)
-    flat_map (fun (t:theorem_) ->
-              match t.statement with
-              | ST_FORMULA {assumes; _ } -> assumes
-              | _ -> [] (* TODO: check *)
-             ) own_thm in
-  (* extend assumptions with usable facts *)
+    filter (fun t -> not (mem_assoc t relevant_self_assumption_pairs))
+           thm_assumptions in
+  (* ... and extract the additional assumptions *)
+  let self_assumptions = flatten (map snd relevant_self_assumption_pairs) in
+(* extend assumptions with usable facts *)
   let assumes = concat [
-                own_assumptions;
-                thm_assumptions;
+                self_assumptions;
+                (* thm_assumptions; *)
                 cc.usable_facts;
                 ] in
-  let obligation = {
-  o_type = Formula;
-  goal = formula;
-  expanded_defs;
+  match cc.goal with
+  | Some goal ->
+     printf "Obl %s" (format_location by.location);
+     let obligation = {
+     goal;
+     expanded_defs;
 
-  constants = cc.constants;
-  variables = cc.variables;
-  definitions = cc.definitions;
-  assumptions = cc.assumptions;
-  theorems = cc.theorems;
+     constants = cc.constants;
+     variables = cc.variables;
+     definitions = cc.definitions;
+     assumptions = cc.assumptions;
+     theorems = cc.theorems;
 
-  provers;
-  term_db = cc.term_db;
-  } in
-  let racc = enqueue_obligation acc [obligation] in
-  let theorems = THM thmi :: cc.theorems in
-  let usable_facts = append cc.usable_facts [formula]  in
-  update_cc racc { cc with theorems; usable_facts }
- *)
+     provers;
+     term_db = cc.term_db;
+     } in
+     let acc0 = enqueue_obligation acc [obligation] in
+     acc0
+  | None ->
+     (* TODO : add error obligation *)
+     failwith_msg by.location "No goal for obligation!"
 
 method private update_cc_formula acc (thmi:theorem_) formula =
   let cc = get_cc acc in
@@ -231,7 +232,16 @@ method private update_cc_formula acc (thmi:theorem_) formula =
   let constants = append cc.constants (rev cs) in
   (* TODO: should we extend the context by action and temporal variables? *)
   let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
-  (cc, { cc with goal = Some goal; constants; variables;  })
+  let inner_cc = { cc with goal = Some goal;
+                           constants;
+                           variables;
+                 }
+  in
+  let outer_cc = { cc with theorems = (THM thmi) :: cc.theorems;
+                           usable_facts = formula :: cc.usable_facts;
+                 }
+  in
+  (outer_cc, inner_cc)
 
 method private update_cc_case acc (thmi:theorem_) formula =
   let cc = get_cc acc in
@@ -270,37 +280,56 @@ method theorem acc thm =
      (y,x)
   | ST_CASE f ->
      self#update_cc_case acc thmi f
-(*
   | ST_PICK f ->
-     self#by_pick acc thmi by f
+     (cc,cc) (* TODO *)
   | ST_HAVE e ->
-     acc (* TODO *)
+     (cc,cc) (* TODO *)
   | ST_TAKE f ->
-     acc (* TODO *)
+     (cc,cc) (* TODO *)
   | ST_WITNESS f ->
-     acc (* TODO *)
+     (cc,cc) (* TODO *)
   | ST_QED ->
-     acc
- *)
+     (cc,cc) (* TODO *)
   in
-(*  let racc = match thmi.proof with
-  | P_omitted _ -> acc
-  | P_obvious _ -> acc
-  | P_by by ->
-     (
-     )
-  | P_steps steps ->
-     let acc0 = fold_left self#step acc steps.steps in
-     (* we need to reset the current context, usable facts etc are not
+  let acc0 = update_cc acc inner_cc in
+  let acc1 = self#proof acc0 thmi.proof in
+  (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
-     update_cc acc0 (get_cc acc)
-  | P_noproof -> acc
-  in *)
+  let inner_obs = get_obligations acc1 in
+  let acc2 = update_cc acc0 outer_cc in
+  let acc3 = update_obligations acc2 inner_obs in
   let no_oldobs = length (get_obligations acc) in
-(*  let no_newobs = length (get_obligations racc) in
+  let no_newobs = length (get_obligations acc3) in
   (* assert that no obligations were lost*)
   if (no_newobs < no_oldobs) then failwith "lost obligations!";
   Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
-  racc *)
+  acc3
+
+
+method proof acc0 = function
+  (* TODO *)
+  | P_omitted _ -> acc0
+  | P_obvious _ -> acc0
+  | P_by by ->
+     self#by acc0 by
+  | P_steps {steps; location; _ } ->
+     fold_left self#step acc0 steps
+  | P_noproof -> acc0
+
+
+method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
+  (* TODO *)
+  acc0
+
+method instance acc _ =
+  (* TODO *)
   acc
+
+method context acc { entries; modules;} =
+  let old_cc = get_cc acc in
+  let new_cc = { old_cc with term_db = entries } in
+  let acc0 = update_cc acc new_cc in
+  let acc1 = fold_left self#mule acc modules in
+  acc1
+
 end

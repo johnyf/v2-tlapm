@@ -44,6 +44,7 @@ type prover =
   | Zenon
   | SMT
   | LS4
+  | Default
 
 (** Creates a range from 0 to 0. *)
 val mkDummyRange : int_range
