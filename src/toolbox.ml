@@ -142,13 +142,15 @@ if not really then ob else
         failwith "Toolbox.normalize.for.printing"
 
 
+
 let print_old_res ob st really_print =
   let really_print = !Params.printallobs || really_print in
    print_res_aux (normalize really_print ob) st (Some true) really_print ""
                  None
 
-(* FIXME obsolete these functions *)
 *)
+
+(* FIXME obsolete these functions *)
 let print_message msg =
   if !Params.toolbox then Toolbox_msg.print_warning msg;
 ;;
@@ -160,4 +162,3 @@ let print_message_url msg url =
 let print_ob_number n =
   if !Params.toolbox then Toolbox_msg.print_obligationsnumber n;
 ;;
-

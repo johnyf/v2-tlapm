@@ -45,7 +45,7 @@ assumptions       : assume list ;
 theorems          : theorem list ;
 
 (* the own step has to be treated differently, so we keep it seperate *)
-self_assumptions : (theorem_ * assume_prove list) list;
+thm_statements : (theorem_ * assume_prove list) list;
 }
 
 let emptyCurrentContext term_db = {
@@ -58,7 +58,7 @@ variables = [];
 definitions = [];
 assumptions = [];
 theorems = [];
-self_assumptions = [];
+thm_statements = [];
 }
 
 
@@ -172,28 +172,35 @@ method private by acc (by : by) =
     flat_map (self#parse_by_def cc.term_db) by.defs in
   let expanded_defs = append cc.expanded_defs additional_defs in
   (* parse by references to theorems *)
-  let thm_assumptions, other_bys =
+  let thm_bys, other_bys =
     split_theorem_facts cc.term_db other_bys in
-  (* self references need special treatment -- find them *)
-  let relevant_self_assumption_pairs =
-    filter (fun (t,_) -> mem t thm_assumptions ) cc.self_assumptions in
-  (* ... remove them from the theorem list *)
-  let thm_assumptions =
-    filter (fun t -> not (mem_assoc t relevant_self_assumption_pairs))
-           thm_assumptions in
-  (* ... and extract the additional assumptions *)
-  let self_assumptions = flatten (map snd relevant_self_assumption_pairs) in
-(* extend assumptions with usable facts *)
+  let extract_name ((thmi:theorem_),lst) = (thmi.name, lst) in
+  let cc_thm_stmts = map extract_name cc.thm_statements in
+  let thm_by_stmts =
+    map (fun (x : theorem_) ->
+         match mem_assoc x.name cc_thm_stmts with
+         | true -> assoc x.name cc_thm_stmts
+         | false -> (
+            let name = match x.name with
+            | Some n -> n
+            | None -> "(unknown)"
+            in
+            let msg = sprintf "Could not find by theorem %s" name in
+            failwith_msg by.location msg
+         )
+        ) thm_bys
+  in
+  let thm_assumptions = flatten thm_by_stmts in
+  (* extend assumptions with usable facts *)
   let assumes = concat [
-                self_assumptions;
-                (* thm_assumptions; *)
+                thm_assumptions;
                 cc.usable_facts;
                 ] in
   match cc.goal with
-  | Some goal ->
+  | Some ccgoal ->
      printf "Obl %s" (format_location by.location);
      let obligation = {
-     goal;
+     goal = { ccgoal with assumes = append assumes ccgoal.assumes };
      expanded_defs;
 
      constants = cc.constants;
@@ -211,10 +218,12 @@ method private by acc (by : by) =
      (* TODO : add error obligation *)
      failwith_msg by.location "No goal for obligation!"
 
-method private update_cc_formula acc (thmi:theorem_) formula =
+(* this method is reused for the suffices and case steps. thmi may not be
+   changed for that reason. *)
+method private update_cc_formula acc (thmi:theorem_) assume_prove =
   let cc = get_cc acc in
   (* TODO: boxed flag might be wrong *)
-  let goal = {formula with assumes = []; } in
+  let goal = {assume_prove with assumes = []; } in
   let (vs, cs, acs, ss, ts) =
     fold_left (fun (vs,cs,acs,ss,ts) sym ->
                let decl = sym.op_decl  in
@@ -226,19 +235,23 @@ method private update_cc_formula acc (thmi:theorem_) formula =
                | NewState    -> (vs,cs,acs,decl::ss,ts)
                | NewTemporal -> (vs,cs,acs,ss,decl::ts)
                | _ ->
-                  failwith_msg decli.location
-                               "Unexpected operator kind in ASSUME NEW construct!"
-              ) ([],[],[],[],[]) formula.new_symbols in
+                  let msg = "Unexpected operator kind in ASSUME NEW construct!"
+                  in failwith_msg decli.location msg
+              ) ([],[],[],[],[]) assume_prove.new_symbols in
   let constants = append cc.constants (rev cs) in
   (* TODO: should we extend the context by action and temporal variables? *)
   let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
+  let inner_stmt =  (thmi, assume_prove.assumes) in
   let inner_cc = { cc with goal = Some goal;
                            constants;
                            variables;
+                           thm_statements = inner_stmt :: cc.thm_statements;
                  }
   in
+  let outer_stmt = (thmi, [assume_prove]) in
   let outer_cc = { cc with theorems = (THM thmi) :: cc.theorems;
-                           usable_facts = formula :: cc.usable_facts;
+                           usable_facts = assume_prove :: cc.usable_facts;
+                           thm_statements = outer_stmt :: cc.thm_statements;
                  }
   in
   (outer_cc, inner_cc)
@@ -255,7 +268,7 @@ method private update_cc_case acc (thmi:theorem_) formula =
   let flevel = extract_level formula in
   let level = match toprove.level, flevel with
   (* TODO: check if the level recomputation is correct *)
-  | Some l, Some f when l > f -> Some l
+  | Some l, Some f when l > f   -> Some l
   | Some l, Some f (* l <= f *) -> Some f
   | Some l, None   (* only l *) -> None
   | None,   Some f (* only f *) -> None
@@ -264,8 +277,9 @@ method private update_cc_case acc (thmi:theorem_) formula =
   let assumes = append toprove.assumes [assume_prove_from_expr formula false] in
   let suffices = false in
   let boxed = false in (* TODO: need to recompute boxed flag *)
-  let ap =  {toprove with location; level; assumes; suffices; boxed; } in
-  (cc,cc)
+  let ap = { toprove with location; level; assumes; suffices; boxed; } in
+  let (outer_cc, inner_cc) = self#update_cc_formula acc thmi ap in
+  (outer_cc, inner_cc)
 
 
 method theorem acc thm =
@@ -329,7 +343,7 @@ method context acc { entries; modules;} =
   let old_cc = get_cc acc in
   let new_cc = { old_cc with term_db = entries } in
   let acc0 = update_cc acc new_cc in
-  let acc1 = fold_left self#mule acc modules in
+  let acc1 = fold_left self#mule acc0 modules in
   acc1
 
 end

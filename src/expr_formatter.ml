@@ -678,6 +678,9 @@ object(self)
     (*    | "$Pick" -> "PICK" *)
     (*    | "$Witness" -> "WITNESS" *)
     (*    | "$Suffices" -> "SUFFICES" *)
+    (* manual additions *)
+    | "\\land" -> "/\\"
+    | "\\lor" -> "\\/"
     | x -> x (* catchall case *)
 end
 

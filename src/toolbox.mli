@@ -3,7 +3,7 @@
  *)
 
 open Types
-open Obligations
+open Obligation
 
 (* backend/isabelle.ml *)
 val toolbox_print :
@@ -25,6 +25,7 @@ val toolbox_print :
 val print_new_res :
   obligation -> status_type6 -> string -> float option -> unit
 ;;
+
 val print_message : string -> unit;;
 val print_old_res : obligation -> status_type6 -> bool -> unit;;
 

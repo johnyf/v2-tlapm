@@ -30,8 +30,9 @@ definitions       : op_def list ;
 assumptions       : assume list ;
 theorems          : theorem list ;
 
-(* the own step has to be treated differently, so we keep it seperate *)
-self_assumptions : (theorem_ * assume_prove list) list;
+(* we keep a list of the actual assume proves a theorem provides, because they
+   may be different from the actual statement *)
+thm_statements : (theorem_ * assume_prove list) list;
 }
 
 type 'a eoacc = current_context * obligation list * nesting * 'a

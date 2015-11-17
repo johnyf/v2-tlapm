@@ -154,7 +154,7 @@ method theorem acc thm = match thm with
      | ST_FORMULA f ->
         self#parse_formula acc f thm
      | ST_SUFFICES f ->
-        Printf.printf "ghg %s\n" (Commons.format_location location);
+        (* Printf.printf "ghg %s\n" (Commons.format_location location); *)
      (* remove suffices constant *)
         self#parse_suffices acc f thmi
      | _ ->
