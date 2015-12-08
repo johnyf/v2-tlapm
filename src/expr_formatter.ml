@@ -221,7 +221,7 @@ object(self)
   method unbounded_bound_symbol acc { param; tuple } =
     if tuple then fprintf (ppf acc) "<<";
     let acc1 = self#formal_param acc param in
-    if tuple then fprintf (ppf acc1) ">> \\in ";
+    if tuple then fprintf (ppf acc1) ">> ";
     acc1
 
   method formal_param acc0 fp =

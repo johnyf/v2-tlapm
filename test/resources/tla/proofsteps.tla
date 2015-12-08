@@ -22,7 +22,7 @@ THEOREM (EAP => AEP)  \* BY Isa DEF EAP, AEP
 <1>1 EAP => EAP OBVIOUS
 <1> PICK d : (\A x : P(x,d)) => AEP BY DEF EAP, AEP
 <1>b PICK c : AEP => (\E y : P(c,y)) OBVIOUS
-<1> QED BY <1>b, PTL
+<1> QED BY <1>b, Zenon
 
 
 Ind(Q(_)) == (Q(0) /\ (\A x \in Nat: Q(x) => Q(x+1))) => (\A x \in Nat : Q(x)) 
@@ -89,5 +89,5 @@ THEOREM ASSUME Invariant, [Next]_vars PROVE Invariant'
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Oct 26 14:31:07 CET 2015 by marty
+\* Last modified Tue Nov 17 15:42:58 CET 2015 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty

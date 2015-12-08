@@ -80,18 +80,73 @@ let enqueue_obligation acc newobs =
   let obs = get_obligations acc in
   update_obligations acc (append obs newobs)
 
+(* that doesn't work in general anymore, because builtins are expanded and
+    may not be present in the term db anymore *)
+let find_builtin term_db opname =
+  let check_bopname = function
+    | OPDef_entry (O_builtin_op bop) ->
+       bop.name = opname
+    | _ ->
+       false
+  in
+  match filter (fun x -> check_bopname (snd x) ) term_db with
+  | [] ->
+     let msg = sprintf "Could not find built in %s in term db!" opname in
+     failwith msg
+  | [(_,x)] ->
+     x
+  | _ ->
+     let msg = sprintf "Found multiple built ins of %s in term db!" opname in
+     failwith msg
+
+
+let formal_param i arity =
+  FP {
+  location = mkDummyLocation;
+  level = None;
+  name = "fparam" ^ (string_of_int i);
+  arity;
+  }
+
+let bounded_exists =
+  O_builtin_op { name = "$BoundedExists";
+                 level = None;
+                 arity = 1;
+                 params = [(formal_param 0 0, false)];  (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
+               }
+
+let unbounded_exists =
+  O_builtin_op { name = "$UnboundedExists";
+                 level = None;
+                 arity = 1;
+                 params = [(formal_param 0 0, false)]; (* TODO: check if this is correct *)
+               }
+
+let set_in =
+  O_builtin_op { name = "\\in";
+                 level = None;
+                 arity = 2;
+                 params = [(formal_param 0 0, true)]
+               }
+
+let tuple =
+  O_builtin_op { name = "$Tuple";
+                 level = None;
+                 arity = -1;
+                 params = [];
+               }
 
 (* extracts prover tags from by list *)
 let rec split_provers term_db = function
   | [] -> ([],[])
   (* prover pragmas are expression, everything else is ignored *)
   | (EMM_expr x) as element::xs -> (
-     let (provers, exprs) = split_provers term_db xs in
-     match expr_to_prover term_db x with
-     | Some prover ->
-        (prover :: provers, exprs)
-     | None ->
-        (provers,element::exprs)
+  let (provers, exprs) = split_provers term_db xs in
+  match expr_to_prover term_db x with
+  | Some prover ->
+     (prover :: provers, exprs)
+  | None ->
+     (provers,element::exprs)
   )
   | x::xs ->
      let (provers, exprs) = split_provers term_db xs in
@@ -181,12 +236,16 @@ method private by acc (by : by) =
          match mem_assoc x.name cc_thm_stmts with
          | true -> assoc x.name cc_thm_stmts
          | false -> (
-            let name = match x.name with
-            | Some n -> n
-            | None -> "(unknown)"
-            in
-            let msg = sprintf "Could not find by theorem %s" name in
-            failwith_msg by.location msg
+         let name = match x.name with
+         | Some n -> n
+         | None -> "(unknown)"
+         in
+         let tnames = mkString (function
+                         | (Some x,_) -> x
+                         | (None, _) -> "(none)"
+                         ) cc_thm_stmts in
+         let msg = sprintf "Could not find by theorem %s in %s" name tnames in
+         failwith_msg by.location msg
          )
         ) thm_bys
   in
@@ -281,6 +340,90 @@ method private update_cc_case acc (thmi:theorem_) formula =
   let (outer_cc, inner_cc) = self#update_cc_formula acc thmi ap in
   (outer_cc, inner_cc)
 
+(* \sigma pick vars : F(vars) is translated into two steps:
+   \rho \E vars : F(vars)
+   \sigma SUFFICES ASSUME NEW vars, F(vars)
+          PROVE G
+
+   We end up with 3 obligations:
+   1: \E vars : F(vars)
+   2: ASSUME \E vars : F(vars),
+             ASSUME NEW c, F(c) PROVE G
+      PROVE G
+   3: vars, F(vars) added to assumptions of G
+
+   where 2 is trivial.
+*)
+method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
+  let cc = get_cc acc in
+  (*
+  let fmt = Expr_formatter.expr_formatter in
+  let state = (Format.str_formatter, cc.term_db, false,
+               Expr_formatter.Expression, 0) in
+  let str = fmt#expr state formula in
+  Printf.printf "Pick formula starts with: %s\n"
+                (Format.flush_str_formatter ());
+   *)
+  let location = extract_location formula in
+  let level = extract_level formula in
+  let (bounded_qs, unbounded_qs) as qs =
+    partition (function
+              | B_bounded_bound_symbol _ -> true;
+              | _ -> false ) variables in
+  let (bounds, quantifier) = match qs with
+  | ([], uqs) -> ([], unbounded_exists)
+  | (bqs, []) ->
+     let get_bounds =
+       function
+       | B_bounded_bound_symbol x -> x;
+       | B_unbounded_bound_symbol _ ->
+          let msg =
+            "Implementation error: may not encounter unbounded symbols here!"
+          in
+          failwith_msg thmi.location msg
+     in
+     (map get_bounds bqs, bounded_exists)
+  | _ -> failwith_msg thmi.location
+                      "Pick mixes bounded and unbounded quantifiers!"
+  in
+  let ex_formula = E_binder { location; level;
+                              operator = FMOTA_op_def quantifier;
+                              operand  = EO_expr formula;
+                              bound_symbols = variables;
+                            } in
+  let bounds_formulas = map (function
+                            |  { params;
+                                 tuple;
+                                 domain;
+                               } ->
+                                ()
+                            )
+                            bounds in
+  let inner_statement = {location;
+                         level;
+                         new_symbols = [];
+                         assumes = [];
+                         prove = ex_formula;
+                         suffices = false;
+                         boxed = true;
+                        } in
+  let outer_statement = {location;
+                         level;
+                         new_symbols = [];
+                         assumes = [];
+                         prove = formula;
+                         suffices = true;
+                         boxed = true;
+                        } in
+  let inner_cc = {cc with
+                 goal = Some inner_statement;
+                 } in
+  let outer_cc = {cc with
+                 goal = Some outer_statement;
+                 (* check this *)
+                 thm_statements = (thmi, [outer_statement]) :: cc.thm_statements;
+                 } in
+  (outer_cc, inner_cc)
 
 method theorem acc thm =
   let cc = get_cc acc in
@@ -295,7 +438,7 @@ method theorem acc thm =
   | ST_CASE f ->
      self#update_cc_case acc thmi f
   | ST_PICK f ->
-     (cc,cc) (* TODO *)
+     self#update_cc_pick acc thmi f
   | ST_HAVE e ->
      (cc,cc) (* TODO *)
   | ST_TAKE f ->
