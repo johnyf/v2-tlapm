@@ -155,21 +155,21 @@ let rec split_provers term_db = function
 (* split facts into list of theorem_ and rest *)
 let split_theorem_facts term_db facts =
   let split_theorem_facts_ term_db = fold_left
-    (fun r fact ->
-     let (thms, rest) = r in
-     match fact with
-     | EMM_expr (E_op_appl appl) ->
-        (
-        match appl.operator, appl.operands with
-        | FMOTA_theorem thm, [] ->
-           (dereference_theorem term_db thm :: thms, rest)
-        | _ ->
-           (thms, fact::rest)
-        )
-     | _ ->
-        (thms, fact::rest)
-    )
-    ([],[])
+                                     (fun r fact ->
+                                      let (thms, rest) = r in
+                                      match fact with
+                                      | EMM_expr (E_op_appl appl) ->
+                                         (
+                                         match appl.operator, appl.operands with
+                                         | FMOTA_theorem thm, [] ->
+                                            (dereference_theorem term_db thm :: thms, rest)
+                                         | _ ->
+                                            (thms, fact::rest)
+                                         )
+                                      | _ ->
+                                         (thms, fact::rest)
+                                     )
+                                     ([],[])
   in
   (* during fold we prepended, reverse lists to preserve order *)
   let (thms, facts) = split_theorem_facts_ term_db facts in
@@ -241,9 +241,9 @@ method private by acc (by : by) =
          | None -> "(unknown)"
          in
          let tnames = mkString (function
-                         | (Some x,_) -> x
-                         | (None, _) -> "(none)"
-                         ) cc_thm_stmts in
+                               | (Some x,_) -> x
+                               | (None, _) -> "(none)"
+                               ) cc_thm_stmts in
          let msg = sprintf "Could not find by theorem %s in %s" name tnames in
          failwith_msg by.location msg
          )
@@ -353,7 +353,7 @@ method private update_cc_case acc (thmi:theorem_) formula =
    3: vars, F(vars) added to assumptions of G
 
    where 2 is trivial.
-*)
+ *)
 method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
   let cc = get_cc acc in
   (*
@@ -429,38 +429,54 @@ method theorem acc thm =
   let cc = get_cc acc in
   let thmi  = dereference_theorem cc.term_db thm in
   (* we prepare one context for proving the statement and one for continuing *)
-  let (outer_cc, inner_cc) = match thmi.statement with
+  let (oouter_cc, oinner_cc) = match thmi.statement with
   | ST_FORMULA f ->
-     self#update_cc_formula acc thmi f
+     let (x,y) = self#update_cc_formula acc thmi f in
+     (Some x, Some y)
   | ST_SUFFICES f ->
      let (x,y) = self#update_cc_formula acc thmi f in
-     (y,x)
+     (Some y,Some x)
   | ST_CASE f ->
-     self#update_cc_case acc thmi f
+     let (x,y) = self#update_cc_case acc thmi f in
+     (Some x, Some y)
   | ST_PICK f ->
-     self#update_cc_pick acc thmi f
+     let (x,y) = self#update_cc_pick acc thmi f in
+     (Some x, Some y)
   | ST_HAVE e ->
-     (cc,cc) (* TODO *)
+     (Some cc, Some cc) (* TODO *)
   | ST_TAKE f ->
-     (cc,cc) (* TODO *)
+     (Some cc, Some cc) (* TODO *)
   | ST_WITNESS f ->
-     (cc,cc) (* TODO *)
+     (Some cc, Some cc) (* TODO *)
   | ST_QED ->
-     (cc,cc) (* TODO *)
+     (Some cc, Some cc) (* TODO *)
   in
-  let acc0 = update_cc acc inner_cc in
-  let acc1 = self#proof acc0 thmi.proof in
-  (* we need to reset the current context, usable facts etc are not
+  (* extract inner proof, if it exists *)
+  let acc0 = match oinner_cc with
+  | Some inner_cc ->
+     let acc0a = update_cc acc inner_cc in
+     let acc0b = self#proof acc0a thmi.proof in
+     (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
-  let inner_obs = get_obligations acc1 in
-  let acc2 = update_cc acc0 outer_cc in
-  let acc3 = update_obligations acc2 inner_obs in
+     let inner_obs = get_obligations acc0b in
+     let acc0c = update_obligations acc0b inner_obs in
+     acc0c
+  | None ->
+     acc
+  in
+  (* extract outer proof if it exists *)
+  let acc1 = match oouter_cc with
+  | Some outer_cc ->
+     update_cc acc0 outer_cc
+  | None ->
+     acc
+  in
   let no_oldobs = length (get_obligations acc) in
-  let no_newobs = length (get_obligations acc3) in
+  let no_newobs = length (get_obligations acc1) in
   (* assert that no obligations were lost*)
   if (no_newobs < no_oldobs) then failwith "lost obligations!";
   Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
-  acc3
+  acc1
 
 
 method proof acc0 = function

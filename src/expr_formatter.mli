@@ -1,7 +1,7 @@
 open Expr_ds
 open Commons
 
-type nesting = Module | Expression | ProofStep | By
+type nesting = Module | Expression | ProofStep of int | By
 type fc = Format.formatter * term_db * bool * nesting * int
 
 class formatter :

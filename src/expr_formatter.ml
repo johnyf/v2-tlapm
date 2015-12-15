@@ -9,7 +9,7 @@ open List
 open Format
 
 
-type nesting = Module | Expression | ProofStep | By
+type nesting = Module | Expression | ProofStep of int | By
 (* We need to pass on the formatter, the contect for unfolding references and a
    flag if to unfold *)
 type fc = Format.formatter * term_db * bool * nesting * int
@@ -40,7 +40,7 @@ let set_nesting (x,y,z,_,u) n = (x,y,z,n,u)
 let reset_nesting x (_,_,_,n,_) = set_nesting x n
 let nest_module x = set_nesting x Module
 let nest_expr x = set_nesting x Expression
-let nest_proof x = set_nesting x ProofStep
+let nest_proof x n = set_nesting x (ProofStep n)
 let nest_by x = set_nesting x By
 
 let set_ndepth (x,y,z,n,d) depth = (x,y,z,n,depth)
@@ -72,6 +72,17 @@ let ppf_ident ppf x = fprintf ppf "%s" x
 
 (** extracts the ppf from the given accumulator and outputs a newline *)
 let ppf_newline acc = fprintf (ppf acc) "@\n"
+
+
+(** checks if a user defined operator is defined in a standard module
+   (TLAPS, Naturals etc.) *)
+let is_standard_location location =
+  match location.filename with
+  | "--TLA+ BUILTINS--" -> true
+  | "TLAPS" -> true
+  | "TLC" -> true
+  | "Naturals" -> true
+  | _ -> false
 
 class formatter =
 object(self)
@@ -192,7 +203,7 @@ object(self)
     let acc2 = self#level acc1 level in
     let acc3 = self#operator acc2 operator in
     fprintf (ppf acc3) " ";
-    let acc4 = List.fold_left self#bound_symbol acc3 bound_symbols in
+    let acc4 = ppf_fold_with self#bound_symbol acc3 bound_symbols in
     fprintf (ppf acc4) " : ";
     let oparens, cparens = "(",")" in
     fprintf (ppf acc4) "%s" oparens;
@@ -245,7 +256,7 @@ object(self)
           acc0
        | true -> (* expand module name *)
           let acc0a = nest_module acc0 in
-          fprintf (ppf acc0a) "@[<v 0>";
+          pp_open_vbox (ppf acc0a) 0;
           fprintf (ppf acc0a) "==== %s ====@\n" name;
           (* let acc0a = self#name acc0 name in
            let acc1 = self#location acc0a location in *)
@@ -260,16 +271,16 @@ object(self)
           let acc3 = ppf_fold_with self#op_decl acc2 variables in
           fprintf (ppf acc2) "%s" s_variablesnl;
           let s_opdefnl = if (definitions == []) then "" else "\n" in
-          let acc4 = ppf_fold_with ~str:"\n" self#op_def acc3 definitions in
+          let acc4 = ppf_fold_with ~str:"" self#op_def acc3 definitions in
           fprintf (ppf acc4) "%s" s_opdefnl;
           let s_assumptionsnl = if (assumptions == []) then "" else "\n" in
           let acc5 = ppf_fold_with ~str:"\n" self#assume acc4 assumptions in
           fprintf (ppf acc5) "%s" s_assumptionsnl;
           let s_theoremnl = if (theorems == []) then "" else "\n" in
-          let acc6 = ppf_fold_with ~str:"\n" self#theorem acc5 theorems in
+          let acc6 = ppf_fold_with ~str:"" self#theorem acc5 theorems in
           let acc = reset_nesting acc6 acc0 in
           fprintf (ppf acc) "%s" s_theoremnl;
-          fprintf (ppf acc) "@]";
+          pp_close_box (ppf acc) ();
           fprintf (ppf acc) "@\n------------@\n";
           acc
 
@@ -293,8 +304,11 @@ object(self)
     | O_user_defined_op x ->
        let op = dereference_user_defined_op (tdb acc) x
        in
-       match nesting acc, undef acc with
-       | Module, _ ->
+       match nesting acc, undef acc, is_standard_location op.location with
+       | Module, _, true ->
+          (* skip standard libraries *)
+          acc
+       | Module, _, _ ->
           let acc0 = disable_expand acc in
           let acc0a = self#user_defined_op acc0 x in
           let acc0b = enable_expand acc0a in
@@ -306,20 +320,20 @@ object(self)
           fprintf (ppf acc4) "";
           ppf_newline acc4;
           acc4
-       | Expression, true ->
+       | Expression, true, _ ->
           let acc1 = nest_expr acc in
           let acc2 = self#user_defined_op acc1 x in
           let acc3 = reset_nesting acc2 acc in
           acc3
-       | Expression, false ->
+       | Expression, false, _ ->
           fprintf (ppf acc) "%s" op.name;
           acc
-       | By, _ ->
+       | By, _, _ ->
           let acc0 = disable_expand acc in
           let acc0a = self#user_defined_op acc0 x in
           let acc0b = reset_expand acc0a acc in
           acc0b
-       | ProofStep, _ ->
+       | ProofStep depth, _, _ ->
           (* TODO: check if this is ok *)
           let acc0 = disable_expand acc in
           let acc0a = self#user_defined_op acc0 x in
@@ -333,30 +347,43 @@ object(self)
   method theorem acc0 thm =
     let { location; level; name; statement; proof; } =
       dereference_theorem (tdb acc0) thm in
-       match undef acc0, name with
-       | true, _ ->
-          fprintf (ppf acc0) "THEOREM ";
-          let acc1 = self#location acc0 location in
-          let acc2 = self#level acc1 level in
-          let named = match nesting acc2, name with
-          | Module, Some name -> name ^ " == "
-          | _ -> ""
-          in
-          (* let s = if suffices then "SUFFICES " else "" in *)
-          fprintf (ppf acc2) "%s" named;
-          let acc2a = nest_expr acc2 in
-          let acc3 = self#statement acc2a statement in
-          let acc3a = nest_proof acc3 in
-          let acc4 = self#proof acc3a proof  in
-          let acc4a = reset_nesting acc4 acc0 in
-          ppf_newline acc4a;
-          acc4a
-       | false, Some name ->
-          fprintf (ppf acc0) "%s" name;
-          acc0
-       | _ -> failwith
-                ("Implementation error! Trying to pretty print a theorem's " ^
-                 "name without expanding, but the theorem does not have one.")
+    match undef acc0, name, is_standard_location location with
+    | true, _, true ->
+       (* skip standard theorems TODO: check if we don't skip too much *)
+       acc0
+    | true, _, _ ->
+       let thmstr = match nesting acc0 with
+       | Module -> "THEOREM "
+       | _ -> ""
+       in
+       pp_open_hovbox (ppf acc0) 2;
+       fprintf (ppf acc0) "%s" thmstr;
+       let acc1 = self#location acc0 location in
+       let acc2 = self#level acc1 level in
+       let named = match nesting acc2, name with
+       | Module, Some name -> name ^ " == "
+       | _ -> ""
+       in
+       (* let s = if suffices then "SUFFICES " else "" in *)
+       fprintf (ppf acc2) "%s" named;
+       let acc2a = nest_expr acc2 in
+       let acc3 = self#statement acc2a statement in
+       ppf_newline acc3;
+       let acc3a = match nesting acc3 with
+       | ProofStep i -> nest_proof acc3 (i+1)
+       | _ -> nest_proof acc3 1
+       in
+       let acc4 = self#proof acc3a proof  in
+       let acc4a = reset_nesting acc4 acc0 in
+       ppf_newline acc4a;
+       pp_close_box (ppf acc4a) ();
+       acc4a
+    | false, Some name, _ ->
+       fprintf (ppf acc0) "%s" name;
+       acc0
+    | _ -> failwith
+           ("Implementation error! Trying to pretty print a theorem's " ^
+            "name without expanding, but the theorem does not have one.")
 
   (*TODO: check *)
   method statement acc0 = function
@@ -462,12 +489,16 @@ object(self)
   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
+    let pnesting = match nesting acc2 with
+    | ProofStep n -> n
+    | _ -> failwith "Implementation error: definition step outside of a proof!"
+    in
     let uoh = if hide then " HIDE " else " USE " in
-    fprintf (ppf acc2) "%s" uoh;
+    fprintf (ppf acc2) "<%d> %s" pnesting uoh;
     let acc3 = ppf_fold_with
                  self#expr_or_module_or_module_instance acc2 facts in
     let bydef = if (defs <> []) then " DEF " else "" in
-    fprintf (ppf acc3) "%s" bydef;
+    fprintf (ppf acc3) "%s"  bydef;
     let acc = ppf_fold_with
                 self#defined_expr acc3 defs in
     ppf_newline acc;
@@ -573,11 +604,18 @@ object(self)
     fprintf (ppf acc) ")";
     acc
 
-  (* TODO *)
   method def_step acc0 { location; level; defs } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let acc = List.fold_left self#op_def acc2 defs in
+    let pnesting = match nesting acc2 with
+    | ProofStep n -> n
+    | _ -> failwith "Implementation error: definition step outside of a proof!"
+    in
+    fprintf (ppf acc2) "<%d> DEFINE " pnesting;
+    let acc3 = enable_expand acc2 in
+    let acc4 = List.fold_left self#op_def acc3 defs in
+    ppf_newline acc4;
+    let acc = reset_expand acc4 acc0 in
     acc
 
   (* TODO *)

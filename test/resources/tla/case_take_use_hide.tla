@@ -29,7 +29,8 @@ THEOREM T1 == \A x \in Nat: Even(x+x)
 <1> QED BY <1>1, <1>2, <1>3
 
 
+
 =============================================================================
 \* Modification History
-\* Last modified Thu Oct 29 12:15:07 CET 2015 by marty
+\* Last modified Tue Dec 15 16:02:23 CET 2015 by marty
 \* Created Mon Oct 26 15:01:26 CET 2015 by marty
