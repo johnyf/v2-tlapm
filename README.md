@@ -1,4 +1,4 @@
-                    ====== TLAPM v2 ======
+# TLAPM
 
 This is the next version of the TLA proof manager, which is part of the
  TLA+ Tools [1]. Since is still under development, please also refer to the
@@ -8,7 +8,7 @@ This is the next version of the TLA proof manager, which is part of the
 [2] https://tlaps.codeplex.com
 
 
-======= Installation =======
+## Installation
 The compilation requirements are:
 
 * a recent version of ocaml (at  least 4.02)
@@ -35,6 +35,6 @@ make test
 
 will run the test suite.
 
-======= Running =======
+## Running
 
 For execution, a Java Runtime Environment (at least 7) is also necessary.
