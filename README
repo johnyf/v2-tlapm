@@ -1,8 +1,0 @@
-This project is managed by ocaml oasis. Oasis is not required for building the project but for modifying its configuration properties.
-If you change these properties (_oasis) please install oasis and run:
-oasis setup -setup-update dynamic
-
-Otherwise, build the project as follows:
-
-./configure
-make
