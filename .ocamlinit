@@ -1,4 +1,25 @@
 #directory "_build/src"
+#load "any_expr.cmo"
+#load "commons.cmo"
+#load "expr_builtins.cmo"
+#load "expr_correct_lambda.cmo"
+#load "expr_dereference.cmo"
+#load "expr_formatter.cmo"
+#load "expr_map.cmo"
+#load "expr_parse_theorems.cmo"
+#load "expr_prover_parser.cmo"
+#load "expr_utils.cmo"
+#load "expr_visitor.cmo"
+#load "extract_obligations.cmo"
+#load "obligation_formatter.cmo"
+#load "sany_builtin_extractor.cmo"
+#load "sany.cmo"
+#load "sany_expr.cmo"
+#load "sany_visitor.cmo"
+#load "util.cmo"
+#load "xml_utils.cmo"
+
+
 open Commons
 open Expr_ds
 open Obligation

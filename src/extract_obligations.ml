@@ -9,7 +9,6 @@ open Obligation
 open Expr_prover_parser
 open Util
 
-
 (* customized failwith for obligation extraction *)
 let failwith_msg loc msg =
   let e = sprintf "Error extracting obligation at %s: %s"
@@ -60,6 +59,14 @@ assumptions = [];
 theorems = [];
 thm_statements = [];
 }
+
+(* type representing if a proof step creates a context for a subproof (inner),
+   the global proof (outer) or both *)
+type step_context_type =
+  NoContext |
+  Inner of current_context |
+  Outer of current_context |
+  OuterInner of current_context * current_context
 
 
 (* the accumulator type - containing an open parameter for derived classes *)
@@ -153,27 +160,29 @@ let rec split_provers term_db = function
      (provers,x::exprs)
 
 (* split facts into list of theorem_ and rest *)
-let split_theorem_facts term_db facts =
-  let split_theorem_facts_ term_db = fold_left
-                                     (fun r fact ->
-                                      let (thms, rest) = r in
-                                      match fact with
-                                      | EMM_expr (E_op_appl appl) ->
-                                         (
-                                         match appl.operator, appl.operands with
-                                         | FMOTA_theorem thm, [] ->
-                                            (dereference_theorem term_db thm :: thms, rest)
-                                         | _ ->
-                                            (thms, fact::rest)
-                                         )
-                                      | _ ->
-                                         (thms, fact::rest)
-                                     )
-                                     ([],[])
+let split_theorem_expr_facts term_db facts =
+  let split_theorem_expr_facts_ term_db =
+    fold_left (fun r fact ->
+               let (thms, exprs, rest) = r in
+               match fact with
+               | EMM_expr ((E_op_appl appl) as e)->
+                  (
+                  match appl.operator, appl.operands with
+                  | FMOTA_theorem thm, [] ->
+                     (dereference_theorem term_db thm :: thms, exprs, rest)
+                  | _ ->
+                     (thms, e::exprs, rest)
+                  )
+               | EMM_expr e ->
+                  (thms, e::exprs, rest)
+               | _ ->
+                  (thms, exprs, fact::rest)
+              )
+              ([],[],[])
   in
   (* during fold we prepended, reverse lists to preserve order *)
-  let (thms, facts) = split_theorem_facts_ term_db facts in
-  (rev thms, rev facts)
+  let (thms, exprs, facts) = split_theorem_expr_facts_ term_db facts in
+  (rev thms, rev exprs, rev facts)
 
 
 (* the actual visitor subclass *)
@@ -227,8 +236,8 @@ method private by acc (by : by) =
     flat_map (self#parse_by_def cc.term_db) by.defs in
   let expanded_defs = append cc.expanded_defs additional_defs in
   (* parse by references to theorems *)
-  let thm_bys, other_bys =
-    split_theorem_facts cc.term_db other_bys in
+  let thm_bys, expr_bys, other_bys =
+    split_theorem_expr_facts cc.term_db other_bys in
   let extract_name ((thmi:theorem_),lst) = (thmi.name, lst) in
   let cc_thm_stmts = map extract_name cc.thm_statements in
   let thm_by_stmts =
@@ -313,7 +322,7 @@ method private update_cc_formula acc (thmi:theorem_) assume_prove =
                            thm_statements = outer_stmt :: cc.thm_statements;
                  }
   in
-  (outer_cc, inner_cc)
+  OuterInner (outer_cc, inner_cc)
 
 method private update_cc_case acc (thmi:theorem_) formula =
   let cc = get_cc acc in
@@ -333,12 +342,11 @@ method private update_cc_case acc (thmi:theorem_) formula =
   | None,   Some f (* only f *) -> None
   | None,   None -> None
   in
-  let assumes = append toprove.assumes [assume_prove_from_expr formula false] in
+  let assumes = append toprove.assumes [assume_prove_from_expr false formula] in
   let suffices = false in
   let boxed = false in (* TODO: need to recompute boxed flag *)
   let ap = { toprove with location; level; assumes; suffices; boxed; } in
-  let (outer_cc, inner_cc) = self#update_cc_formula acc thmi ap in
-  (outer_cc, inner_cc)
+  self#update_cc_formula acc thmi ap
 
 (* \sigma pick vars : F(vars) is translated into two steps:
    \rho \E vars : F(vars)
@@ -423,64 +431,68 @@ method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
                  (* check this *)
                  thm_statements = (thmi, [outer_statement]) :: cc.thm_statements;
                  } in
-  (outer_cc, inner_cc)
+  OuterInner (outer_cc, inner_cc)
+
+method private qed acc (thmi : theorem_) =
+  let cc = get_cc acc in
+  Inner cc
 
 method theorem acc thm =
   let cc = get_cc acc in
   let thmi  = dereference_theorem cc.term_db thm in
   (* we prepare one context for proving the statement and one for continuing *)
-  let (oouter_cc, oinner_cc) = match thmi.statement with
+  let step_ccs = match thmi.statement with
   | ST_FORMULA f ->
-     let (x,y) = self#update_cc_formula acc thmi f in
-     (Some x, Some y)
+     self#update_cc_formula acc thmi f
   | ST_SUFFICES f ->
-     let (x,y) = self#update_cc_formula acc thmi f in
-     (Some y,Some x)
+     self#update_cc_formula acc thmi f
   | ST_CASE f ->
-     let (x,y) = self#update_cc_case acc thmi f in
-     (Some x, Some y)
+     self#update_cc_case acc thmi f
   | ST_PICK f ->
-     let (x,y) = self#update_cc_pick acc thmi f in
-     (Some x, Some y)
+     self#update_cc_pick acc thmi f
   | ST_HAVE e ->
-     (Some cc, Some cc) (* TODO *)
+     NoContext (* TODO *)
   | ST_TAKE f ->
-     (Some cc, Some cc) (* TODO *)
+     NoContext (* TODO *)
   | ST_WITNESS f ->
-     (Some cc, Some cc) (* TODO *)
+     NoContext (* TODO *)
   | ST_QED ->
-     (Some cc, Some cc) (* TODO *)
+     self#qed acc thmi (* TODO *)
   in
-  (* extract inner proof, if it exists *)
-  let acc0 = match oinner_cc with
-  | Some inner_cc ->
+  let racc = match step_ccs with
+  | NoContext ->
+     acc
+  | Outer outer_cc ->
+     (* extract outer proof *)
+     update_cc acc outer_cc
+  | Inner inner_cc ->
+     (* extract inner proof *)
      let acc0a = update_cc acc inner_cc in
      let acc0b = self#proof acc0a thmi.proof in
      (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
      let inner_obs = get_obligations acc0b in
-     let acc0c = update_obligations acc0b inner_obs in
-     acc0c
-  | None ->
-     acc
-  in
-  (* extract outer proof if it exists *)
-  let acc1 = match oouter_cc with
-  | Some outer_cc ->
+     update_obligations acc0b inner_obs
+  | OuterInner (outer_cc, inner_cc) ->
+     (* extract inner proof *)
+     let acc0a = update_cc acc inner_cc in
+     let acc0b = self#proof acc0a thmi.proof in
+     (* we need to reset the current context, usable facts etc are not
+        visible outside the sub-proof *)
+     let inner_obs = get_obligations acc0b in
+     let acc0 = update_obligations acc0b inner_obs in
+     (* extract outer proof *)
      update_cc acc0 outer_cc
-  | None ->
-     acc
   in
-  let no_oldobs = length (get_obligations acc) in
-  let no_newobs = length (get_obligations acc1) in
   (* assert that no obligations were lost*)
+  let no_oldobs = length (get_obligations acc) in
+  let no_newobs = length (get_obligations racc) in
   if (no_newobs < no_oldobs) then failwith "lost obligations!";
   Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
-  acc1
+  racc
 
 
 method proof acc0 = function
-  (* TODO *)
   | P_omitted _ -> acc0
   | P_obvious _ -> acc0
   | P_by by ->
@@ -491,8 +503,23 @@ method proof acc0 = function
 
 
 method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
-  (* TODO *)
-  acc0
+  let cc = get_cc acc0 in
+  (* extract new facts *)
+  let (thm_facts, expr_facts, rest) = split_theorem_expr_facts cc.term_db facts in
+  let ap_facts = map (assume_prove_from_expr false) expr_facts in
+  match hide with
+  | false -> (* USE *)
+     (* create obligations proving new facts *)
+     (* TODO *)
+     (* update context *)
+     let new_cc = { cc with usable_facts = concat [cc.usable_facts;
+                                                   ap_facts;
+                                                  ]} in
+     update_cc acc0 new_cc
+  | true -> (* HIDE *)
+     (* you cannot hide an asserted fact, i.e. expr_facts must be empty *)
+     (* TODO: hide theorem/step references and defs*)
+     acc0
 
 method instance acc _ =
   (* TODO *)

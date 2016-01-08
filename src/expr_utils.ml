@@ -63,7 +63,7 @@ let extract_level expr =
   | E_lambda {location; level; _ } -> level
 
 (** wraps an expression into an assume-prove with empty assumptions *)
-let assume_prove_from_expr expr suffices =  {
+let assume_prove_from_expr suffices expr =  {
 location = extract_location expr;
 level = extract_level expr;
 assumes = [];
