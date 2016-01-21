@@ -36,6 +36,7 @@ let files flt =
            "Euclid";
            "Quantifiers";
            "case_take_use_hide";
+           "qed";
            (*           "exec"; *)
            "proofsteps";
            "priming_stephan";

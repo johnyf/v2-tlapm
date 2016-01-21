@@ -2,6 +2,7 @@ open Printf
 open List
 open Commons
 open Expr_ds
+open Expr_builtins
 open Expr_utils
 open Expr_dereference
 open Expr_visitor
@@ -107,41 +108,6 @@ let find_builtin term_db opname =
      failwith msg
 
 
-let formal_param i arity =
-  FP {
-  location = mkDummyLocation;
-  level = None;
-  name = "fparam" ^ (string_of_int i);
-  arity;
-  }
-
-let bounded_exists =
-  O_builtin_op { name = "$BoundedExists";
-                 level = None;
-                 arity = 1;
-                 params = [(formal_param 0 0, false)];  (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
-               }
-
-let unbounded_exists =
-  O_builtin_op { name = "$UnboundedExists";
-                 level = None;
-                 arity = 1;
-                 params = [(formal_param 0 0, false)]; (* TODO: check if this is correct *)
-               }
-
-let set_in =
-  O_builtin_op { name = "\\in";
-                 level = None;
-                 arity = 2;
-                 params = [(formal_param 0 0, true)]
-               }
-
-let tuple =
-  O_builtin_op { name = "$Tuple";
-                 level = None;
-                 arity = -1;
-                 params = [];
-               }
 
 (* extracts prover tags from by list *)
 let rec split_provers term_db = function
@@ -395,7 +361,7 @@ method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
                       "Pick mixes bounded and unbounded quantifiers!"
   in
   let ex_formula = E_binder { location; level;
-                              operator = FMOTA_op_def quantifier;
+                              operator = FMOTA_op_def (O_builtin_op quantifier);
                               operand  = EO_expr formula;
                               bound_symbols = variables;
                             } in
@@ -407,21 +373,21 @@ method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
                                 ()
                             )
                             bounds in
-  let inner_statement = {location;
-                         level;
-                         new_symbols = [];
-                         assumes = [];
-                         prove = ex_formula;
-                         suffices = false;
-                         boxed = true;
+  let inner_statement = { location;
+                          level;
+                          new_symbols = [];
+                          assumes = [];
+                          prove = ex_formula;
+                          suffices = false;
+                          boxed = true;
                         } in
-  let outer_statement = {location;
-                         level;
-                         new_symbols = [];
-                         assumes = [];
-                         prove = formula;
-                         suffices = true;
-                         boxed = true;
+  let outer_statement = { location;
+                          level;
+                          new_symbols = [];
+                          assumes = [];
+                          prove = formula;
+                          suffices = true;
+                          boxed = true;
                         } in
   let inner_cc = {cc with
                  goal = Some inner_statement;
@@ -494,7 +460,28 @@ method theorem acc thm =
 
 method proof acc0 = function
   | P_omitted _ -> acc0
-  | P_obvious _ -> acc0
+  | P_obvious {location; _} ->
+     (
+     let cc = get_cc acc0 in
+     let goal = match cc.goal with
+     | Some g -> g
+     | None ->
+        failwith_msg location
+                     "No goal in context while processing OBVIOUS statement!"
+     in
+     let obligation = {
+     goal;
+     expanded_defs = cc.expanded_defs;
+     provers = [Default];
+     term_db = cc.term_db;
+     constants = cc.constants;
+     variables = cc.variables;
+     definitions = cc.definitions;
+     assumptions = cc.assumptions;
+     theorems = cc.theorems;
+     } in
+     enqueue_obligation acc0 [obligation]
+     )
   | P_by by ->
      self#by acc0 by
   | P_steps {steps; location; _ } ->

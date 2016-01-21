@@ -32,14 +32,21 @@ let test_extract_obligations record () =
       | [] -> Printf.printf "%s no obligations extracted!\n" record.filename;
       | _  ->
          (
-         let print_obl o =
+         let total = List.length obs in
+         let print_obl i o =
            let pstr = mkString fmt_prover (o.provers) in
+           Printf.printf "Obligation #%d of %d\n" i total;
            Printf.printf "%s obligation provers : %s\n" record.filename pstr;
-           Printf.printf "%d assumptions\n" (List.length o.goal.assumes);
+           (* Printf.printf "%d assumptions\n" (List.length o.goal.assumes); *)
            fmt_obligation std_formatter o;
+           
            Printf.printf "\n(end of obligation)\n";
+           i+1
          in
-         ignore (List.map print_obl  obs)
+         ignore (
+         Printf.printf "%s : no of obligations: %d\n" record.filename total;
+         List.fold_left print_obl 1 obs
+         )
          )
     )
 
