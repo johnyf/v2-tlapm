@@ -19,9 +19,7 @@ let failwith_msg loc msg =
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
-  | Expression
-  | ProofStep
-  | By
+  | InProof of int
 
 (* used to track the currently visible objects *)
 type current_context = {
@@ -71,7 +69,7 @@ type step_context_type =
 
 
 (* the accumulator type - containing an open parameter for derived classes *)
-type 'a eoacc = current_context * obligation list * nesting * 'a
+type 'a eoacc = current_context list * obligation list * nesting * 'a
 
 (* extractors for the constituents of the accumulator *)
 let get_cc (c, _, _, _) = c
@@ -88,6 +86,42 @@ let enqueue_obligation acc newobs =
   let obs = get_obligations acc in
   update_obligations acc (append obs newobs)
 
+(* convenience functions managing the nesting *)
+let increase_nesting acc =
+  match get_nesting acc with
+  | Module -> update_nesting acc (InProof 1)
+  | InProof n -> update_nesting acc (InProof (n+1))
+
+let decrease_nesting acc =
+  match get_nesting acc with
+  | Module -> failwith "Cannot decrease nesting level below module!"
+  | InProof n -> update_nesting acc (InProof (n-1))
+
+let cc_push cc acc =
+  Printf.printf "Push!\n";
+  update_cc acc (cc::(get_cc acc))
+
+let cc_pop acc =
+  Printf.printf "Pop!\n";
+  match get_cc acc with
+  | [] -> failwith "Trying to pop an empty stack!"
+  | x::xs -> (x, update_cc acc xs)
+
+let cc_empty acc =
+  match get_cc acc with
+  | [] -> true
+  | _ -> false
+
+let cc_peek acc =
+  match get_cc acc with
+  | [] -> failwith "Trying peek on an empty stack!"
+  | x::_ -> x
+
+let cc_replace cc acc =
+  let (_, acc0) = cc_pop acc in
+  cc_push cc acc0
+
+                                
 (* that doesn't work in general anymore, because builtins are expanded and
     may not be present in the term db anymore *)
 let find_builtin term_db opname =
@@ -157,23 +191,23 @@ object(self)
 inherit ['a eoacc] visitor
 
 method assume acc a =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   let assumptions = a :: cc.assumptions in
-  update_cc acc { cc with assumptions }
+  cc_replace { cc with assumptions } acc
 
 method op_decl acc opdecl =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   let decl_instance = dereference_op_decl cc.term_db opdecl in
   let ccnew = match decl_instance.kind with
   | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
   | VariableDecl -> { cc with variables = opdecl :: cc.variables }
   | _ -> cc in
-  update_cc acc ccnew
+  cc_replace ccnew acc
 
 method op_def acc opdef =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   let definitions = opdef :: cc.definitions in
-  update_cc acc { cc with definitions }
+  cc_replace { cc with definitions } acc
 
 method private parse_by_def term_db = function
   | UMTA_user_defined_op uop ->
@@ -189,7 +223,7 @@ method private parse_by_def term_db = function
      failwith_msg assi.location "don't know what to do with assume in BY DEF!"
 
 method private by acc (by : by) =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   (* filter provers from by.facts. No prover means use deafault. *)
   let provers, other_bys = split_provers cc.term_db by.facts in
   let provers =
@@ -255,7 +289,7 @@ method private by acc (by : by) =
 (* this method is reused for the suffices and case steps. thmi may not be
    changed for that reason. *)
 method private update_cc_formula acc (thmi:theorem_) assume_prove =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   (* TODO: boxed flag might be wrong *)
   let goal = {assume_prove with assumes = []; } in
   let (vs, cs, acs, ss, ts) =
@@ -283,15 +317,19 @@ method private update_cc_formula acc (thmi:theorem_) assume_prove =
                  }
   in
   let outer_stmt = (thmi, [assume_prove]) in
+  let usable_facts =  match thmi.name with
+  | None -> assume_prove :: cc.usable_facts
+  | Some _ -> cc.usable_facts
+  in
   let outer_cc = { cc with theorems = (THM thmi) :: cc.theorems;
-                           usable_facts = assume_prove :: cc.usable_facts;
+                           usable_facts;
                            thm_statements = outer_stmt :: cc.thm_statements;
                  }
   in
   OuterInner (outer_cc, inner_cc)
 
 method private update_cc_case acc (thmi:theorem_) formula =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   (* TODO: boxed flag might be wrong *)
   let toprove = match cc.goal with
   | None -> failwith_msg thmi.location
@@ -329,7 +367,7 @@ method private update_cc_case acc (thmi:theorem_) formula =
    where 2 is trivial.
  *)
 method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   (*
   let fmt = Expr_formatter.expr_formatter in
   let state = (Format.str_formatter, cc.term_db, false,
@@ -400,22 +438,23 @@ method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
   OuterInner (outer_cc, inner_cc)
 
 method private qed acc (thmi : theorem_) =
-  let cc = get_cc acc in
+  let cc = cc_peek acc in
   Inner cc
 
 method theorem acc thm =
-  let cc = get_cc acc in
+  let acc0 = increase_nesting acc in
+  let cc = cc_peek acc0 in
   let thmi  = dereference_theorem cc.term_db thm in
-  (* we prepare one context for proving the statement and one for continuing *)
+   (* we prepare one context for proving the statement and one for continuing *)
   let step_ccs = match thmi.statement with
   | ST_FORMULA f ->
-     self#update_cc_formula acc thmi f
+     self#update_cc_formula acc0 thmi f
   | ST_SUFFICES f ->
-     self#update_cc_formula acc thmi f
+     self#update_cc_formula acc0 thmi f
   | ST_CASE f ->
-     self#update_cc_case acc thmi f
+     self#update_cc_case acc0 thmi f
   | ST_PICK f ->
-     self#update_cc_pick acc thmi f
+     self#update_cc_pick acc0 thmi f
   | ST_HAVE e ->
      NoContext (* TODO *)
   | ST_TAKE f ->
@@ -423,46 +462,51 @@ method theorem acc thm =
   | ST_WITNESS f ->
      NoContext (* TODO *)
   | ST_QED ->
-     self#qed acc thmi (* TODO *)
+     self#qed acc0 thmi (* TODO *)
   in
   let racc = match step_ccs with
   | NoContext ->
-     acc
+     acc0
   | Outer outer_cc ->
      (* extract outer proof *)
-     update_cc acc outer_cc
+     cc_replace  outer_cc acc0
   | Inner inner_cc ->
      (* extract inner proof *)
-     let acc0a = update_cc acc inner_cc in
-     let acc0b = self#proof acc0a thmi.proof in
+     let acc1 = cc_replace inner_cc acc0 in
+     let acc2 = self#proof acc1 thmi.proof in
      (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
-     let inner_obs = get_obligations acc0b in
-     update_obligations acc0b inner_obs
+     let inner_obs = get_obligations acc2 in
+     (* we add the inner obligations to the outer context, but don't
+        take over anything else *)
+     update_obligations acc0 inner_obs
   | OuterInner (outer_cc, inner_cc) ->
      (* extract inner proof *)
-     let acc0a = update_cc acc inner_cc in
-     let acc0b = self#proof acc0a thmi.proof in
+     let acc1 = cc_replace inner_cc acc0 in
+     let acc2 = self#proof acc1 thmi.proof in
      (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
-     let inner_obs = get_obligations acc0b in
-     let acc0 = update_obligations acc0b inner_obs in
+     let inner_obs = get_obligations acc2 in
+     let acc3 = update_obligations acc2 inner_obs in
      (* extract outer proof *)
-     update_cc acc0 outer_cc
+     cc_replace outer_cc acc3
   in
   (* assert that no obligations were lost*)
   let no_oldobs = length (get_obligations acc) in
   let no_newobs = length (get_obligations racc) in
   if (no_newobs < no_oldobs) then failwith "lost obligations!";
   Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
-  racc
+  Printf.printf "no of usable facts in acc %d and in racc %d\n"
+                (length (cc_peek acc).usable_facts )
+                (length (cc_peek racc).usable_facts );
+  decrease_nesting racc
 
 
 method proof acc0 = function
   | P_omitted _ -> acc0
   | P_obvious {location; _} ->
      (
-     let cc = get_cc acc0 in
+     let cc = cc_peek acc0 in
      let goal = match cc.goal with
      | Some g -> g
      | None ->
@@ -490,7 +534,7 @@ method proof acc0 = function
 
 
 method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
-  let cc = get_cc acc0 in
+  let cc = cc_peek acc0 in
   (* extract new facts *)
   let (thm_facts, expr_facts, rest) = split_theorem_expr_facts cc.term_db facts in
   let ap_facts = map (assume_prove_from_expr false) expr_facts in
@@ -502,7 +546,7 @@ method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
      let new_cc = { cc with usable_facts = concat [cc.usable_facts;
                                                    ap_facts;
                                                   ]} in
-     update_cc acc0 new_cc
+     cc_replace new_cc acc0
   | true -> (* HIDE *)
      (* you cannot hide an asserted fact, i.e. expr_facts must be empty *)
      (* TODO: hide theorem/step references and defs*)
@@ -513,10 +557,9 @@ method instance acc _ =
   acc
 
 method context acc { entries; modules;} =
-  let old_cc = get_cc acc in
+  let old_cc = cc_peek acc in
   let new_cc = { old_cc with term_db = entries } in
-  let acc0 = update_cc acc new_cc in
+  let acc0 = cc_replace new_cc acc in
   let acc1 = fold_left self#mule acc0 modules in
   acc1
-
 end

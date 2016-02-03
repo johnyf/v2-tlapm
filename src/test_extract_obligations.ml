@@ -27,7 +27,7 @@ let test_extract_obligations record () =
       in
       let cc = emptyCurrentContext context.entries in
       let eo = new extract_obligations in
-      let (_,obs,_,_) = eo#context (cc, [], Module, None) context in
+      let (_,obs,_,_) = eo#context ([cc], [], Module, None) context in
       match obs with
       | [] -> Printf.printf "%s no obligations extracted!\n" record.filename;
       | _  ->

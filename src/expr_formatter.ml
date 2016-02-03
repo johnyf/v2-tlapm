@@ -219,7 +219,8 @@ object(self)
     | [param] ->
        if tuple then fprintf (ppf acc) "<<";
        let acc1 = self#formal_param acc param in
-       if tuple then fprintf (ppf acc1) ">> \\in ";
+       if tuple then fprintf (ppf acc1) ">> ";
+       fprintf (ppf acc1) " \\in ";
        let acc2 = self#expr acc domain in
        acc2
     | _ ->
