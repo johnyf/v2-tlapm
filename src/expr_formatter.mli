@@ -62,4 +62,14 @@ object
 
 end
 
+(** An instance of the expression formatter *)
 val expr_formatter : formatter
+
+(** Creates a function which is compatible with printf's %a statement. *)
+val mk_fmt           : (fc -> 'a -> fc) ->
+                       term_db -> out_channel -> 'a -> unit
+
+
+val fmt_expr         : term_db -> out_channel -> expr -> unit
+val fmt_assume_prove : term_db -> out_channel -> assume_prove -> unit
+val fmt_statement    : term_db -> out_channel -> statement -> unit

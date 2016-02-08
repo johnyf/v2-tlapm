@@ -33,7 +33,7 @@ theorems          : theorem list ;
 thm_statements : (theorem_ * assume_prove list) list;
 }
 
-type 'a eoacc = current_context list * obligation list * nesting * 'a
+type 'a eoacc = EOAcc of current_context list * obligation list * nesting * 'a
 
 val emptyCurrentContext : term_db -> current_context
 (* val extract_obligation_from_module *)

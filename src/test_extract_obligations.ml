@@ -27,7 +27,8 @@ let test_extract_obligations record () =
       in
       let cc = emptyCurrentContext context.entries in
       let eo = new extract_obligations in
-      let (_,obs,_,_) = eo#context ([cc], [], Module, None) context in
+      let EOAcc (_, obs, _, _) =
+        eo#context (EOAcc ([cc], [], Module, None)) context in
       match obs with
       | [] -> Printf.printf "%s no obligations extracted!\n" record.filename;
       | _  ->
@@ -39,7 +40,6 @@ let test_extract_obligations record () =
            Printf.printf "%s obligation provers : %s\n" record.filename pstr;
            (* Printf.printf "%d assumptions\n" (List.length o.goal.assumes); *)
            fmt_obligation std_formatter o;
-           
            Printf.printf "\n(end of obligation)\n";
            i+1
          in
