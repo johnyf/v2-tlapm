@@ -849,10 +849,12 @@ and read_entry i =
 
 let read_modules i =
   open_tag i "modules";
+  let root_module = get_data_in i "RootModule" read_string in
   let entries = get_children_in i "context" "entry" read_entry in
   let ret = get_children i "ModuleNode" read_module in
   close_tag i "modules";
   {
+    root_module;
     entries = entries;
     modules = ret;
   }

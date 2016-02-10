@@ -677,13 +677,14 @@ method name (_,acc) x = (Any_name x, acc)
 method reference (_, acc) x =
   failwith "Implementation error: references should be handled implicitly!"
 
-method context acc { Sany_ds.entries; modules } =
+method context acc { Sany_ds.entries; modules; root_module } =
   (* extend accumulator by term db entries *)
   let (ae, (b,_)) = acc in
   let acc = (ae, (b,entries)) in
   let entries,  acc0 = fold self#entry acc entries unfold_entry in
   let modules, acc1 = fold self#mule (Nothing, acc0) modules unfold_module in
   let c = {
+  root_module;
   entries;
   modules;
   } in

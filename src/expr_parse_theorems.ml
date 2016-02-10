@@ -162,7 +162,7 @@ method theorem acc thm = match thm with
         super#theorem acc thm
      )
 
-method context acc { entries; modules } =
+method context acc { root_module; entries; modules } =
   let acc1 = set_tdb acc (Some entries) in
-  super#context acc1 {entries; modules }
+  super#context acc1 {root_module; entries; modules }
 end

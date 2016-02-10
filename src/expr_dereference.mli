@@ -36,3 +36,7 @@ val dereference_theorem : term_db -> theorem -> theorem_
 (** If the passed theorem is a reference, it will be retrieved from the
  term_db. Otherwise, it is directly extracted. *)
 val dereference_assume : term_db -> assume -> assume_
+
+(** If the passed theorem is a reference, it will be retrieved from the
+ term_db. Otherwise, it is directly extracted. *)
+val dereference_module : term_db -> mule -> mule_

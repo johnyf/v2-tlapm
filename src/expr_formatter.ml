@@ -282,12 +282,16 @@ object(self)
           in
           let acc2 = print_block acc0a "CONSTANTS" comma_formatter
                                  self#op_decl constants in
+          ppf_newline acc2;
           let acc3 = print_block acc2 "VARIABLES" comma_formatter
                                  self#op_decl variables in
+          ppf_newline acc3;
           let acc4 = print_block acc3 "" empty_formatter
                                  self#op_def definitions in
+          ppf_newline acc4;
           let acc5 = print_block acc4 "" empty_formatter
                                  self#assume assumptions in
+          ppf_newline acc5;
           let acc6 = print_block acc5 "" empty_formatter
                                  self#theorem theorems in
           let acc = reset_nesting acc6 acc0 in
@@ -385,9 +389,8 @@ object(self)
        in
        let acc4 = self#proof acc3a proof  in
        let acc4a = reset_nesting acc4 acc0 in
+       pp_close_box (ppf acc0) ();
        ppf_newline acc4a;
-       (*       fprintf (ppf acc4a) "blubb"; *)
-       pp_close_box (ppf acc4a) ();
        acc4a
     | false, Some name, _ ->
        fprintf (ppf acc0) "%s" name;
@@ -683,8 +686,12 @@ object(self)
   method reference acc x = acc
 
 
-  method context acc { entries; modules } =
-    let acc1 = List.fold_left self#mule acc modules in
+  method context acc { root_module; entries; modules } =
+    let ms = List.filter (fun x ->
+                          let m = dereference_module entries x in
+                          m.name = root_module
+                         ) modules in
+    let acc1 = List.fold_left self#mule acc ms in
     acc1
 
   method translate_builtin_name = function

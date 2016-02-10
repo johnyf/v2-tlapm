@@ -366,6 +366,7 @@ type entry = {
 }
 
 type context = {
+  root_module : string;
   entries : entry list;
   modules : mule list;
 }

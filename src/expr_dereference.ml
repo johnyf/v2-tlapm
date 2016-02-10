@@ -66,3 +66,8 @@ let dereference_assume term_db =  function
   | ASSUME t -> t
   | ASSUME_ref x ->
      find_entry unpack_assume_entry term_db x
+
+let dereference_module term_db =  function
+  | MOD t -> t
+  | MOD_ref x ->
+     find_entry unpack_mod_entry term_db x

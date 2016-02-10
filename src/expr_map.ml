@@ -702,10 +702,10 @@ inherit ['a macc] visitor as super
       let r = (Any_entry (id, APSUBST_entry (macc_extract#ap_subst_in acc0))) in
       set_anyexpr acc0 r
 
-   method context acc { entries; modules } =
+   method context acc { root_module; entries; modules } =
      let entries, acc1 = unpack_fold id_extract#entry self#entry acc entries in
      let modules, acc2 = unpack_fold id_extract#mule self#mule acc1 modules in
-     let r = Any_context { entries; modules } in
+     let r = Any_context { root_module; entries; modules } in
      set_anyexpr acc2 r
 
    (* pure disjunction types *)
