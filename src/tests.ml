@@ -37,6 +37,7 @@ let files flt =
            "Quantifiers";
            "case_take_use_hide";
            "qed";
+           "qed2";
            "extends_use_def_outer";
            (*           "exec"; *)
            "proofsteps";

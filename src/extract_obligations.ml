@@ -60,6 +60,22 @@ let emptyCurrentContext term_db = {
     thm_statements = [];
   }
 
+(*
+let print_cc formatter {goal; usable_facts; expanded_defs; term_db;
+                        constants; variables; assumptions; theorems; thm_statements; } =
+  fprintf formatter "Goal: ";
+  (
+    match goal with
+    | Some g ->
+       fprintf formatter "%a" fmt_assume_prove g;
+       ()
+    | None ->
+       fprintf formatter "(None)";
+       ()
+  );
+  ()
+ *)
+             
 (* type representing if a proof step creates a context for a subproof (inner),
    the global proof (outer) or both *)
 type step_context_type =
@@ -182,7 +198,7 @@ let split_theorem_expr_facts term_db facts =
                | _ ->
                   (thms, exprs, fact::rest)
               )
-              ([],[],[])
+              ([], [], [])
   in
   (* during fold we prepended, reverse lists to preserve order *)
   let (thms, exprs, facts) = split_theorem_expr_facts_ term_db facts in
@@ -325,11 +341,17 @@ object(self)
                    }
     in
     let outer_stmt = (thmi, [assume_prove]) in
-    let usable_facts =  match thmi.name with
-      | None -> assume_prove :: cc.usable_facts
-      | Some _ -> cc.usable_facts
+    let theorems = match thmi.name with
+      | None -> cc.theorems
+      | _ -> (THM thmi) :: cc.theorems
     in
-    let outer_cc = { cc with theorems = (THM thmi) :: cc.theorems;
+    let usable_facts =  match (thmi.name, get_nesting acc) with
+      | None, InProof _ -> assume_prove :: cc.usable_facts
+      (* a lemma without name does not add its statement to the context *)
+      | None, Module -> cc.usable_facts
+      | Some _, _ -> cc.usable_facts
+    in
+    let outer_cc = { cc with theorems;
                              usable_facts;
                              thm_statements = outer_stmt :: cc.thm_statements;
                    }
@@ -456,19 +478,18 @@ object(self)
     Inner cc
 
   method theorem acc thm =
-    let acc0 = increase_nesting acc in
-    let cc = cc_peek acc0 in
+    let cc = cc_peek acc in
     let thmi  = dereference_theorem cc.term_db thm in
     (* we prepare one context for proving the statement and one for continuing *)
     let step_ccs = match thmi.statement with
       | ST_FORMULA f ->
-         self#update_cc_formula acc0 thmi f
+         self#update_cc_formula acc thmi f
       | ST_SUFFICES f ->
-         self#update_cc_formula acc0 thmi f
+         self#update_cc_formula acc thmi f
       | ST_CASE f ->
-         self#update_cc_case acc0 thmi f
+         self#update_cc_case acc thmi f
       | ST_PICK f ->
-         self#update_cc_pick acc0 thmi f
+         self#update_cc_pick acc thmi f
       | ST_HAVE e ->
          NoContext (* TODO *)
       | ST_TAKE f ->
@@ -476,17 +497,17 @@ object(self)
       | ST_WITNESS f ->
          NoContext (* TODO *)
       | ST_QED ->
-         self#qed acc0 thmi (* TODO *)
+         self#qed acc thmi (* TODO *)
     in
     let racc = match step_ccs with
       | NoContext ->
-         acc0
+         acc
       | Outer outer_cc ->
          (* extract outer proof *)
-         cc_replace  outer_cc acc0
+         cc_replace  outer_cc acc
       | Inner inner_cc ->
          (* extract inner proof *)
-         let acc1 = cc_push inner_cc acc0 in
+         let acc1 = cc_push inner_cc acc in
          let acc2 = self#proof acc1 thmi.proof in
          (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
@@ -498,16 +519,17 @@ object(self)
          acc3
       | OuterInner (outer_cc, inner_cc) ->
          (* extract inner proof *)
-         let acc1 = cc_push inner_cc acc0 in
-         let acc2 = self#proof acc1 thmi.proof in
+         let acc1 = cc_push inner_cc acc in
+         let acc2 = increase_nesting acc1 in
+         let acc3 = self#proof acc2 thmi.proof in
          (* we need to reset the current context, usable facts etc are not
         visible outside the sub-proof *)
          (* let inner_obs = get_obligations acc2 in
         let acc3 = update_obligations acc2 inner_obs in
           *)
-         let (_, acc3) = cc_pop acc2 in
+         let (_, acc4) = cc_pop acc3 in
          (* extract outer proof *)
-         cc_replace outer_cc acc3
+         cc_replace outer_cc acc4
     in
     (* assert that no obligations were lost*)
     let no_oldobs = length (get_obligations acc) in

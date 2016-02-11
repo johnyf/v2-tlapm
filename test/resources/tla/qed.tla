@@ -16,6 +16,7 @@ LEMMA \A y : 2*y # 2*y +1
 \* test nested qed
 LEMMA 1=2
 <1> QED
+  <2> TRUE
   <2> QED BY 3=3, ShouldFail
 
 \* test qed by def
@@ -26,5 +27,5 @@ LEMMA 1=A BY DEF A
 LEMMA \A x \in Nat : (x * (x+1)) >= x OBVIOUS
 =============================================================================
 \* Modification History
-\* Last modified Fri Jan 22 16:45:33 CET 2016 by marty
+\* Last modified Thu Feb 11 17:05:37 CET 2016 by marty
 \* Created Thu Jan 21 10:26:24 CET 2016 by marty
