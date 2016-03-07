@@ -209,9 +209,9 @@ inherit ['a macc] visitor as super
                 MOD {
                 name = macc_extract#name acc1;
                 location = macc_extract#location acc2;
-                module_entries;
+                module_entries = m_entries;
                 }) in
-     set_anyexpr acc r
+        set_anyexpr acc r
 
    method op_arg acc0 {location; level; argument } =
      (* terminal node *)

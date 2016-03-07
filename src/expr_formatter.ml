@@ -298,6 +298,8 @@ object(self)
        let declaration_string = match kind with
          | ConstantDecl -> "CONSTANT"
          | VariableDecl -> "VARIABLE"
+         | _ ->
+            failwith "Global declaration can only be CONSTANT or VARIABLE."
        in
        fprintf (ppf acc2) "%s %s" declaration_string name ;
        ppf_newline acc2;
@@ -307,6 +309,10 @@ object(self)
        (* terminal node *)
        fprintf (ppf acc2) "%s" name ;
        acc2
+    | ProofStep _ ->
+       failwith "Operator declarations don't happen as a proof step!"
+    | By ->
+       failwith "Operator declarations don't happen in a BY statement!"
     in acc3
 
   method op_def acc = function
@@ -503,7 +509,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let uoh = if hide then " HIDE " else " USE " in
-    (match nesting acc2 with
+    ( match nesting acc2 with
      | ProofStep n ->
         fprintf (ppf acc2) "<%d> %s" n uoh;
      | Module ->
@@ -561,16 +567,16 @@ object(self)
   method new_symb acc0 { location; level; op_decl; set } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    fprintf (ppf acc2) "NEW ";
     let od = dereference_op_decl (tdb acc0) op_decl in
     let new_decl = match od.kind with
-      | NewConstant -> "CONSTANT "
+      | NewConstant -> "" (* default is constant "CONSTANT " *)
       | NewVariable -> "VARIABLE "
       | NewState -> "STATE "
       | NewAction -> "ACTION "
       | NewTemporal -> "TEMPORAL "
       | _ -> failwith "declared new symbol with a non-new kind."
     in
+    fprintf (ppf acc2) "NEW %s" new_decl;
     let acc3 = self#op_decl acc2 op_decl in
     let acc = match set with
       | None -> acc3
