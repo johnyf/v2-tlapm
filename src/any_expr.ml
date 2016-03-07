@@ -59,6 +59,7 @@ type anyExpr =
   | Any_bounded_bound_symbol of bounded_bound_symbol
   | Any_mule of mule
   | Any_mule_ of  mule_
+  | Any_mule_entry of mule_entry
   | Any_context of context
   | Any_entry of (int * entry)
 
@@ -208,6 +209,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method mule acc =
     match self#extract acc with Any_mule x -> x
+                              | _ -> failwith (self#fmt acc)
+  method mule_entry acc =
+    match self#extract acc with Any_mule_entry x -> x
                               | _ -> failwith (self#fmt acc)
   method name acc =
     match self#extract acc with Any_name x -> x

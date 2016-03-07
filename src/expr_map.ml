@@ -200,29 +200,16 @@ inherit ['a macc] visitor as super
         let acc1 = self#reference acc0 i in
         let r = Any_mule (MOD_ref (macc_extract#reference acc1)) in
         set_anyexpr acc1 r
-     | MOD {name; location; constants; variables;
-            definitions; assumptions; theorems; } ->
+     | MOD {name; location; module_entries } ->
         let acc1 = self#name acc0 name in
         let acc2 = self#location acc1 location in
-        let constants,   acc3 =
-          unpack_fold id_extract#op_decl self#op_decl acc2 constants in
-        let variables,   acc4 =
-          unpack_fold id_extract#op_decl self#op_decl acc3 variables in
-        let definitions, acc5 =
-          unpack_fold id_extract#op_def self#op_def acc4 definitions in
-        let assumptions, acc6 =
-          unpack_fold id_extract#assume self#assume acc5 assumptions in
-        let theorems, acc =
-          unpack_fold id_extract#theorem self#theorem acc6 theorems in
+        let m_entries,   acc =
+          unpack_fold id_extract#mule_entry self#mule_entry acc2 module_entries in
         let r = Any_mule (
                 MOD {
                 name = macc_extract#name acc1;
                 location = macc_extract#location acc2;
-                constants;
-                variables;
-                definitions;
-                assumptions;
-                theorems;
+                module_entries;
                 }) in
      set_anyexpr acc r
 
@@ -846,6 +833,32 @@ inherit ['a macc] visitor as super
         let acc0 = self#ap_subst_in acc x in
         let r = FMOTA_ap_subst_in (macc_extract#ap_subst_in acc0) in
         set_anyexpr acc0 (Any_operator r)
+
+   method mule_entry acc = function
+     | MODe_op_decl x     ->
+        let acc = self#op_decl acc x in
+        let r = MODe_op_decl (macc_extract#op_decl acc) in
+        set_anyexpr acc (Any_mule_entry r)
+     | MODe_op_def x      ->
+        let acc = self#op_def acc x in
+        let r = MODe_op_def (macc_extract#op_def acc) in
+        set_anyexpr acc (Any_mule_entry r)
+     | MODe_assume x      ->
+        let acc = self#assume acc x in
+        let r = MODe_assume (macc_extract#assume acc) in
+        set_anyexpr acc (Any_mule_entry r)
+     | MODe_theorem x     ->
+        let acc = self#theorem acc x in
+        let r = MODe_theorem (macc_extract#theorem acc) in
+        set_anyexpr acc (Any_mule_entry r)
+     | MODe_instance x    ->
+        let acc = self#instance acc x in
+        let r = MODe_instance (macc_extract#instance acc) in
+        set_anyexpr acc (Any_mule_entry r)
+     | MODe_use_or_hide x ->
+        let acc = self#use_or_hide acc x in
+        let r = MODe_use_or_hide (macc_extract#use_or_hide acc) in
+        set_anyexpr acc (Any_mule_entry r)
 
   method node acc = function
     | N_assume_prove x  ->

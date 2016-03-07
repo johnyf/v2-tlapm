@@ -258,8 +258,7 @@ object(self)
   method mule acc0 = function
     | MOD_ref i ->
        failwith "Implementation error: cannot dereference modules!"
-    | MOD {name; location; constants; variables;
-           definitions; assumptions; theorems; } ->
+    | MOD {name; location; module_entries } ->
        match undef acc0 with
        | false -> (* don't expand module name *)
           fprintf (ppf acc0) "%s" name;
@@ -269,8 +268,7 @@ object(self)
           pp_open_vbox (ppf acc0a) 0;
           fprintf (ppf acc0a) "==== %s ====@\n" name;
           ppf_newline acc0a;
-          (* let acc0a = self#name acc0 name in
-           let acc1 = self#location acc0a location in *)
+          (*
           let print_block acc list_string sep handler list =  match list with
           | [] ->
              acc0;
@@ -280,21 +278,9 @@ object(self)
              fprintf (ppf racc) "@,";
              racc
           in
-          let acc2 = print_block acc0a "CONSTANTS" comma_formatter
-                                 self#op_decl constants in
-          ppf_newline acc2;
-          let acc3 = print_block acc2 "VARIABLES" comma_formatter
-                                 self#op_decl variables in
-          ppf_newline acc3;
-          let acc4 = print_block acc3 "" empty_formatter
-                                 self#op_def definitions in
-          ppf_newline acc4;
-          let acc5 = print_block acc4 "" empty_formatter
-                                 self#assume assumptions in
-          ppf_newline acc5;
-          let acc6 = print_block acc5 "" empty_formatter
-                                 self#theorem theorems in
-          let acc = reset_nesting acc6 acc0 in
+           *)
+          let acc = ppf_fold_with ~str:newline_formatter self#mule_entry
+                                  acc0a module_entries in
           pp_close_box (ppf acc) ();
           fprintf (ppf acc) "@\n------------@\n";
           acc
@@ -303,13 +289,25 @@ object(self)
   method op_decl acc0 opdec =
     let { location ; level ; name ; arity ; kind ; } =
       dereference_op_decl (tdb acc0) opdec in
-    (* the kind is only relevant in the new_symb rule *)
-    (* terminal node *)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let acc3 = self#name acc2 name in
-    fprintf (ppf acc3) "%s" name ;
-    acc3
+    (* let acc3 = self#name acc2 name in *)
+    let acc3 = match nesting acc0 with
+    | Module ->
+       (* terminal node *)
+       let declaration_string = match kind with
+         | ConstantDecl -> "CONSTANT"
+         | VariableDecl -> "VARIABLE"
+       in
+       fprintf (ppf acc2) "%s %s" declaration_string name ;
+       ppf_newline acc2;
+       acc2
+    | Expression ->
+       (* the kind is only relevant in the new_symb rule *)
+       (* terminal node *)
+       fprintf (ppf acc2) "%s" name ;
+       acc2
+    in acc3
 
   method op_def acc = function
     | O_module_instance x ->
@@ -504,12 +502,15 @@ object(self)
   method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
-    let pnesting = match nesting acc2 with
-      | ProofStep n -> n
-      | _ -> failwith "Implementation error: definition step outside of a proof!"
-    in
     let uoh = if hide then " HIDE " else " USE " in
-    fprintf (ppf acc2) "<%d> %s" pnesting uoh;
+    (match nesting acc2 with
+     | ProofStep n ->
+        fprintf (ppf acc2) "<%d> %s" n uoh;
+     | Module ->
+        fprintf (ppf acc2) "%s" uoh;
+     | _ ->
+        failwith "Implementation error: definition step outside of a proof!"
+    );
     let acc3 = ppf_fold_with
                  self#expr_or_module_or_module_instance acc2 facts in
     let bydef = if (defs <> []) then " DEF " else "" in

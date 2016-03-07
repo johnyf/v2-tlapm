@@ -31,6 +31,7 @@ object
   method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
   method mule            : 'a -> mule -> 'a
+  method mule_entry      : 'a -> mule_entry -> 'a
   method formal_param    : 'a -> formal_param -> 'a
   method op_decl         : 'a -> op_decl -> 'a
   method op_def          : 'a -> op_def -> 'a

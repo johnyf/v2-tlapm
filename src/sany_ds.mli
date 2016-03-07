@@ -344,6 +344,14 @@ and bounded_bound_symbol = {
   domain            : expr
 }
 
+and mule_entry =
+  | MODe_op_decl of op_decl
+  | MODe_op_def of op_def
+  | MODe_assume of assume
+  | MODe_theorem of theorem
+  | MODe_use_or_hide of use_or_hide
+  | MODe_instance of instance
+                             
 (* modules *)
 and mule =
   | MOD_ref of int
@@ -352,14 +360,17 @@ and mule =
 and mule_ = {
   name              : string;
   location          : location option;
+  module_entries    : mule_entry list;
+  (*
   constants         : op_decl list;
   variables         : op_decl list;
   definitions       : op_def list ;
   assumptions       : assume list ;
   theorems          : theorem list ;
+   *)
 }
 
-  (* context *)
+(* context *)
 type entry = {
   uid       : int;
   reference : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;

@@ -784,6 +784,17 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       <xs:sequence>
         <xs:group ref="node"/>             
         <xs:element ref="uniquename"/>
+        <xs:choice>
+          <xs:element ref="OpDeclNodeRef"/>
+          <xs:group ref="OpDefNodeRef"/>
+<!--      <xs:element ref="AssumeNode"/> -->
+          <xs:element ref="AssumeNodeRef"/>
+          <xs:element ref="InstanceNode"/>
+          <xs:element ref="UseOrHideNode"/>
+<!--      <xs:element ref="TheoremNode"/> -->
+          <xs:element ref="TheoremNodeRef"/>
+        </xs:choice>
+        <!--
         <xs:element name="constants">
           <xs:complexType>
             <xs:sequence>
@@ -821,6 +832,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
             </xs:choice>
           </xs:complexType>
         </xs:element>
+        -->
       </xs:sequence>
     </xs:complexType>
   </xs:element>

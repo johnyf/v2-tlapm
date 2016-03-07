@@ -24,6 +24,7 @@ object
   method bounded_bound_symbol   : fc -> bounded_bound_symbol -> fc
   method unbounded_bound_symbol : fc -> unbounded_bound_symbol -> fc
   method mule            : fc -> mule -> fc
+  method mule_entry      : fc -> mule_entry -> fc
   method formal_param    : fc -> formal_param -> fc
   method op_decl         : fc -> op_decl -> fc
   method op_def          : fc -> op_def -> fc

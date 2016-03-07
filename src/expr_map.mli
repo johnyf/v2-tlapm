@@ -71,6 +71,7 @@ class ['a] expr_map : object
   method bounded_bound_symbol   : 'a macc -> bounded_bound_symbol -> 'a macc
   method unbounded_bound_symbol : 'a macc -> unbounded_bound_symbol -> 'a macc
   method mule            : 'a macc -> mule -> 'a macc
+  method mule_entry      : 'a macc -> mule_entry -> 'a macc
   method formal_param    : 'a macc -> formal_param -> 'a macc
   method op_decl         : 'a macc -> op_decl -> 'a macc
   method op_def          : 'a macc -> op_def -> 'a macc

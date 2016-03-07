@@ -64,6 +64,7 @@ type anyExpr =
   | Any_bounded_bound_symbol of bounded_bound_symbol
   | Any_mule of mule
   | Any_mule_ of  mule_
+  | Any_mule_entry of mule_entry
   | Any_context of context
   | Any_entry of (int * entry)
 
@@ -103,6 +104,7 @@ class ['a] any_extractor : object
   method location : 'a -> location
   method module_instance : 'a -> module_instance
   method mule : 'a -> mule
+  method mule_entry : 'a -> mule_entry
   method name : 'a -> string
   method new_symb : 'a -> new_symb
   method node : 'a -> node

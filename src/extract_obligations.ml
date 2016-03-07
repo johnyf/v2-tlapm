@@ -599,22 +599,10 @@ object(self)
 
   method mule acc0 = function
     | MOD_ref i -> self#reference acc0 i
-    | MOD {name; location; constants; variables;
-           definitions; assumptions; theorems; } ->
+    | MOD {name; location; module_entries } ->
        let acc0a = self#name acc0 name in
        let acc1 = self#location acc0a location in
-       let acc2 = List.fold_left self#op_decl acc1 constants in
-       let acc3 = List.fold_left self#op_decl acc2 variables in
-       let acc4 = List.fold_left self#op_def acc3 definitions in
-       let acc5 = List.fold_left self#assume acc4 assumptions in
-       let acc = List.fold_left (fun facc t ->
-                                 (* let local_acc = cc_push (cc_peek facc) facc in *)
-                                 let local_acc = facc in
-                                 let tacc = self#theorem local_acc t in
-                                 (* let (_, racc) = cc_pop tacc in *)
-                                 tacc
-                                )
-                                acc5 theorems in
+       let acc = List.fold_left self#mule_entry acc1 module_entries in
        acc
 
 

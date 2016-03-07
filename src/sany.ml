@@ -742,48 +742,51 @@ and read_theorem i : theorem =
     suffices = suffices;
   }
 
+and read_module_entries i =
+  let read_varconst_ref i = read_ref i "OpDeclNodeRef"
+                                     (fun x -> MODe_op_decl (OPD_ref x) ) in
+  let mkOpdefrefHandlerM name i =
+    read_ref i name (fun x -> MODe_op_def
+                                (OPDef (O_module_instance (MI_ref x)))) in
+  let mkOpdefrefHandlerU name i =
+    read_ref i name (fun x -> MODe_op_def
+                                (OPDef (O_user_defined_op (UOP_ref x)))) in
+  let mkOpdefrefHandlerB name i =
+    read_ref i name (fun x -> MODe_op_def (OPDef (O_builtin_op (BOP_ref x)))) in
+  let mkAssumerefHandler name i =
+    read_ref i name (fun x -> MODe_assume (ASSUME_ref x)) in
+  let handle_table =
+    [
+      (* declarations *)
+      ((=) "OpDeclNodeRef", read_varconst_ref);
+      (* definitions *)
+      ((=) "ModuleNodeRef", mkOpdefrefHandlerM "ModuleNodeRef") ;
+      ((=) "UserDefinedOpKindRef", mkOpdefrefHandlerU "UserDefinedOpKindRef")  ;
+      ((=) "BuiltInKindRef",       mkOpdefrefHandlerB "BuiltInKindRef")  ;
+      (* assumptions *)
+      ((=) "AssumeNode", fun i -> MODe_assume (read_assume i));
+      ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
+      (* instances *)
+      ((=) "InstanceNode", fun i -> MODe_instance (read_instance i));
+      (* use_or_hides *)
+      ((=) "UseOrHideNode", fun i -> MODe_use_or_hide (read_useorhide i));
+      (* theorems *)
+      ((=) "TheoremNode", fun i -> MODe_theorem (read_theorem i));
+      ((=) "TheoremNodeRef",
+       fun i -> read_ref i "TheoremNodeRef"
+                         (fun x -> MODe_theorem (THM_ref x)) );
+    ] in
+  get_children_choice i handle_table
 
 and read_module i =
   open_tag i "ModuleNode";
-  let loc = get_child i "location" read_optlocation in
+  let location = get_child i "location" read_optlocation in
   let name = get_data_in i "uniquename" read_string in
-  let read_varconst_ref i = read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x ) in
-  let mkOpdefrefHandlerM name i =
-    read_ref i name (fun x -> OPDef (O_module_instance (MI_ref x))) in
-  let mkOpdefrefHandlerU name i =
-    read_ref i name (fun x -> OPDef (O_user_defined_op (UOP_ref x))) in
-  let mkOpdefrefHandlerB name i =
-    read_ref i name (fun x -> OPDef (O_builtin_op (BOP_ref x))) in
-  let mkAssumerefHandler name i = read_ref i name (fun x -> ASSUME_ref x) in
-  (* print_string name; *)
-  let ropdec name = get_children_in  i name "OpDeclNodeRef" read_varconst_ref in
-  let constants = ropdec "constants" in
-  let variables = ropdec "variables" in
-  let definitions = get_children_choice_in i "definitions" [
-    ((=) "ModuleNodeRef",        mkOpdefrefHandlerM "ModuleNodeRef") ;
-    ((=) "UserDefinedOpKindRef", mkOpdefrefHandlerU "UserDefinedOpKindRef")  ;
-    ((=) "BuiltInKindRef",       mkOpdefrefHandlerB "BuiltInKindRef")  ;
-  ]
-  in
-  let assumptions = get_children_choice_in i "assumptions" [
-    ((=) "AssumeNode", read_assume);
-    ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
-  ]
-  in
-  let theorems = get_children_choice_in i "theorems" [
-    ((=) "TheoremNode", read_theorem);
-    ((=) "TheoremNodeRef", fun i -> read_ref i "TheoremNodeRef"
-      (fun x -> THM_ref x) );
-  ]
-  in
+  let module_entries = read_module_entries i in
   let ret = MOD {
-    location     = loc;
-    name         = name;
-    constants    = constants;
-    variables    = variables;
-    definitions  = definitions;
-    assumptions  = assumptions;
-    theorems     = theorems;
+    location;
+    name;
+    module_entries;
   } in
   close_tag i "ModuleNode";
   ret

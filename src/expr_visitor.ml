@@ -21,6 +21,7 @@ object
   method bounded_bound_symbol   : 'a -> bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol -> 'a
   method mule            : 'a -> mule -> 'a
+  method mule_entry      : 'a -> mule_entry -> 'a
   method formal_param    : 'a -> formal_param -> 'a
   method op_decl         : 'a -> op_decl -> 'a
   method op_def          : 'a -> op_def -> 'a
@@ -138,15 +139,10 @@ end
 
    method mule acc0 = function
    | MOD_ref i -> self#reference acc0 i
-   | MOD {name; location; constants; variables;
-          definitions; assumptions; theorems; } ->
+   | MOD {name; location; module_entries } ->
      let acc0a = self#name acc0 name in
      let acc1 = self#location acc0a location in
-     let acc2 = List.fold_left self#op_decl acc1 constants in
-     let acc3 = List.fold_left self#op_decl acc2 variables in
-     let acc4 = List.fold_left self#op_def acc3 definitions in
-     let acc5 = List.fold_left self#assume acc4 assumptions in
-     let acc = List.fold_left self#theorem acc5 theorems in
+     let acc = List.fold_left self#mule_entry acc1 module_entries in
      acc
 
    method op_arg acc0 {location; level; argument } =
@@ -400,4 +396,12 @@ end
    | FMOTA_theorem x -> self#theorem acc x
    | FMOTA_assume  x -> self#assume acc x
    | FMOTA_ap_subst_in x -> self#ap_subst_in acc x
+
+   method mule_entry acc = function
+     | MODe_op_decl x     -> self#op_decl acc x
+     | MODe_op_def x      -> self#op_def acc x
+     | MODe_assume x      -> self#assume acc x
+     | MODe_theorem x     -> self#theorem acc x
+     | MODe_instance x    -> self#instance acc x
+     | MODe_use_or_hide x -> self#use_or_hide acc x
  end

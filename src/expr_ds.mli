@@ -535,6 +535,14 @@ type node =
      domain            : expr
    }
 
+and mule_entry =
+  | MODe_op_decl of op_decl
+  | MODe_op_def of op_def
+  | MODe_assume of assume
+  | MODe_theorem of theorem
+  | MODe_use_or_hide of use_or_hide
+  | MODe_instance of instance
+                             
  (* modules *)
  and mule =
    | MOD_ref of int
@@ -543,11 +551,7 @@ type node =
  and mule_ = {
      name              : string;
      location          : location;
-     constants         : op_decl list;
-     variables         : op_decl list;
-     definitions       : op_def list ;
-     assumptions       : assume list ;
-     theorems          : theorem list ;
+     module_entries    : mule_entry list;
    }
 
 type entry =

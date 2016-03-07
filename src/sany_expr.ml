@@ -11,18 +11,8 @@ open Expr_ds
 open Expr_builtins
 open Commons
 open Any_expr
-(*
-type dentry = {
- fp    : (int * formal_param_) list;
- m     : (int * mule_)  list;
- opd   : (int * op_def_) list;
- opdec : (int * op_decl_) list;
- t     : (int * theorem_) list;
- a     : (int * assume_) list;
- aps   : (int * ap_subst_in) list;
- }
- *)
 
+(* TODO: unify with any_expr *)
 let unfold_assumption (Any_assume x) = x
 let unfold_assume_prove (Any_assume_prove x) = x
 let unfold_bs (Any_bound_symbol s) = s
@@ -33,6 +23,7 @@ let unfold_e_o (Any_expr_or_op_arg e) = e
 let unfold_fact  (Any_expr_or_module_or_module_instance x) = x
 let unfold_formal_param (Any_formal_param x) = x
 let unfold_module (Any_mule x) = x
+let unfold_module_entry (Any_mule_entry x) = x
 let unfold_new_symb (Any_new_symb x) = x
 let unfold_od_t_a (Any_op_def_or_theorem_or_assume x) = x
 let unfold_op_decl (Any_op_decl x) = x
@@ -41,6 +32,14 @@ let unfold_theorem (Any_theorem x) = x
 let unfold_steps  (Any_step x) = x
 let unfold_subst (Any_subst x) = x
 
+(** Sets the anyExpr of the first argument to the one given as second. *)
+let set_anyexpr (_,acc) any = (any,acc)
+
+(** This is an any_extractor which extracts the anyExpr from the macc first. *)
+class ['b] macc_extractor = object
+  inherit [(anyExpr * 'b)] any_extractor
+  method extract = fst
+end
 
 
 type builtin_store = (int * builtin_op) list
@@ -146,7 +145,10 @@ let check_suffices entries = function
  internal datastructure.
  *)
 class converter = object(self)
-inherit [anyExpr * (builtin_store * Sany_ds.entry list)] Sany_visitor.visitor as super
+  inherit [anyExpr * (builtin_store * Sany_ds.entry list)]
+            Sany_visitor.visitor as super
+
+  val macc_extract = new macc_extractor
 
 method node acc = function
   | Sany_ds.N_ap_subst_in x  ->
@@ -332,28 +334,14 @@ method formal_param acc0 = function
 method mule acc0 = function
   | Sany_ds.MOD_ref i ->
      (Any_mule (MOD_ref i), snd acc0)
-  | Sany_ds.MOD { Sany_ds.name; location; constants; variables;
-                  definitions; assumptions; theorems; } ->
+  | Sany_ds.MOD { Sany_ds.name; location; module_entries } ->
      let Any_location location, acc1 = self#location acc0 location in
-     let constants, acc2 =
-       fold self#op_decl (Nothing, acc1) constants unfold_op_decl in
-     let variables, acc3 =
-       fold self#op_decl (Nothing, acc2) variables unfold_op_decl in
-     let definitions, acc4 =
-       fold self#op_def (Nothing, acc3) definitions unfold_op_def in
-     let assumptions, acc5 =
-       fold self#assume (Nothing, acc4) assumptions unfold_assumption in
-     let theorems, acc =
-       fold self#theorem (Nothing, acc5) theorems unfold_theorem in
-     let m = MOD {
-             name ;
-             location ;
-             constants ;
-             variables ;
-             definitions ;
-             assumptions ;
-             theorems ;
-             } in
+     let module_entries, acc =
+       fold self#mule_entry (Nothing, acc1) module_entries unfold_module_entry in
+     let m = MOD { name ;
+                   location ;
+                   module_entries;
+                 } in
      (Any_mule m, acc)
 
 method op_arg acc0 { Sany_ds.location; level; argument } =
@@ -826,6 +814,32 @@ method fmota acc = function
   | Sany_ds.FMOTA_ap_subst_in x ->
      let Any_ap_subst_in y, acc0 = self#ap_subst_in acc x in
      (Any_operator (FMOTA_ap_subst_in y), acc0)
+
+method mule_entry acc = function
+  | Sany_ds.MODe_op_decl x     ->
+     let acc = self#op_decl acc x in
+     let r = MODe_op_decl (macc_extract#op_decl acc) in
+     set_anyexpr acc (Any_mule_entry r)
+  | Sany_ds.MODe_op_def x      ->
+     let acc = self#op_def acc x in
+     let r = MODe_op_def (macc_extract#op_def acc) in
+     set_anyexpr acc (Any_mule_entry r)
+  | Sany_ds.MODe_assume x      ->
+     let acc = self#assume acc x in
+     let r = MODe_assume (macc_extract#assume acc) in
+     set_anyexpr acc (Any_mule_entry r)
+  | Sany_ds.MODe_theorem x     ->
+     let acc = self#theorem acc x in
+     let r = MODe_theorem (macc_extract#theorem acc) in
+     set_anyexpr acc (Any_mule_entry r)
+  | Sany_ds.MODe_instance x    ->
+     let acc = self#instance acc x in
+     let r = MODe_instance (macc_extract#instance acc) in
+     set_anyexpr acc (Any_mule_entry r)
+  | Sany_ds.MODe_use_or_hide x ->
+     let acc = self#use_or_hide acc x in
+     let r = MODe_use_or_hide (macc_extract#use_or_hide acc) in
+     set_anyexpr acc (Any_mule_entry r)
 end
 
 (* The implementation of the public interface *)
