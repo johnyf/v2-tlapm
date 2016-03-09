@@ -252,7 +252,10 @@
     <xs:complexType>
       <xs:sequence>
         <xs:group ref="node"/>
-        <xs:element ref="uniquename"/>
+        <xs:sequence>
+          <xs:element minOccurs="0" maxOccurs="1" ref="uniquename"/>
+        </xs:sequence>
+        <xs:element name="module" type="xs:string"/>
         <xs:element name="substs">
           <xs:complexType>
             <xs:sequence>

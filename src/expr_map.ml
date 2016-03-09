@@ -432,17 +432,26 @@ inherit ['a macc] visitor as super
      } in
      set_anyexpr acc r
 
-   method instance acc0 {location; level; name; substs; params; } =
+   method instance acc0 {location; level; name; module_name; substs; params; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-     let substs, acc4 = unpack_fold id_extract#subst self#subst acc3 substs in
+     let acc3 = match name with
+       | None -> acc2
+       | Some name -> self#name acc2 name
+     in
+     let acc4 = self#name acc3 module_name in
+     let name =  match name with
+       | None -> None
+       | Some _ -> Some (macc_extract#name acc3)
+     in
+     let substs, acc5 = unpack_fold id_extract#subst self#subst acc4 substs in
      let params, acc = unpack_fold id_extract#formal_param
-                                   self#formal_param acc4 params in
+                                   self#formal_param acc5 params in
      let r = Any_instance {
              location = macc_extract#location acc1;
              level = macc_extract#level acc2;
-             name = macc_extract#name acc3;
+             name;
+             module_name = macc_extract#name acc4;
              substs;
              params;
              } in

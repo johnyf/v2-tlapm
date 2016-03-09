@@ -75,7 +75,8 @@ and subst_in = {
 and instance = {
   location          : location option;
   level             : level option;
-  name              : string;
+  name              : string option;
+  module_name       : string;
   substs            : subst list;
   params            : formal_param list
 }

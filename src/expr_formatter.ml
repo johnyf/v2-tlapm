@@ -530,8 +530,14 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "INSTANCE ";
-    let acc3 = self#name acc2 name in
-    fprintf (ppf acc2) " == ";
+    let acc3 = match name with
+      | Some name ->
+         let acc3a = self#name acc2 name in
+         fprintf (ppf acc3a) " == ";
+         acc3a
+      | None ->
+         acc2
+    in
     let acc4 = List.fold_left self#subst acc3 substs in
     let acc = List.fold_left self#formal_param acc4 params in
     ppf_newline acc;

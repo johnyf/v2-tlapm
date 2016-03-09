@@ -497,13 +497,13 @@ method use_or_hide acc0 {  Sany_ds.location; level;
   let uoh = { location ; level ; facts ; defs ; only ; hide ; } in
   (Any_use_or_hide uoh, acc)
 
-method instance acc0 {Sany_ds.location; level; name; substs; params; } =
+method instance acc0 {Sany_ds.location; level; name; module_name; substs; params; } =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level, acc2 = self#level (Nothing, acc1) level in
   let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_subst in
   let params, acc =
     fold self#formal_param (Nothing, acc3) params unfold_formal_param in
-  let i = {         location ; level ; name ; substs ; params ; }  in
+  let i = { location ; level ; name ; module_name; substs ; params ; }  in
   (Any_instance i, acc)
 
 method subst acc0 { Sany_ds.op; expr } =

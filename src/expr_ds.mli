@@ -116,7 +116,8 @@ type node =
  and instance = {
      location          : location;
      level             : level option;
-     name              : string;
+     name              : string option;
+     module_name       : string;
      substs            : subst list;
      params            : formal_param list
    }

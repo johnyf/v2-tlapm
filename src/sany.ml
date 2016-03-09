@@ -369,18 +369,26 @@ and read_instance i  =
   open_tag i "InstanceNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let name  = get_data_in i "uniquename" read_string in
+  let get_uname i = get_data_in i "uniquename" read_string in
+  let name  =
+    match get_optchild i "uniquename" get_uname with
+    | [] -> None
+    | [child] -> Some child
+    | _ -> failwith "Implementation error in get_optchild!"
+  in
+  let module_name  = get_data_in i "module" read_string in
   let substs = get_children_in i "substs" "Subst" read_subst in
   let params = get_children_in i "params" "FormalParamNodeRef"
     (fun i-> read_ref i "FormalParamNodeRef" (fun x -> FP_ref x))
   in
   close_tag i "InstanceNode";
   {
-    location = location;
-    level    = level;
-    name     = name;
-    substs   = substs;
-    params   = params;
+    location;
+    level;
+    name;
+    module_name;
+    substs;
+    params;
   }
 
 and is_node name = is_expr_node name || is_proof_node name || (List.mem name

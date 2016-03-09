@@ -198,12 +198,16 @@ end
        self#user_defined_op_or_module_instance_or_theorem_or_assume acc3 defs in
      acc
 
-   method instance acc0 {location; level; name; substs; params; } =
+   method instance acc0 {location; level; name; module_name; substs; params; } =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = self#name acc2 name in
-     let acc4 = List.fold_left self#subst acc3 substs in
-     let acc = List.fold_left self#formal_param acc4 params in
+     let acc3 = match name with
+       | None -> acc2
+       | Some name -> self#name acc2 name
+     in
+     let acc4 = self#name acc3 module_name in
+     let acc5 = List.fold_left self#subst acc4 substs in
+     let acc = List.fold_left self#formal_param acc5 params in
      acc
 
    method subst acc0 { op; expr } =
