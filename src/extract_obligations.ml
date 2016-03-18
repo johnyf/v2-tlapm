@@ -123,11 +123,11 @@ let cc_stack_size acc =
   length (get_cc acc)
 
 let cc_push cc acc =
-  Printf.printf "Push! %d\n" (cc_stack_size acc);
+  (*  Printf.printf "Push! %d\n" (cc_stack_size acc); *)
   update_cc acc (cc::(get_cc acc))
 
 let cc_pop acc =
-  Printf.printf "Pop! %d\n" (cc_stack_size acc);
+  (* Printf.printf "Pop! %d\n" (cc_stack_size acc); *)
   match get_cc acc with
   | [] -> failwith "Trying to pop an empty stack!"
   | x::xs -> (x, update_cc acc xs)
@@ -612,6 +612,7 @@ object(self)
     let acc0 = cc_replace new_cc acc in
     let acc1 = fold_left self#mule acc0 modules in
     Printf.printf "size of stack in the end: %d\n" (length (get_cc acc1));
+    (*
     fold_left (fun i cc ->
                Printf.printf "(%d) known theorems:\n" i;
                map (fun (t : theorem) ->
@@ -626,5 +627,6 @@ object(self)
                    ) cc.theorems;
                i+1
               ) 1 (get_cc acc1);
+     *)
     acc1
 end

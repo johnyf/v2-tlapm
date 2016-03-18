@@ -568,6 +568,8 @@ THEOREM Refinement == Spec => C!Spec
 
 =============================================================================
 \* Modification History
+\* Last modified Wed Mar 09 19:36:07 CET 2016 by marty
+\* Last modified Wed Mar 09 18:42:26 CET 2016 by marty
 \* Last modified Fri Nov 28 10:39:17 PST 2014 by lamport
 \* Last modified Sun Nov 23 14:45:09 PST 2014 by lamport
 \* Last modified Mon Nov 24 02:03:02 CET 2014 by merz

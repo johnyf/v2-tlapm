@@ -30,7 +30,7 @@ let unfold_op_decl (Any_op_decl x) = x
 let unfold_op_def (Any_op_def x) = x
 let unfold_theorem (Any_theorem x) = x
 let unfold_steps  (Any_step x) = x
-let unfold_subst (Any_subst x) = x
+let unfold_instantiation (Any_instantiation x) = x
 
 (** Sets the anyExpr of the first argument to the one given as second. *)
 let set_anyexpr (_,acc) any = (any,acc)
@@ -500,7 +500,7 @@ method use_or_hide acc0 {  Sany_ds.location; level;
 method instance acc0 {Sany_ds.location; level; name; module_name; substs; params; } =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level, acc2 = self#level (Nothing, acc1) level in
-  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_subst in
+  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_instantiation in
   let params, acc =
     fold self#formal_param (Nothing, acc3) params unfold_formal_param in
   let i = { location ; level ; name ; module_name; substs ; params ; }  in
@@ -511,7 +511,7 @@ method subst acc0 { Sany_ds.op; expr } =
   let Any_expr_or_op_arg expr, acc =
     self#expr_or_op_arg (Nothing, acc1) expr in
   let s = { op = op; expr = expr; } in
-  (Any_subst s, acc)
+  (Any_instantiation s, acc)
 
 method assume_prove acc0 { Sany_ds.location; level; assumes;
                            prove; suffices; boxed; } =
@@ -572,7 +572,7 @@ method subst_in acc0 ({ Sany_ds.location; level;
                         substs; body } : Sany_ds.subst_in) =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_subst in
+  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_instantiation in
   let Any_expr body,         acc = self#expr (Nothing, acc3) body in
   let s = ({ location; level; substs; body } : subst_in) in
   (Any_subst_in s, acc)
@@ -597,7 +597,7 @@ method ap_subst_in acc0 ({ Sany_ds.location;
                            level; substs; body } : Sany_ds.ap_subst_in) =
   let Any_location location, acc1 = self#location acc0 location in
   let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_subst in
+  let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_instantiation in
   let Any_node body, acc = self#node (Nothing, acc3) body in
   let ap = ({ location; level; substs; body } : ap_subst_in) in
   (Any_ap_subst_in ap, acc)

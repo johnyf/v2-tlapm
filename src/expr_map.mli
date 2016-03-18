@@ -88,7 +88,7 @@ class ['a] expr_map : object
   method step            : 'a macc -> step -> 'a macc
   method instance        : 'a macc -> instance -> 'a macc
   method use_or_hide     : 'a macc -> use_or_hide -> 'a macc
-  method subst           : 'a macc -> subst -> 'a macc
+  method instantiation   : 'a macc -> instantiation -> 'a macc
   method label           : 'a macc -> label -> 'a macc
   method let_in          : 'a macc -> let_in -> 'a macc
   method subst_in        : 'a macc -> subst_in -> 'a macc

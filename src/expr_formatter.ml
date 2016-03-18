@@ -538,12 +538,12 @@ object(self)
       | None ->
          acc2
     in
-    let acc4 = List.fold_left self#subst acc3 substs in
+    let acc4 = List.fold_left self#instantiation acc3 substs in
     let acc = List.fold_left self#formal_param acc4 params in
     ppf_newline acc;
     acc
 
-  method subst acc0 { op; expr } =
+  method instantiation acc0 { op; expr } =
     let acc1 = self#op_decl acc0 op in
     fprintf (ppf acc1) " <- ";
     let acc = self#expr_or_op_arg acc1 expr in
@@ -604,7 +604,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "subst(";
-    let acc3 = List.fold_left self#subst acc2 substs in
+    let acc3 = List.fold_left self#instantiation acc2 substs in
     fprintf (ppf acc3) ")(";
     let acc = self#expr acc3 body in
     fprintf (ppf acc3) ")";
@@ -626,7 +626,7 @@ object(self)
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     fprintf (ppf acc2) "apsubstin(";
-    let acc3 = List.fold_left self#subst acc2 substs in
+    let acc3 = List.fold_left self#instantiation acc2 substs in
     fprintf (ppf acc3) ")(";
     let acc = self#node acc3 body in
     fprintf (ppf acc) ")";

@@ -47,7 +47,8 @@ object
   method step            : 'a -> step -> 'a
   method instance        : 'a -> instance -> 'a
   method use_or_hide     : 'a -> use_or_hide -> 'a
-  method subst           : 'a -> subst -> 'a
+  method instantiation   : 'a -> instantiation -> 'a
+  (*  method subst           : 'a -> subst -> 'a *)
   method label           : 'a -> label -> 'a
   method let_in          : 'a -> let_in -> 'a
   method subst_in        : 'a -> subst_in -> 'a

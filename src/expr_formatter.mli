@@ -41,7 +41,8 @@ object
   method step            : fc -> step -> fc
   method instance        : fc -> instance -> fc
   method use_or_hide     : fc -> use_or_hide -> fc
-  method subst           : fc -> subst -> fc
+  method instantiation   : fc -> instantiation -> fc
+  (*  method subst           : fc -> subst -> fc *)
   method label           : fc -> label -> fc
   method let_in          : fc -> let_in -> fc
   method subst_in        : fc -> subst_in -> fc

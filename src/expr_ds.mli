@@ -89,13 +89,14 @@ type node =
    | EO_op_arg of op_arg
 
  (** An instantiation of an ASSUME - PROVE expression. Other
-    nodes are also allowed.
-    (TODO: check the SANY implementation if this can be narrowed down)
+    nodes are also allowed in SANY although it is only inteded to be used
+    with ASSUME - PROVE.
+    (TODO: check the SANY implementation what is really generated)
   *)
  and ap_subst_in = {
      location          : location;
      level             : level option;
-     substs            : subst list;
+     substs            : instantiation list;
      body              : node
    }
 
@@ -106,7 +107,7 @@ type node =
  and subst_in = {
      location          : location;
      level             : level option;
-     substs            : subst list;
+     substs            : instantiation list;
      body              : expr
    }
 
@@ -118,14 +119,48 @@ type node =
      level             : level option;
      name              : string option;
      module_name       : string;
-     substs            : subst list;
+     substs            : instantiation list;
      params            : formal_param list
    }
 
- (** A substitution of an operator by an expression. Used
-   in subst_in and ap_subst_in.
+ (** An instantiation replaces rigid or flexible variables (both of type op_decl)
+     by an expression. In contrast to a substitution of a formal parameter,
+     instantiation must preserve the validity of the formula. This is visible
+     when it is applied to an operator argument without the Leibniz property
+     like ENABLED.
+
+     E.g.:
+     Suppose the module Foo defines:
+
+      VARIABLE x
+
+      Itchy == ENABLED (x # x')
+
+      Scratchy(u) == ENABLED (u # u')
+
+     Then we instantiate Foo in the module Bar:
+
+      VARIABLE u
+
+      INSTANCE I == Foo with x <- u
+
+     The expression I!Itchy is supposed be equivalent to
+
+       ENABLED( u # up')
+
+     where up is a fresh variable.
+
+     At the same time, I!Scratchy(u) is supposed be equivalent to:
+
+       ENABLED( u # u')
+
+     Remark: instantiations are used with instance, subst_in and ap_subst_in.
+             substitutions are used when reducing lambda expressions,
+             unfolding definitions and creating instances of quantifiers
+             (e.g. in universal elimination where from \A x:P(x) we deduce
+                   P(t) )
   *)
- and subst = {
+ and instantiation = {
      op                : op_decl;
      expr              : expr_or_op_arg
    }
@@ -177,17 +212,6 @@ type node =
  and pick = {
      variables : bound_symbol list;
      formula  : expr;
-   }
-
- and theorem_def =
-   | THMDef_ref of int
-   | THMDef of theorem_def_
-
- and theorem_def_ = {
-     location : location;
-     level : level option;
-     name : string option;
-     expr : assume_prove;
    }
 
  (** The ASSUME ... PROVE statement of TLA.
@@ -319,7 +343,7 @@ type node =
   *)
  and formal_param_ = {
      location          : location;
-     level             : level option;
+     level             : level option; (* \A x : x = x' is provable because of the level of x. make sure the level is checked *)
      name              : string;
      arity             : int
    }
@@ -543,7 +567,7 @@ and mule_entry =
   | MODe_theorem of theorem
   | MODe_use_or_hide of use_or_hide
   | MODe_instance of instance
-                             
+
  (* modules *)
  and mule =
    | MOD_ref of int
