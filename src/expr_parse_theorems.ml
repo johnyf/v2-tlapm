@@ -166,3 +166,12 @@ method context acc { root_module; entries; modules } =
   let acc1 = set_tdb acc (Some entries) in
   super#context acc1 {root_module; entries; modules }
 end
+
+let instance = new expr_parse_theorems
+
+let expr_parse_theorems_context context =
+  let me = instance#get_macc_extractor in
+  let init_acc = (Any_context context, (Some context.entries,[])) in
+  let acc = instance#context init_acc context in
+  let context = me#context acc in
+  context

@@ -75,7 +75,7 @@ let print_cc formatter {goal; usable_facts; expanded_defs; term_db;
   );
   ()
  *)
-             
+
 (* type representing if a proof step creates a context for a subproof (inner),
    the global proof (outer) or both *)
 type step_context_type =
@@ -630,3 +630,9 @@ object(self)
      *)
     acc1
 end
+
+let extract_obligations_context context =
+  let instance = new extract_obligations in
+  let iacc = EOAcc ([emptyCurrentContext context.entries], [], Module, ()) in
+  let EOAcc (_, obs, _, _) = instance#context iacc context in
+  obs

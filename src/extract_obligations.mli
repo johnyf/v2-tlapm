@@ -42,3 +42,5 @@ class ['a] extract_obligations :
 object
 inherit ['a eoacc] visitor
 end
+
+val extract_obligations_context : context -> obligation list
