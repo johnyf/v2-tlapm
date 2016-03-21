@@ -290,7 +290,7 @@ object(self)
                     ] in
     match cc.goal with
     | Some ccgoal ->
-       printf "Obl %s" (format_location by.location);
+       (* printf "Obl %s" (format_location by.location); *)
        let obligation = {
            goal = { ccgoal with assumes = append assumes ccgoal.assumes };
            expanded_defs;
@@ -535,10 +535,11 @@ object(self)
     let no_oldobs = length (get_obligations acc) in
     let no_newobs = length (get_obligations racc) in
     if (no_newobs < no_oldobs) then failwith "lost obligations!";
-    Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
+(*    Printf.printf "no of obs: %d delta %d\n" no_newobs (no_newobs - no_oldobs);
     Printf.printf "no of usable facts in acc %d and in racc %d\n"
                   (length (cc_peek acc).usable_facts )
                   (length (cc_peek racc).usable_facts );
+ *)
     decrease_nesting racc
 
 
@@ -611,8 +612,10 @@ object(self)
     let new_cc = { old_cc with term_db = entries } in
     let acc0 = cc_replace new_cc acc in
     let acc1 = fold_left self#mule acc0 modules in
-    Printf.printf "size of stack in the end: %d\n" (length (get_cc acc1));
-    (*
+    (* Printf.printf "size of stack in the end: %d\n" (length (get_cc acc1)); *)
+    match length (get_cc acc1) with
+        | 1 ->
+           (*
     fold_left (fun i cc ->
                Printf.printf "(%d) known theorems:\n" i;
                map (fun (t : theorem) ->
@@ -627,8 +630,11 @@ object(self)
                    ) cc.theorems;
                i+1
               ) 1 (get_cc acc1);
-     *)
-    acc1
+            *)
+           acc1
+        | _ ->
+           failwith_msg mkDummyLocation
+                        "Obligation extraction: Unbalanced pushes/pops"
 end
 
 let extract_obligations_context context =
