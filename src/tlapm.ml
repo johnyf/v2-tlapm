@@ -4,7 +4,6 @@ open Obligation
 open Extract_obligations
 open Format
 open Expr_simple
-
 (*
 module Clocks = struct
   include Timing
