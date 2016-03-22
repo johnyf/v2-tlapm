@@ -444,7 +444,8 @@ inherit ['a macc] visitor as super
        | None -> None
        | Some _ -> Some (macc_extract#name acc3)
      in
-     let substs, acc5 = unpack_fold id_extract#subst self#subst acc4 substs in
+     let substs, acc5 = unpack_fold id_extract#instantiation
+                                    self#instantiation acc4 substs in
      let params, acc = unpack_fold id_extract#formal_param
                                    self#formal_param acc5 params in
      let r = Any_instance {
@@ -457,10 +458,10 @@ inherit ['a macc] visitor as super
              } in
      set_anyexpr acc r
 
-   method subst acc0 { op; expr } =
+   method instantiation acc0 { op; expr } =
      let acc1 = self#op_decl acc0 op in
      let acc = self#expr_or_op_arg acc1 expr in
-     let r = Any_subst {
+     let r = Any_instantiation {
              op = macc_extract#op_decl acc1 ;
              expr = macc_extract#expr_or_op_arg acc ;
      } in
@@ -523,7 +524,8 @@ inherit ['a macc] visitor as super
    method subst_in acc0 ({ location; level; substs; body } : subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let substs, acc3 = unpack_fold id_extract#subst self#subst acc2 substs in
+     let substs, acc3 = unpack_fold id_extract#instantiation
+                                    self#instantiation acc2 substs in
      let acc = self#expr acc3 body in
      let r = Any_subst_in {
              location = macc_extract#location acc1;
@@ -554,7 +556,8 @@ inherit ['a macc] visitor as super
    method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let substs, acc3 = unpack_fold id_extract#subst self#subst acc2 substs in
+     let substs, acc3 = unpack_fold id_extract#instantiation
+                                    self#instantiation acc2 substs in
      let acc = self#node acc3 body in
      let r = Any_ap_subst_in {
              location = macc_extract#location acc1;

@@ -1,4 +1,5 @@
 open Expr_ds
+open Expr_visitor
 
 let entry_error str =
   "Tried to unpack a " ^ str ^ " entry, but it isn't one."
@@ -64,11 +65,22 @@ let extract_level expr =
 
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_prove_from_expr suffices expr =  {
-location = extract_location expr;
-level = extract_level expr;
-assumes = [];
-new_symbols = [];
-prove = expr;
-suffices;
-boxed = false; (* TODO: check if this is true *)
-}
+    location = extract_location expr;
+    level = extract_level expr;
+    assumes = [];
+    new_symbols = [];
+    prove = expr;
+    suffices;
+    boxed = false; (* TODO: check if this is true *)
+  }
+
+class free_variables_visitor = object
+  inherit [op_decl list] visitor as super
+
+  method op_decl acc opd =
+    super#op_decl (opd::acc) opd
+end
+
+let fv_object = new free_variables_visitor
+
+let free_variables = fv_object#expr []

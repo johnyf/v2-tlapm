@@ -12,11 +12,11 @@ method expr acc = function
 
 (* *)
 method expr_or_op_arg acc eo = match eo with
-| EO_op_arg ({ location; level; argument  } as eoi ) ->
+| EO_op_arg ({ location; level; argument  }  ) ->
    ( match argument with
      | FMOTA_op_def
        (O_user_defined_op
-        (UOP ({location; level; name="LAMBDA"; arity; body; params;} as uop))) ->
+        (UOP ({location; level; name="LAMBDA"; arity; body; params;} ))) ->
         (* remark: LAMBDA is a keyword, there are no real user
            definitions called like that *)
         (* Printf.printf "replacing a lambda at %s %s!\n"
@@ -36,3 +36,11 @@ method expr_or_op_arg acc eo = match eo with
    )
 | _ -> super#expr_or_op_arg acc eo
 end
+
+let instance = new correct_lambda
+
+let correct_lambda_context context =
+  let me = instance#get_macc_extractor in
+  let macc = instance#context (Nothing, []) context in
+  let c = me#context macc in
+  c

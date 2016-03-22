@@ -13,7 +13,8 @@ type anyExpr =
   | Any_ap_subst_in of ap_subst_in
   | Any_subst_in of subst_in
   | Any_instance of instance
-  | Any_subst of subst
+  | Any_instantiation of instantiation
+  (*  | Any_subst of subst *)
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_theorem of theorem
@@ -78,7 +79,7 @@ let format_anyexpr = function
   | Any_ap_subst_in _ -> "ap_subst_in"
   | Any_subst_in _ -> "subst_in"
   | Any_instance _ -> "instance"
-  | Any_subst _ -> "subst"
+  | Any_instantiation _ -> "instantiation"
   | Any_assume _ -> "assume"
   | Any_assume_ _ -> "assume_"
   | Any_theorem _ -> "theorem"
@@ -264,8 +265,8 @@ class ['a] any_extractor = object(self)
   method subst_in acc =
     match self#extract acc with Any_subst_in x -> x
                               | _ -> failwith (self#fmt acc)
-  method subst acc =
-    match self#extract acc with Any_subst x -> x
+  method instantiation acc =
+    match self#extract acc with Any_instantiation x -> x
                               | _ -> failwith (self#fmt acc)
   method theorem acc =
     match self#extract acc with Any_theorem x -> x

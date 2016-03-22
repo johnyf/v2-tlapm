@@ -34,13 +34,12 @@ object
   method module_instance : 'a -> module_instance -> 'a
   method builtin_op      : 'a -> builtin_op -> 'a
   method user_defined_op : 'a -> user_defined_op -> 'a
-  (*  (* does not exist enymore in expr, only in sany *)
-   method expr_or_assume_prove : 'a -> expr_or_assume_prove -> 'a  *)
   method proof           : 'a -> proof -> 'a
   method step            : 'a -> step -> 'a
   method instance        : 'a -> instance -> 'a
   method use_or_hide     : 'a -> use_or_hide -> 'a
-  method subst           : 'a -> subst -> 'a
+  method instantiation   : 'a -> instantiation -> 'a
+  (*  method subst           : 'a -> subst -> 'a *)
   method label           : 'a -> label -> 'a
   method let_in          : 'a -> let_in -> 'a
   method subst_in        : 'a -> subst_in -> 'a
@@ -240,11 +239,11 @@ end
        | Some name -> self#name acc2 name
      in
      let acc4 = self#name acc3 module_name in
-     let acc5 = List.fold_left self#subst acc4 substs in
+     let acc5 = List.fold_left self#instantiation acc4 substs in
      let acc = List.fold_left self#formal_param acc5 params in
      acc
 
-   method subst acc0 { op; expr } =
+   method instantiation acc0 { op; expr } =
      let acc1 = self#op_decl acc0 op in
      let acc = self#expr_or_op_arg acc1 expr in
      acc
@@ -280,7 +279,7 @@ end
    method subst_in acc0 ({ location; level; substs; body } : subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#subst acc2 substs in
+     let acc3 = List.fold_left self#instantiation acc2 substs in
      let acc = self#expr acc3 body in
      acc
 
@@ -296,7 +295,7 @@ end
    method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
      let acc1 = self#location acc0 location in
      let acc2 = self#level acc1 level in
-     let acc3 = List.fold_left self#subst acc2 substs in
+     let acc3 = List.fold_left self#instantiation acc2 substs in
      let acc = self#node acc3 body in
      acc
 

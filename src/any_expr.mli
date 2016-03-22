@@ -18,7 +18,8 @@ type anyExpr =
   | Any_ap_subst_in of ap_subst_in
   | Any_subst_in of subst_in
   | Any_instance of instance
-  | Any_subst of subst
+  (*  | Any_subst of subst *)
+  | Any_instantiation of instantiation
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_theorem of theorem
@@ -122,7 +123,7 @@ class ['a] any_extractor : object
   method step : 'a -> step
   method strng : 'a -> strng
   method subst_in : 'a -> subst_in
-  method subst : 'a -> subst
+  method instantiation : 'a -> instantiation
   method theorem : 'a -> theorem
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol
   method use_or_hide : 'a -> use_or_hide
