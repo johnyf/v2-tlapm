@@ -315,7 +315,6 @@ object(self)
   method private update_cc_formula acc (thmi:theorem_) assume_prove =
     let cc = cc_peek acc in
     (* TODO: boxed flag might be wrong *)
-    let goal = {assume_prove with assumes = []; } in
     let (vs, cs, acs, ss, ts) =
       fold_left (fun (vs,cs,acs,ss,ts) sym ->
                  let decl = sym.op_decl  in
@@ -333,8 +332,9 @@ object(self)
     let constants = append cc.constants (rev cs) in
     (* TODO: should we extend the context by action and temporal variables? *)
     let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
+    (*    let goal = {assume_prove with assumes = []; } in *)
     let inner_stmt =  (thmi, assume_prove.assumes) in
-    let inner_cc = { cc with goal = Some goal;
+    let inner_cc = { cc with goal = Some assume_prove;
                              constants;
                              variables;
                              thm_statements = inner_stmt :: cc.thm_statements;

@@ -5,6 +5,9 @@ open Extract_obligations
 open Format
 open Nunchaku
 open Simple_obligation_formatter
+open Expr_simple
+open Expr_substitution
+
 (*
 module Clocks = struct
   include Timing
