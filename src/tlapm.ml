@@ -3,8 +3,10 @@ open Tlapm_args
 open Obligation
 open Extract_obligations
 open Format
+     (*
 open Nunchaku
 open Simple_obligation_formatter
+      *)
 open Expr_simple
 open Expr_substitution
 
@@ -149,9 +151,9 @@ let init () =
      let obligations =
        Extract_obligations.extract_obligations_context fixed_theorems in
      (* call nunckaku *)
-     ignore(nunchaku obligations)
+  (*   ignore(nunchaku obligations) *)
   (* print obligations to stdout *)
-     (*
+     
      ignore(
          List.fold_left (fun no obl ->
                          fprintf std_formatter "Obligation %d:\n%a\n\n" no
@@ -159,7 +161,7 @@ let init () =
                          no+1
                         ) 1 obligations
        )
-      *)
+     
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";

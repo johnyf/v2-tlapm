@@ -2,10 +2,23 @@ open Expr_visitor
 open Simple_expr_ds
 open Any_simple_expr
 
-type 'a esacc = ESAcc of Expr_ds.term_db * simple_term_db * 'a
-       
-class ['a] expr_to_simple_expr = object(self)
-  inherit ['a] visitor as super
+(* type 'a esacc = ESAcc of simple_expr * Expr_ds.term_db * simple_term_db * 'a *)
+type esacc = simple_expr
+
+(*	       
+let get_simple (simple_expr,term_db,simple_term_db,any) = simple_expr
+let get_term_db (simple_expr,term_db,simple_term_db,any) = term_db
+let get_simple_term_db (simple_expr,term_db,simple_term_db,any) = simple_term_db
+let get_any (simple_expr,term_db,simple_term_db,any) = any
+						     	 								
+let set_simple (_,term_db,simple_term_db,any) simple_expr = (simple_expr,term_db,simple_term_db,any)
+let set_term_db (simple_expr,_,simple_term_db,any) term_db = (simple_expr,term_db,simple_term_db,any)
+let set_simple_term_db (simple_expr,term_db,_,any) simple_term_db = (simple_expr,term_db,simple_term_db,any)
+let set_any (simple_expr,term_db,simple_term_db,_) any = (simple_expr,term_db,simple_term_db,any)
+ *)
+	       
+class expr_to_simple_expr = object(self)
+  inherit [esacc] visitor as super
 
   (* failsafe against using this on the module / proof level *)
   method context _ _ = failwith "Can not convert full contexts!"
@@ -13,12 +26,12 @@ class ['a] expr_to_simple_expr = object(self)
   method entry _ _ = failwith "Can not convert entries!"
 
   method at acc x = failwith "Remove at first."
-  method decimal acc x = acc
+  method decimal acc x = E_decimal ({mantissa = x.mantissa; exponent = x.exponent}:simple_decimal)
   method label acc x = failwith "Remove first."
   method let_in acc x = failwith "Remove first."
   method numeral acc x = acc
   method op_appl acc x = acc
-  method strng acc x = acc
+  method strng acc x = E_string ({value = x.value}:simple_strng)
   method binder acc x = acc
   method lambda acc x = acc
 

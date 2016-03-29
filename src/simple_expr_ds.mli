@@ -226,8 +226,6 @@ type simple_expr =
    }
 
  and simple_decimal = {
-     location          : location;
-     level             : level option;
      mantissa          : int;
      exponent          : int
    }
@@ -262,8 +260,6 @@ type simple_expr =
    }
 
  and simple_strng = {
-     location          : location;
-     level             : level option;
      value             : string
    }
 
