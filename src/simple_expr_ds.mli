@@ -52,22 +52,22 @@ open Commons
     Example:
     f(1 + "sde")
   *)
-type expr =
-  | E_at of at (* TODO: remove in preprocessing (see @ steps in TLA2-guide) *) 
-  | E_decimal of decimal
-  | E_label of label (* TODO: remove in (see labeling subexpressions in TLA2-guide *)
-  | E_let_in of let_in (* TODO: remove in preprocessing *)
-  | E_numeral of numeral
-  | E_op_appl of op_appl
-  | E_string of strng
-  | E_binder of binder
-  | E_lambda of lambda
+type simple_expr =
+  | E_at of simple_at (* TODO: remove in preprocessing (see @ steps in TLA2-guide) *) 
+  | E_decimal of simple_decimal
+  | E_label of simple_label (* TODO: remove in (see labeling subexpressions in TLA2-guide *)
+  | E_let_in of simple_let_in (* TODO: remove in preprocessing *)
+  | E_numeral of simple_numeral
+  | E_op_appl of simple_op_appl
+  | E_string of simple_strng
+  | E_binder of simple_binder
+  | E_lambda of simple_lambda
 
  (** The union of expressions and operator arguments.
     Used by substitutions and as operand in applications. *)
- and expr_or_op_arg =
-   | EO_expr of expr
-   | EO_op_arg of op_arg
+ and simple_expr_or_op_arg =
+   | EO_expr of simple_expr
+   | EO_op_arg of simple_op_arg
 
 
 
@@ -87,97 +87,97 @@ type expr =
     PROVE
      \E x : P(x)
   *)
- and assume_prove = {
+ and simple_assume_prove = {
      location          : location;
      level             : level option;
-     new_symbols       : new_symb list;
-     assumes           : assume_prove list;
-     prove             : expr;
+     new_symbols       : simple_new_symb list;
+     assumes           : simple_assume_prove list;
+     prove             : simple_expr;
    }
 
  (** The NEW keyword of TLA, optionally with the containing set.
     Example: NEW STATE s \in States
   *)
- and new_symb = {
+ and simple_new_symb = {
      location          : location;
      level             : level option;
-     op_decl           : op_decl;
-     set               : expr option;
+     op_decl           : simple_op_decl;
+     set               : simple_expr option;
    }
 
 
  (** An operator definition, either by instantiating a module,
     a user defined operator or a builtin operator.
   *)
- and op_def =
-   | O_user_defined_op of user_defined_op
-   | O_builtin_op of builtin_op
+ and simple_op_def =
+   | O_user_defined_op of simple_user_defined_op
+   | O_builtin_op of simple_builtin_op
 
 
  (** A user defined operator or a reference to it.
   *)
- and user_defined_op =
+ and simple_user_defined_op =
    | UOP_ref of int (*make it int * string, but makes conversion more complex *)
-   | UOP of user_defined_op_
+   | UOP of simple_user_defined_op_
 
  (** A user defined operator in TLA.
     Example:
     Op(x,y) == ENABLED (x' # y')
   *)
- and user_defined_op_ = {
+ and simple_user_defined_op_ = {
      location          : location;
      level             : level option;
      name              : string;
      arity             : int;
-     body              : expr;
-     params            : formal_param list;
+     body              : simple_expr;
+     params            : simple_formal_param list;
      recursive         : bool;
    }
 
  (** A lambda abstraction. The difference to binders is that it works on formal
     parameters, not variables.
   *)
- and lambda = {
+ and simple_lambda = {
      (*TODO: check if a lambda abstraction has a level*)
      location          : location;
      level             : level option;
      arity             : int;
-     body              : expr;
-     params            : (formal_param * bool (*is leibniz*)) list;
+     body              : simple_expr;
+     params            : (simple_formal_param * bool (*is leibniz*)) list;
    }
 
  (** A builtin operator of TLA. See the TLA book p. 268ff. for a list.
     Each operator is a constant.
     Example: =>, TRUE
   *)
- and builtin_op = {
+ and simple_builtin_op = {
      level             : level option;
      name              : string;
      arity             : int;
-     params            : (formal_param * bool (*is leibniz*)) list
+     params            : (simple_formal_param * bool (*is leibniz*)) list
    }
 
  (** An argument for an operator. Apparently the arity is always >0.
     TODO: check what the difference to a formal parameter is.
   *)
- and op_arg = {
+ and simple_op_arg = {
      location          : location;
      level             : level option;
      (*  name              : string; *)
      (* arity             : int; *)
-     argument          : operator;
+     argument          : simple_operator;
    }
 
  (** A formal parameter or a reference to it.*)
- and formal_param =
+ and simple_formal_param =
    | FP_ref of int
-   | FP of formal_param_
+   | FP of simple_formal_param_
 
  (** Represents arguments of a declared operator.
-    Example: x and y in
+    Example: x and simple_y in
      Op(x,y) = x + y
   *)
- and formal_param_ = {
+ and simple_formal_param_ = {
      location          : location;
      level             : level option; (* \A x : x = x' is provable because of the level of x. make sure the level is checked *)
      name              : string;
@@ -185,16 +185,16 @@ type expr =
    }
 
  (** An operator declaration or a reference to it. *)
- and op_decl =
+ and simple_op_decl =
    | OPD_ref of int
-   | OPD of op_decl_
+   | OPD of simple_op_decl_
 
  (** An operator declaration, including operators introduced by NEW.
     Example:
      VARIABLES x,y
      ASSUME NEW P(_), NEW VARIABLE x PROVE P(x)
   *)
- and op_decl_ = {
+ and simple_op_decl_ = {
      location          : location;
      level             : level option;
      name              : string;
@@ -204,64 +204,64 @@ type expr =
 
 
  (** The union of expressions, modules and module instances. *)
- and expr_or_module_or_module_instance = (* TODO: remove *)
-   | EMM_expr of expr
+ and simple_expr_or_module_or_module_instance = (* TODO: remove *)
+   | EMM_expr of simple_expr
 
  (** An defintion which can be expanded. Either a user defined operator,
     a module instance, a theorem or an assumption.
   *)
- and defined_expr =
-   | UMTA_user_defined_op of user_defined_op
+ and simple_defined_expr =
+   | UMTA_user_defined_op of simple_user_defined_op
 
 
- and op_appl_or_binder =
-   | OB_op_appl of op_appl
-   | OB_binder of binder
+ and simple_op_appl_or_binder =
+   | OB_op_appl of simple_op_appl
+   | OB_binder of simple_binder
 
- and at = {
+ and simple_at = {
      location          : location;
      level             : level option;
-     except            : op_appl_or_binder;
-     except_component  : op_appl_or_binder
+     except            : simple_op_appl_or_binder;
+     except_component  : simple_op_appl_or_binder
    }
 
- and decimal = {
+ and simple_decimal = {
      location          : location;
      level             : level option;
      mantissa          : int;
      exponent          : int
    }
 
- and label = {
+ and simple_label = {
      location          : location;
      level             : level option;
      name              : string;
      arity             : int;
-     body              : assume_prove;
-     params            : formal_param list
+     body              : simple_assume_prove;
+     params            : simple_formal_param list
    }
 
- and op_def_or_theorem_or_assume = (* TODO remove *)
-   | OTA_op_def of op_def
+ and simple_op_def_or_theorem_or_assume = (* TODO remove *)
+   | OTA_op_def of simple_op_def
 
  (** The LET statement of TLA.
     Example:
     LET T == A /\ B IN T => T
   *)
- and let_in = {
+ and simple_let_in = {
      location          : location;
      level             : level option;
-     body              : expr;
-     op_defs           : op_def_or_theorem_or_assume list
+     body              : simple_expr;
+     op_defs           : simple_op_def_or_theorem_or_assume list
    }
 
- and numeral = {
+ and simple_numeral = {
      location          : location;
      level             : level option;
      value             : int
    }
 
- and strng = {
+ and simple_strng = {
      location          : location;
      level             : level option;
      value             : string
@@ -272,16 +272,16 @@ type expr =
    formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst.
    An operator is anything which can have arguments applied.
   *)
- and operator =
-   | FMOTA_formal_param of formal_param
-   | FMOTA_op_decl of op_decl
-   | FMOTA_op_def of op_def
+ and simple_operator =
+   | FMOTA_formal_param of simple_formal_param
+   | FMOTA_op_decl of simple_op_decl
+   | FMOTA_op_def of simple_op_def
 
- and op_appl = {
+ and simple_op_appl = {
      location          : location;
      level             : level option;
-     operator          : operator;
-     operands          : expr_or_op_arg list;
+     operator          : simple_operator;
+     operands          : simple_expr_or_op_arg list;
    }
 
  (**
@@ -289,41 +289,41 @@ type expr =
  \A,\E,\AA,\EE and x is a bound variable. It can be used wherever
  an application is possible.
   *)
- and binder = {
+ and simple_binder = {
      location          : location;
      level             : level option;
-     operator          : operator;
+     operator          : simple_operator;
      (* TODO:  check if we really only need one operand *)
-     operand           : expr_or_op_arg;
-     bound_symbols     : bound_symbol list
+     operand           : simple_expr_or_op_arg;
+     bound_symbols     : simple_bound_symbol list
    }
 
 
- and bound_symbol =
-   | B_unbounded_bound_symbol of unbounded_bound_symbol
-   | B_bounded_bound_symbol of bounded_bound_symbol
+ and simple_bound_symbol =
+   | B_unbounded_bound_symbol of simple_unbounded_bound_symbol
+   | B_bounded_bound_symbol of simple_bounded_bound_symbol
 
- and unbounded_bound_symbol = {
-     param             : formal_param;
+ and simple_unbounded_bound_symbol = {
+     param             : simple_formal_param;
      tuple             : bool
    }
 
- and bounded_bound_symbol = {
-     params            : formal_param list;
+ and simple_bounded_bound_symbol = {
+     params            : simple_formal_param list;
      tuple             : bool;
-     domain            : expr
+     domain            : simple_expr
    }
 
-and mule_entry =
-  | MODe_op_decl of op_decl
-  | MODe_op_def of op_def
+and simple_mule_entry =
+  | MODe_op_decl of simple_op_decl
+  | MODe_op_def of simple_op_def
 
 
-type entry =
-  FP_entry of formal_param_ |
-  OPDec_entry of op_decl_ |
-  OPDef_entry of op_def
+type simple_entry =
+  FP_entry of simple_formal_param_ |
+  OPDec_entry of simple_op_decl_ |
+  OPDef_entry of simple_op_def
 
 
-type term_db = (int * entry) list
+type simple_term_db = (int * simple_entry) list
 

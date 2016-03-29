@@ -22,7 +22,7 @@ opam install oasis xmlm kaputt
 
 To initialize the configuration, call
 
- oasis setup
+ oasis setup ;
  ./configure --enable-tests --enable-debug
 
 in the v2-tlapm base directory. For the actual compilation, the usual

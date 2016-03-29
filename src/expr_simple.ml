@@ -2,7 +2,7 @@ open Expr_visitor
 open Simple_expr_ds
 open Any_simple_expr
 
-type 'a esacc = ESAcc of Expr_ds.term_db * term_db * 'a
+type 'a esacc = ESAcc of Expr_ds.term_db * simple_term_db * 'a
        
 class ['a] expr_to_simple_expr = object(self)
   inherit ['a] visitor as super
