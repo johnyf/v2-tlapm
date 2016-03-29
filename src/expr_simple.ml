@@ -2,10 +2,10 @@ open Expr_visitor
 open Simple_expr_ds
 open Any_simple_expr
 
-type 'a esacc = ESAcc of Expr_ds.term_db * term_db * 'a
+type 'a esacc = ESAcc of Expr_ds.term_db * term_db * anySimpleExpr * 'a
        
 class ['a] expr_to_simple_expr = object(self)
-  inherit ['a] visitor as super
+  inherit ['a esacc] visitor as super
 
   (* failsafe against using this on the module / proof level *)
   method context _ _ = failwith "Can not convert full contexts!"
@@ -39,3 +39,10 @@ class ['a] expr_to_simple_expr = object(self)
 end
 
 
+let parse_expr termdb assume_prove =
+  let converter = new expr_to_simple_expr in
+  let acc = ESAcc (termdb, [], Nothing, () ) in
+  let ESAcc (_, stermdb, Any_assume_prove ap, _) =
+    converter#assume_prove acc assume_prove
+  in
+  (stermdb, ap)

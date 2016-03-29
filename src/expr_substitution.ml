@@ -5,7 +5,8 @@ open Expr_map
 open Expr_utils
 open Expr_dereference
 
-module Subst = struct
+module Subst =
+  struct
     (** substitution of formal parameter by an expression *)
     type subst = Subst of formal_param * expr
     type substs = subst list
@@ -14,34 +15,52 @@ module Subst = struct
     let domain = map (function | Subst (x, y) -> x)
     let range = flat_map free_variables
 
-    let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) = function
+    let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) =
+      function
       | (FP_ref x) as fp ->
          let fpi = dereference_formal_param term_db fp in
          rename term_db ~free ~bound (FP fpi)
       | FP { location; level; name; arity; } ->
          let free_names =
-           map (fun x ->
-                let opdeci = dereference_op_decl term_db x in
-                opdeci.name
-               ) free
+           fold_left (fun x y ->
+                let opdeci = dereference_op_decl term_db y in
+                opdeci.name :: x
+               ) [] free
          in
-         let bound_names =
-           map (fun x ->
-                let fpi = dereference_formal_param term_db x in
-                fpi.name
-               ) bound
+         let fbound_names =
+           fold_left (fun x y ->
+                let fpi = dereference_formal_param term_db y in
+                fpi.name :: x
+               ) free_names bound
          in
-         let rec find_name f b n =
+         let fbdef_names =
+           fold_left
+             (fun x ->
+              function
+              | O_module_instance mi -> x
+              | O_builtin_op op -> op.name :: x
+              | O_user_defined_op op ->
+                 let opi = dereference_user_defined_op term_db op in
+                 opi.name :: x
+             ) fbound_names defs
+         in
+         let rec find_name blacklist n =
            let new_name = name ^ (string_of_int n) in
-           if mem new_name bound_names then
-             find_name f b (n+1)
+           if mem new_name fbdef_names then
+             find_name blacklist (n+1)
            else
-             if mem new_name free_names then
-               find_name f b (n+1)
-             else
-               new_name
+             new_name
          in
-         FP { location; level; name = find_name free_names bound_names 0; arity }
+         FP { location; level;
+              name = find_name fbdef_names 0; arity }
+(*
+    let remove_from_subst fps =
+      let remove_from_subst_ fps =
+        fold_left (fun subs ->
+                   function Subst (fp, expr) ->
+                  )
+      in remove_from_subst_ (map dereference_formal_param fps)
+ *)
   end
 
 type 'a subst_acc = {
@@ -51,10 +70,16 @@ type 'a subst_acc = {
     subclass_acc : 'a;
   }
 
-                      
+
 class ['a] expr_substitution = object
   inherit ['a subst_acc] expr_map as self
-                                       
+
+  method binder acc { location; level; operator; operand; bound_symbols } =
+    let sacc = get_acc acc in
+    let bound_context = append sacc.bound_context bound_symbols in
+    let acc0 = set_acc acc { sacc with bound_context } in
+    acc0
+
   method context acc { entries; modules } =
     let inner_acc = get_acc acc in
     let acc0 = set_acc acc { inner_acc with term_db = entries } in
