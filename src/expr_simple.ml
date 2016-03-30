@@ -29,13 +29,13 @@ class expr_to_simple_expr = object(self)
   method mule _ _ = failwith "Can not convert modules!"
   method entry _ _ = failwith "Can not convert entries!"
 
-  (* failsafe: those operators should be removed during preprocessing *)
+  (** failsafe: those operators should be removed during preprocessing **)
 			      
   method at acc x = failwith "Remove at first."
   method label acc x = failwith "Remove first."
   method let_in acc x = failwith "Remove first."
 
-  (* non recursive expressions *)				 
+  (** non recursive expressions **)				 
 
   method decimal acc x =
     let sx = {
@@ -64,14 +64,13 @@ class expr_to_simple_expr = object(self)
 
   method op_arg acc x = self#operator acc x.argument
 
-  (* recursive expressions *)			   
+  (** recursive expressions **)			   
 				      
   method op_appl acc x =
     let soperator:simple_operator =
       unany#operator
 	(get_any (self#operator acc x.operator))
-    in
-    let soperands:(simple_expr_or_op_arg list) =
+    and soperands:(simple_expr_or_op_arg list) =
       List.map
 	(fun eooa -> unany#expr_or_op_arg
 	   (get_any (self#expr_or_op_arg acc eooa))
@@ -97,9 +96,43 @@ class expr_to_simple_expr = object(self)
        in
        set_any acc (Any_expr_or_op_arg sop_arg)
 
-  method binder acc x = acc (* TODO *)
+  method binder acc x =
+    let soperator:simple_operator =
+      unany#operator (get_any (self#operator acc x.operator))
+    and soperand:simple_expr_or_op_arg =
+      unany#expr_or_op_arg (get_any (self#expr_or_op_arg acc x.operand))
+    and sbs = []
+ (** TODO : Bound_symbols **)
+      (*
+      List.map
+		(fun x -> (unany#bound_symbol (get_any (self#bound_symbol acc x)))
+		x.bound_symbols
+       *)
+    in
+    let sx:simple_binder = {
+	location          = x.location;
+	level             = x.level;
+	operator          = soperator; 
+	operand           = soperand; 
+	bound_symbols     = sbs
+    }
+    in set_any acc (Any_binder sx)
+			  
+  method lambda acc x =
+    let sparams = List.map
+		    (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp)),b))
+		    x.params
+    and sbody = unany#expr (get_any (self#expr acc x.body))
+    in
+    let sx:simple_lambda = {
+	location          = x.location;
+	level             = x.level;
+	arity             = x.arity; 
+	body              = sbody; 
+	params            = sparams
+    }
+    in set_any acc (Any_lambda sx)
 
-  method lambda acc x = acc (* TODO *)
 
   method assume_prove acc x =
     let str = {
@@ -123,8 +156,7 @@ class expr_to_simple_expr = object(self)
       | Some e ->
 	 let se = unany#expr (get_any (self#expr acc e))
 	 in Some se
-    in
-    let sop_decl = unany#op_decl (get_any  (self#op_decl acc x.op_decl)) in
+    and sop_decl = unany#op_decl (get_any  (self#op_decl acc x.op_decl)) in
     let sx = {
 	location          = x.location;
 	level             = x.level;
@@ -134,15 +166,51 @@ class expr_to_simple_expr = object(self)
     in set_any acc (Any_new_symb sx)
 
 			    
-  method op_def acc x = acc
-  method user_defined_op acc x = acc
+  method op_def acc x = match x with
+   | O_module_instance _ -> failwith "Can not convert modules!"
+   | O_user_defined_op udo -> 
+      let sudo = unany#user_defined_op (get_any (self#user_defined_op acc udo))
+      in
+      let sx = O_user_defined_op sudo
+      in set_any acc (Any_op_def sx) 
+   | O_builtin_op bo ->
+      let sbo = unany#builtin_op (get_any (self#builtin_op acc bo))
+      in
+      let sx = O_builtin_op sbo
+      in set_any acc (Any_op_def sx)  
 
-  method builtin_op acc x = acc
-  method formal_param acc x = acc
-  method op_decl acc x = acc
+  method builtin_op acc x =
+    let sparams = List.map
+		    (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp)),b))
+		    x.params
+    in
+    let sx:simple_builtin_op = {
+	level             = x.level;
+	name              = x.name;
+	arity             = x.arity; 
+	params            = sparams
+    }
+    in set_any acc (Any_builtin_op sx)
 
-  method expr_or_module_or_module_instance acc x = acc
-  method expr acc x = acc                              
+  method expr_or_module_or_module_instance acc x = match x with
+   | EMM_expr e -> 
+      let se = unany#expr (get_any (self#expr acc e))
+      in
+      let sx = EMM_expr se
+      in set_any acc (Any_expr_or_module_or_module_instance sx)
+   | _ -> failwith "Can not convert modules!"
+
+		   
+  (** recursive expressions with reference **)
+		   
+  method user_defined_op acc x = acc (*TODO*)
+  method formal_param acc x = acc (*TODO*)
+  method op_decl acc x = acc (*TODO*)
+
+			   
+  (** global expr method **)
+			   
+  method expr acc x = acc                              (*TODO*)
                          
 end
 

@@ -203,10 +203,12 @@ type simple_expr =
    }
 
 
+	 
  (** The union of expressions, modules and module instances. *)
  and simple_expr_or_module_or_module_instance = (* TODO: remove *)
    | EMM_expr of simple_expr
 
+			 
  (** An defintion which can be expanded. Either a user defined operator,
     a module instance, a theorem or an assumption.
   *)
