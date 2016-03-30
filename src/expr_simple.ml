@@ -24,8 +24,7 @@ class expr_to_simple_expr = object(self)
   method label acc x = failwith "Remove first."
   method let_in acc x = failwith "Remove first."
 
-  method decimal acc x = acc
-(*			  
+  method decimal acc x =
     let sx = {
 	location          = x.location;
 	level             = x.level;
@@ -33,44 +32,42 @@ class expr_to_simple_expr = object(self)
 	exponent          = x.exponent
     }
     in set_any acc (Any_decimal sx)
- *)
-  method numeral acc x = acc
-(*
+
+  method numeral acc x = 
     let sx:simple_numeral = {
 	location          = x.location;
 	level             = x.level;
 	value             = x.value;
     }
     in set_any acc (Any_numeral sx)
- *)
+
   method op_appl acc x = failwith "TODO op_appl."
-(*    let sx:simple_op_appl = {
+ (*
+   let sx:simple_op_appl = {
 	location          = x.location;
 	level             = x.level;
         operator          = x.operator; TODO appel récursif
 	operands          = x.operands; TODO appel récursif
     }
     in set_any acc (Any_op_appl sx)
-*)		   
-  method strng acc x = acc
-(*
+ *)		   
+  method strng acc x =
     let sx = {
 	location          = x.location;
 	level             = x.level;
 	value             = x.value;
     }
     in set_any acc (Any_strng sx)
-*)
+
   method binder acc x = acc
   method lambda acc x = acc
 
   method expr_or_op_arg acc x = acc
-  method assume_prove acc x = acc
-(*				
+  method assume_prove acc x =
     let str = {
 	location          = x.location;
 	level             = x.level;
-	value             = "TEST";
+	value             = "TEST - assume_prove";
     }
     in
     let sx = {
@@ -81,7 +78,7 @@ class expr_to_simple_expr = object(self)
 	prove             = E_string (str)
     }
     in set_any acc (Any_assume_prove sx)
-*)
+
   method new_symb acc x = acc
   method op_def acc x = acc
   method user_defined_op acc x = acc
