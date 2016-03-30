@@ -8,6 +8,7 @@ open Simple_obligation_formatter
 open Expr_simple
 open Expr_substitution
 open Simple_obligation
+open Simple_expr_prover_parser
        
 (*
 module Clocks = struct
@@ -161,12 +162,12 @@ let init () =
                          no+1
                         ) 1 obligations
        )
-     
+     *)
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";
      ()
-     *)
+     
 ;;
 
 

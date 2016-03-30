@@ -13,6 +13,5 @@ let nunchaku obligations =
   let fft = formatter_of_out_channel oc in
   let for_each_obligation = print_obl fft in
   ignore(List.fold_left for_each_obligation 1 obligations);
-  close_out
-
+  close_out oc
 		   
