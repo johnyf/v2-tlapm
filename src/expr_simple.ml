@@ -23,7 +23,7 @@ class expr_to_simple_expr = object(self)
 				    
   inherit [esacc] visitor as super
 
-  (* failsafe against using this on the module / proof level *)
+  (** failsafe against using this on the module / proof level **)
 
   method context _ _ = failwith "Can not convert full contexts!"
   method mule _ _ = failwith "Can not convert modules!"
@@ -135,18 +135,20 @@ class expr_to_simple_expr = object(self)
 
 
   method assume_prove acc x =
-    let str = {
-	location          = x.location;
-	level             = x.level;
-	value             = "TEST - assume_prove";
-    }
+    let sns = List.map
+		    (fun x -> (unany#new_symb (get_any ( self#new_symb acc x))))
+		    x.new_symbols
+    and sassumes = List.map
+		    (fun x -> (unany#assume_prove (get_any ( self#assume_prove acc x))))
+		    x.assumes
+    and sprove = unany#expr (get_any (self#expr acc x.prove))
     in
     let sx = {
 	location          = x.location;
 	level             = x.level;
-	new_symbols       = []; (*TODO*)
-	assumes           = []; (*TODO*)
-	prove             = E_string (str)
+	new_symbols       = sns;
+	assumes           = sassumes;
+	prove             = sprove
     }
     in set_any acc (Any_assume_prove sx)
 
@@ -210,7 +212,7 @@ class expr_to_simple_expr = object(self)
 			   
   (** global expr method **)
 			   
-  method expr acc x = acc                              (*TODO*)
+  method expr acc x = acc (*TODO*)
                          
 end
 
