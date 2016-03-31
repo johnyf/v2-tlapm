@@ -114,9 +114,11 @@ class ['a] any_extractor = object(self)
   method defined_expr acc =
     match self#extract acc with Any_defined_expr x -> x
                               | _ -> failwith (self#fmt acc)
+(*
   method entry acc =
     match self#extract acc with Any_entry x -> x
                               | _ -> failwith (self#fmt acc)
+*)
   method expr acc =
     match self#extract acc with Any_expr x -> x
                               | _ -> failwith (self#fmt acc)
@@ -138,18 +140,22 @@ class ['a] any_extractor = object(self)
   method let_in acc =
     match self#extract acc with Any_let_in x -> x
                               | _ -> failwith (self#fmt acc)
+(*
   method level acc =
     match self#extract acc with Any_level x -> x
                               | _ -> failwith (self#fmt acc)
   method location acc =
     match self#extract acc with Any_location x -> x
                               | _ -> failwith (self#fmt acc)
+*)
   method mule_entry acc =
     match self#extract acc with Any_mule_entry x -> x
                               | _ -> failwith (self#fmt acc)
+(*
   method name acc =
     match self#extract acc with Any_name x -> x
                               | _ -> failwith (self#fmt acc)
+*)
   method numeral acc =
     match self#extract acc with Any_numeral x -> x
                               | _ -> failwith (self#fmt acc)

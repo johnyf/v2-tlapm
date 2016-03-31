@@ -331,7 +331,6 @@ object(self)
 	   
   method assume_prove acc0 { location; level; new_symbols; assumes;
                              prove; } =
-(* Original definition :
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let s_suffices, s_prove = match (new_symbols, assumes) with
@@ -349,28 +348,6 @@ object(self)
     let acc = self#expr acc4 prove in
     (* ppf_newline acc; *)
     acc
- *)
- (*  Def 2 
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let s_suffices, s_prove = match (new_symbols, assumes) with
-      | ( [], []) -> "", ""  (* empty antecedent *)
-      | ( _,  _) ->  "ASSUME ", " PROVE "
-    in
-    fprintf (ppf acc2) "%s" s_suffices;
-    let acc3 = ppf_fold_with
-                 self#new_symb acc2 new_symbols in
-    let sep = if (new_symbols <> []) then ", " else "" in
-    fprintf (ppf acc3) "%s" sep;
-    fprintf (ppf acc2) "%s" s_prove;
-    acc0
-  *)
-    let s = match prove with
-      | E_string foo -> foo.value
-      | _ -> failwith "error string in assume_prove"
-    in
-    fprintf (ppf acc0) "%s" s ;
-    acc0
     
   (*TODO: new_decl not used *)
   method new_symb acc0 { location; level; op_decl; set } =

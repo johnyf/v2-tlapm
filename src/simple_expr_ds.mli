@@ -203,10 +203,12 @@ type simple_expr =
    }
 
 
+	 
  (** The union of expressions, modules and module instances. *)
  and simple_expr_or_module_or_module_instance = (* TODO: remove *)
    | EMM_expr of simple_expr
 
+			 
  (** An defintion which can be expanded. Either a user defined operator,
     a module instance, a theorem or an assumption.
   *)
@@ -272,6 +274,7 @@ type simple_expr =
    formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst.
    An operator is anything which can have arguments applied.
   *)
+		      
  and simple_operator =
    | FMOTA_formal_param of simple_formal_param
    | FMOTA_op_decl of simple_op_decl

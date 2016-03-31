@@ -43,3 +43,45 @@ type anySimpleExpr =
 type 'a macc =  anySimpleExpr * 'a
 
 val format_anysimple : anySimpleExpr -> string
+
+					  
+class ['a] any_extractor : object
+  (** All other any_extractor methods handle the conversion from anyExpr to one
+      of the corresponding type. Extract converts from 'a to anyExpr. The
+      default implementation maps to Nothing, any useful derived class needs to
+      override extract.
+  *)
+  method extract : 'a -> anySimpleExpr
+  method private fmt : 'a -> string
+  method assume_prove : 'a -> simple_assume_prove
+  method at : 'a -> simple_at
+  method binder : 'a -> simple_binder
+  method bound_symbol : 'a -> simple_bound_symbol
+  method bounded_bound_symbol : 'a -> simple_bounded_bound_symbol
+  method builtin_op : 'a -> simple_builtin_op
+  method decimal : 'a -> simple_decimal
+  method defined_expr : 'a -> simple_defined_expr
+  method expr : 'a -> simple_expr
+  method expr_or_op_arg : 'a -> simple_expr_or_op_arg
+  method expr_or_module_or_module_instance : 'a -> simple_expr_or_module_or_module_instance
+  method formal_param : 'a -> simple_formal_param
+  method label : 'a -> simple_label
+  method lambda : 'a -> simple_lambda
+  method let_in : 'a -> simple_let_in
+  method mule_entry : 'a -> simple_mule_entry
+  method new_symb : 'a -> simple_new_symb
+  method numeral : 'a -> simple_numeral
+  method op_appl : 'a -> simple_op_appl
+  method op_appl_or_binder : 'a -> simple_op_appl_or_binder
+  method op_arg : 'a -> simple_op_arg
+  method op_decl : 'a -> simple_op_decl
+  method op_def : 'a -> simple_op_def
+  method op_def_or_theorem_or_assume : 'a -> simple_op_def_or_theorem_or_assume
+  method operator : 'a -> simple_operator
+  method reference : 'a -> int
+  method strng : 'a -> simple_strng
+  method unbounded_bound_symbol : 'a -> simple_unbounded_bound_symbol
+  method user_defined_op : 'a -> simple_user_defined_op
+end
+
+					 

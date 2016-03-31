@@ -1,0 +1,15 @@
+Obligation 1:
+TRUE
+
+Obligation 2:
+FALSE
+
+Obligation 3:
+ASSUME FALSE PROVE FALSE
+
+Obligation 4:
+(1 = 1)
+
+Obligation 5:
+(1 = 2)
+
