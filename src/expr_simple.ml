@@ -35,6 +35,7 @@ class expr_to_simple_expr = object(self)
   method label acc x = failwith "Remove first."
   method let_in acc x = failwith "Remove first."
 
+				 
   (** non recursive expressions **)				 
 
   method decimal acc x =
@@ -65,11 +66,12 @@ class expr_to_simple_expr = object(self)
   method op_arg acc x = self#operator acc x.argument
 
   (** recursive expressions **)			   
-				      
+
+(* HERE *)				      
   method op_appl acc x =
     let soperator:simple_operator =
       unany#operator
-	(get_any (self#operator acc x.operator))
+	(get_any (self#operator acc (x.operator)))
     and soperands:(simple_expr_or_op_arg list) =
       List.map
 	(fun eooa -> unany#expr_or_op_arg
@@ -194,7 +196,8 @@ class expr_to_simple_expr = object(self)
 	arity             = x.arity; 
 	params            = sparams
     }
-    in set_any acc (Any_builtin_op sx)
+    in
+    set_any acc (Any_builtin_op sx)
 
   method expr_or_module_or_module_instance acc x = match x with
    | EMM_expr e -> 
@@ -257,7 +260,29 @@ class expr_to_simple_expr = object(self)
       let sx = OPD sod_
       in set_any acc (Any_op_decl sx)
 
-			   
+		 
+  method operator acc x = match x with
+    | FMOTA_formal_param e -> 			 
+      let se = unany#formal_param (get_any (self#formal_param acc e))
+      in
+      let sx = FMOTA_formal_param se
+      in set_any acc (Any_operator sx)
+    | FMOTA_op_decl e -> 			 
+      let se = unany#op_decl (get_any (self#op_decl acc e))
+      in
+      let sx = FMOTA_op_decl se
+      in set_any acc (Any_operator sx)
+    | FMOTA_op_def e -> 			 
+      let se = unany#op_def (get_any (self#op_def acc e))
+      in
+      let sx = FMOTA_op_def se
+      in set_any acc (Any_operator sx)
+    | FMOTA_module _ -> failwith "Cannot convert module!"
+    | FMOTA_theorem _ -> failwith "Cannot convert theorem!"
+    | FMOTA_assume _ -> failwith "Cannot convert assume!"
+    | FMOTA_ap_subst_in _ -> failwith "Cannot convert ap_subst_in!"
+       
+		 
   (** global expr method **)
 			   
   method expr acc x = match x with

@@ -1,18 +1,15 @@
 Obligation 1:
-"TEST - assume_prove"
+TRUE
 
 Obligation 2:
-"TEST - assume_prove"
+FALSE
 
 Obligation 3:
-"TEST - assume_prove"
+ASSUME FALSE PROVE FALSE
 
 Obligation 4:
-"TEST - assume_prove"
+(1 = 1)
 
 Obligation 5:
-"TEST - assume_prove"
-
-Obligation 6:
-"TEST - assume_prove"
+(1 = 2)
 
