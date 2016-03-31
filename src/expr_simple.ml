@@ -1,7 +1,7 @@
 open Expr_visitor
 open Simple_expr_ds
 open Any_simple_expr
-
+       
 type esacc = Expr_ds.term_db * simple_term_db * anySimpleExpr
 									      
 let get_term_db (term_db,_,_) = term_db
@@ -20,7 +20,8 @@ end
 class expr_to_simple_expr = object(self)
 
   val unany = new extractor
-				    
+  method get_unany = unany
+    
   inherit [esacc] visitor as super
 
   (** failsafe against using this on the module / proof level **)
@@ -67,7 +68,6 @@ class expr_to_simple_expr = object(self)
 
   (** recursive expressions **)			   
 
-(* HERE *)				      
   method op_appl acc x =
     let soperator:simple_operator =
       unany#operator
@@ -177,7 +177,6 @@ class expr_to_simple_expr = object(self)
       in
       let sx = O_user_defined_op sudo
       in set_any acc (Any_op_def sx) 
-(* Unexpected match of op_def ? *)
     | O_builtin_op bo ->
       let sbo = unany#builtin_op (get_any (self#builtin_op acc bo))
       in
@@ -277,8 +276,19 @@ class expr_to_simple_expr = object(self)
       in
       let sx = FMOTA_op_def se
       in set_any acc (Any_operator sx)
+    | FMOTA_theorem e -> failwith "TODO : extract statement from theorems"
+       (*
+       let get_formula s = match s with
+         | ST_FORMULA ap -> ap
+	 | _ -> failwith "no"
+       in
+       let get_statement thm:theorem = match thm with
+	 | THM thm_ -> (get_formula thm_.statement)
+	 | THM_ref i -> failwith "ref"
+       in
+      self#assume_prove acc (get_statement e)
+	*)
     | FMOTA_module _ -> failwith "Cannot convert module!"
-    | FMOTA_theorem _ -> failwith "Cannot convert theorem!"
     | FMOTA_assume _ -> failwith "Cannot convert assume!"
     | FMOTA_ap_subst_in _ -> failwith "Cannot convert ap_subst_in!"
        
@@ -331,6 +341,5 @@ let parse_expr termdb assume_prove =
   let (_, stermdb, pre_ap) =
     converter#assume_prove acc assume_prove
   in
-  match pre_ap with
-  | Any_assume_prove ap -> (stermdb, ap)
-  | _ -> failwith "Expr_to_simple_expr failed returning an assume_prove."
+  (stermdb, converter#get_unany#assume_prove pre_ap)
+
