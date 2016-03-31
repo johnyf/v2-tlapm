@@ -169,17 +169,19 @@ class expr_to_simple_expr = object(self)
 
 			    
   method op_def acc x = match x with
-   | O_module_instance _ -> failwith "Can not convert modules!"
-   | O_user_defined_op udo -> 
+    | O_module_instance _ -> failwith "Can not convert modules!"
+    | O_user_defined_op udo -> 
       let sudo = unany#user_defined_op (get_any (self#user_defined_op acc udo))
       in
       let sx = O_user_defined_op sudo
       in set_any acc (Any_op_def sx) 
-   | O_builtin_op bo ->
+(* Unexpected match of op_def ? *)
+    | O_builtin_op bo ->
       let sbo = unany#builtin_op (get_any (self#builtin_op acc bo))
       in
       let sx = O_builtin_op sbo
-      in set_any acc (Any_op_def sx)  
+      in set_any acc (Any_op_def sx)
+    | _ -> failwith "erreur"
 
   method builtin_op acc x =
     let sparams = List.map
@@ -205,14 +207,95 @@ class expr_to_simple_expr = object(self)
 		   
   (** recursive expressions with reference **)
 		   
-  method user_defined_op acc x = acc (*TODO*)
-  method formal_param acc x = acc (*TODO*)
-  method op_decl acc x = acc (*TODO*)
+  method user_defined_op acc x = match x with
+    | UOP_ref i -> set_any acc (Any_user_defined_op (UOP_ref i))
+    | UOP udo_ ->
+      let sparams = List.map
+		      (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp))))
+		      udo_.params
+      and sbody = unany#expr (get_any (self#expr acc udo_.body))
+      in
+      let sudo_ = {
+        location          = udo_.location;
+        level             = udo_.level;
+        name              = udo_.name;
+        arity             = udo_.arity;
+        body              = sbody;
+        params            = sparams;
+        recursive         = udo_.recursive;
+      }
+      in
+      let sx = UOP sudo_
+      in set_any acc (Any_user_defined_op sx)
+
+				   
+  method formal_param acc x =  match x with
+    | FP_ref i -> set_any acc (Any_formal_param (FP_ref i))
+    | FP fp_ ->
+      let sfp_:simple_formal_param_ = {
+        location          = fp_.location;
+        level             = fp_.level;
+        name              = fp_.name;
+        arity             = fp_.arity;
+      }
+      in
+      let sx = FP sfp_
+      in set_any acc (Any_formal_param sx)
+
+		 
+  method op_decl acc x =  match x with
+    | OPD_ref i -> set_any acc (Any_op_decl (OPD_ref i))
+    | OPD od_ ->
+      let sod_:simple_op_decl_ = {
+        location          = od_.location;
+        level             = od_.level;
+        name              = od_.name;
+        arity             = od_.arity;
+        kind              = od_.kind;
+      }
+      in
+      let sx = OPD sod_
+      in set_any acc (Any_op_decl sx)
 
 			   
   (** global expr method **)
 			   
-  method expr acc x = acc (*TODO*)
+  method expr acc x = match x with
+    | E_decimal e -> 			 
+      let se = unany#decimal (get_any (self#decimal acc e))
+      in
+      let sx = E_decimal se
+      in set_any acc (Any_expr sx)
+    | E_numeral e -> 			 
+      let se = unany#numeral (get_any (self#numeral acc e))
+      in
+      let sx = E_numeral se
+      in set_any acc (Any_expr sx)
+    | E_lambda e -> 			 
+      let se = unany#lambda (get_any (self#lambda acc e))
+      in
+      let sx = E_lambda se
+      in set_any acc (Any_expr sx)
+    | E_string e -> 			 
+      let se = unany#strng (get_any (self#strng acc e))
+      in
+      let sx = E_string se
+      in set_any acc (Any_expr sx)
+    | E_op_appl e -> 			 
+      let se = unany#op_appl (get_any (self#op_appl acc e))
+      in
+      let sx = E_op_appl se
+      in set_any acc (Any_expr sx)
+    | E_binder e -> 			 
+      let se = unany#binder (get_any (self#binder acc e))
+      in
+      let sx = E_binder se
+      in set_any acc (Any_expr sx)
+    | E_subst_in e -> failwith "remove -subst_in- during preprocessing"
+    | E_label _ -> failwith "remove -label- during preprocessing"
+    | E_at _ -> failwith "remove -at- during preprocessing"
+    | E_let_in _ -> failwith "remove -let_in- during preprocessing"
+
                          
 end
 
