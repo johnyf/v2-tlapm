@@ -80,7 +80,6 @@ type node =
    | E_string of strng
    | E_subst_in of subst_in
    | E_binder of binder
-   | E_lambda of lambda
 
  (** The union of expressions and operator arguments.
     Used by substitutions and as operand in applications. *)
@@ -522,6 +521,7 @@ type node =
    | FMOTA_theorem of theorem           (* has arity 0 *)
    | FMOTA_assume of assume             (* has arity 0 *)
    | FMOTA_ap_subst_in of ap_subst_in   (* has arity 0 *)
+   | FMOTA_lambda of lambda             (* has arity >0 *)
 
  and op_appl = {
      location          : location;

@@ -717,10 +717,6 @@ inherit ['a macc] visitor as super
         let acc = self#decimal acc x in
         let r = Any_expr (E_decimal (macc_extract#decimal acc)) in
         set_anyexpr acc r
-     | E_lambda x        ->
-        let acc = self#lambda acc x in
-        let r = Any_expr (E_lambda (macc_extract#lambda acc)) in
-        set_anyexpr acc r
      | E_label x        ->
         let acc = self#label acc x in
         let r = Any_expr (E_label (macc_extract#label acc)) in
@@ -845,6 +841,10 @@ inherit ['a macc] visitor as super
         let acc0 = self#ap_subst_in acc x in
         let r = FMOTA_ap_subst_in (macc_extract#ap_subst_in acc0) in
         set_anyexpr acc0 (Any_operator r)
+     | FMOTA_lambda x        ->
+        let acc = self#lambda acc x in
+        let r =FMOTA_lambda (macc_extract#lambda acc) in
+        set_anyexpr acc (Any_operator r)
 
    method mule_entry acc = function
      | MODe_op_decl x     ->

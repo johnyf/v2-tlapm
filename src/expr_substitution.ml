@@ -114,7 +114,6 @@ class ['a] expr_substitution = object(self)
     | E_label x     -> self#label acc x
     | E_subst_in x  -> self#subst_in acc x
     | E_binder x    -> self#binder acc x
-    | E_lambda x    -> self#lambda acc x
     (* can not contain formal parameters *)
     | E_decimal x   -> self#decimal acc x
     | E_string x    -> self#strng acc x

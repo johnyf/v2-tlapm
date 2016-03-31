@@ -28,8 +28,11 @@ method expr_or_op_arg acc eo = match eo with
         let rfparams, acc3 = unpack_fold ie#formal_param
                                          self#formal_param acc2 fparams in
         let params = List.combine rfparams leibniz in
-        let r = E_lambda ({location; level; arity; body; params}) in
-        set_anyexpr acc (Any_expr_or_op_arg (EO_expr r))
+        let argument = FMOTA_lambda ({location; level; arity; body; params}) in
+        let oparg = {
+            location; level; argument;
+          } in
+        set_anyexpr acc (Any_expr_or_op_arg (EO_op_arg oparg))
      (* i've seen only inline UOP lambdas so far, but there might be references *)
      (* TODO: check references*)
      | _ -> super#expr_or_op_arg acc eo
