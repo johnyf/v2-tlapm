@@ -23,7 +23,6 @@ object
   method bound_symbol    : fc -> simple_bound_symbol -> fc
   method bounded_bound_symbol   : fc -> simple_bounded_bound_symbol -> fc
   method unbounded_bound_symbol : fc -> simple_unbounded_bound_symbol -> fc
-  method mule_entry      : fc -> simple_mule_entry -> fc
   method formal_param    : fc -> simple_formal_param -> fc
   method op_decl         : fc -> simple_op_decl -> fc
   method op_def          : fc -> simple_op_def -> fc

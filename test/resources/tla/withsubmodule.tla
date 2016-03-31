@@ -29,5 +29,5 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be accepted by the toolbox too, but 
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Sep 02 11:07:40 CEST 2015 by marty
+\* Last modified Thu Mar 31 14:38:15 CEST 2016 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty

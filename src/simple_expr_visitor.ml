@@ -20,7 +20,6 @@ object
   method bound_symbol    : 'a -> simple_bound_symbol -> 'a
   method bounded_bound_symbol   : 'a -> simple_bounded_bound_symbol -> 'a
   method unbounded_bound_symbol : 'a -> simple_unbounded_bound_symbol -> 'a
-  method mule_entry      : 'a -> simple_mule_entry -> 'a
   method formal_param    : 'a -> simple_formal_param -> 'a
   method op_decl         : 'a -> simple_op_decl -> 'a
   method op_def          : 'a -> simple_op_def -> 'a
@@ -228,7 +227,4 @@ end
    | FMOTA_op_decl x -> self#op_decl acc x
    | FMOTA_op_def  x -> self#op_def acc x
 				    
-   method mule_entry acc = function
-     | MODe_op_decl x     -> self#op_decl acc x
-     | MODe_op_def x      -> self#op_def acc x
  end

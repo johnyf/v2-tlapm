@@ -20,6 +20,7 @@ end
 class expr_to_simple_expr = object(self)
 
   val unany = new extractor
+  method get_unany = unany
 				    
   inherit [esacc] visitor as super
 
@@ -183,7 +184,7 @@ class expr_to_simple_expr = object(self)
       in
       let sx = O_builtin_op sbo
       in set_any acc (Any_op_def sx)
-    | _ -> failwith "erreur"
+  (*    | _ -> failwith "erreur" *)
 
   method builtin_op acc x =
     let sparams = List.map
@@ -278,7 +279,7 @@ class expr_to_simple_expr = object(self)
       let sx = FMOTA_op_def se
       in set_any acc (Any_operator sx)
     | FMOTA_module _ -> failwith "Cannot convert module!"
-    | FMOTA_theorem _ -> failwith "Cannot convert theorem!"
+    | FMOTA_theorem _ -> failwith "Cannot convert theorem!" (* TODO: insert thm.statement *)
     | FMOTA_assume _ -> failwith "Cannot convert assume!"
     | FMOTA_ap_subst_in _ -> failwith "Cannot convert ap_subst_in!"
        
@@ -331,6 +332,9 @@ let parse_expr termdb assume_prove =
   let (_, stermdb, pre_ap) =
     converter#assume_prove acc assume_prove
   in
+  (stermdb, converter#get_unany#assume_prove pre_ap)
+  (*
   match pre_ap with
   | Any_assume_prove ap -> (stermdb, ap)
   | _ -> failwith "Expr_to_simple_expr failed returning an assume_prove."
+   *)
