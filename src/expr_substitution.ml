@@ -1,3 +1,4 @@
+open Any_expr
 open List
 open Util
 open Expr_ds
@@ -61,6 +62,24 @@ module Subst =
                   )
       in remove_from_subst_ (map dereference_formal_param fps)
  *)
+
+    (* looks for mapping of fp in substs *)
+    let find_subst ?cmp:(cmp=(=))  term_db fp =
+      let fpi = dereference_formal_param term_db fp in
+      fold_left (function
+                  | None ->
+                     begin
+                       function
+                       | Subst (v, exp) ->
+                          let vi = dereference_formal_param term_db v in
+                          if cmp fpi vi then
+                            Some exp
+                          else
+                            None
+                     end
+                  | Some _ as x ->
+                     fun _ -> x
+                ) None
   end
 
 type 'a subst_acc = {
@@ -71,8 +90,37 @@ type 'a subst_acc = {
   }
 
 
-class ['a] expr_substitution = object
-  inherit ['a subst_acc] expr_map as self
+class ['a] expr_substitution = object(self)
+  inherit ['a subst_acc] expr_map as super
+
+  method expr acc = function
+    | E_op_appl { location; level; operator = FMOTA_formal_param fp; operands }  ->
+       let sacc = get_acc acc in
+       begin
+         match Subst.find_subst sacc.term_db fp sacc.substs with
+         | None ->
+            let extract = self#get_id_extractor in
+            let operadnds, acc0 =
+              unpack_fold extract#expr_or_op_arg self#expr_or_op_arg acc operands in
+            acc0
+         | Some expr ->
+            acc
+       end;
+       acc
+    | E_op_appl { location; level; operator; operands }  ->
+       (**)
+       acc
+    | E_at x        -> self#at acc x
+    | E_label x     -> self#label acc x
+    | E_subst_in x  -> self#subst_in acc x
+    | E_binder x    -> self#binder acc x
+    | E_lambda x    -> self#lambda acc x
+    (* can not contain formal parameters *)
+    | E_decimal x   -> self#decimal acc x
+    | E_string x    -> self#strng acc x
+    | E_numeral x   -> self#numeral acc x
+    | E_let_in x    -> self#let_in acc x
+    
 
   method binder acc { location; level; operator; operand; bound_symbols } =
     let sacc = get_acc acc in

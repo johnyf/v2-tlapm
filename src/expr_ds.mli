@@ -515,13 +515,13 @@ type node =
    An operator is anything which can have arguments applied.
   *)
  and operator =
-   | FMOTA_formal_param of formal_param
-   | FMOTA_module of mule
-   | FMOTA_op_decl of op_decl
-   | FMOTA_op_def of op_def
-   | FMOTA_theorem of theorem
-   | FMOTA_assume of assume
-   | FMOTA_ap_subst_in of ap_subst_in
+   | FMOTA_formal_param of formal_param (* has any arity *)
+   | FMOTA_module of mule               (* has arity 0 *)
+   | FMOTA_op_decl of op_decl           (* has any arity *)
+   | FMOTA_op_def of op_def             (* has any arity *)
+   | FMOTA_theorem of theorem           (* has arity 0 *)
+   | FMOTA_assume of assume             (* has arity 0 *)
+   | FMOTA_ap_subst_in of ap_subst_in   (* has arity 0 *)
 
  and op_appl = {
      location          : location;
