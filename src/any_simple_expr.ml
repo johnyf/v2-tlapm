@@ -37,7 +37,6 @@ type anySimpleExpr =
   | Any_bound_symbol of simple_bound_symbol
   | Any_unbounded_bound_symbol of simple_unbounded_bound_symbol
   | Any_bounded_bound_symbol of simple_bounded_bound_symbol
-  | Any_mule_entry of simple_mule_entry
   | Any_entry of (int * simple_entry)
 
 
@@ -148,9 +147,6 @@ class ['a] any_extractor = object(self)
     match self#extract acc with Any_location x -> x
                               | _ -> failwith (self#fmt acc)
 *)
-  method mule_entry acc =
-    match self#extract acc with Any_mule_entry x -> x
-                              | _ -> failwith (self#fmt acc)
 (*
   method name acc =
     match self#extract acc with Any_name x -> x

@@ -317,10 +317,6 @@ type simple_expr =
      domain            : simple_expr
    }
 
-and simple_mule_entry =
-  | MODe_op_decl of simple_op_decl
-  | MODe_op_def of simple_op_def
-
 
 type simple_entry =
   FP_entry of simple_formal_param_ |

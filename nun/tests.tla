@@ -11,10 +11,10 @@ THEOREM 1=1 OBVIOUS
 
 THEOREM 1=2 OBVIOUS
 
-\* THEOREM \E x \in {0,1}: x \in {1,2} OBVIOUS
+THEOREM \E x \in {0,1}: x \in {1,2} OBVIOUS
 
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Mar 31 14:11:53 CEST 2016 by Matthieu
+\* Last modified Fri Apr 01 11:58:26 CEST 2016 by Matthieu
 \* Created Wed Mar 23 16:18:29 CET 2016 by Matthieu

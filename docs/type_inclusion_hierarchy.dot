@@ -25,7 +25,6 @@ expr -> op_appl;
 expr -> strng;
 expr -> subst_in;
 expr -> binder;
-expr -> lambda;
 
 expr_or_op_arg -> expr;
 expr_or_op_arg -> op_arg;
@@ -129,6 +128,7 @@ operator -> op_def;
 operator -> theorem;
 operator -> assume;
 operator -> ap_subst_in;
+operator -> lambda;
 
 op_appl -> operator;
 op_appl -> expr_or_op_arg;

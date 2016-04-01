@@ -37,7 +37,6 @@ type anySimpleExpr =
   | Any_bound_symbol of simple_bound_symbol
   | Any_unbounded_bound_symbol of simple_unbounded_bound_symbol
   | Any_bounded_bound_symbol of simple_bounded_bound_symbol
-  | Any_mule_entry of simple_mule_entry
   | Any_entry of (int * simple_entry)
 
 type 'a macc =  anySimpleExpr * 'a
@@ -68,7 +67,6 @@ class ['a] any_extractor : object
   method label : 'a -> simple_label
   method lambda : 'a -> simple_lambda
   method let_in : 'a -> simple_let_in
-  method mule_entry : 'a -> simple_mule_entry
   method new_symb : 'a -> simple_new_symb
   method numeral : 'a -> simple_numeral
   method op_appl : 'a -> simple_op_appl
