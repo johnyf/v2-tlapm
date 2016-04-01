@@ -5,6 +5,7 @@ open Expr_ds
 open Expr_map
 open Expr_utils
 open Expr_dereference
+open Expr_termdb_utils
 
 module Subst =
   struct
@@ -52,8 +53,8 @@ module Subst =
            else
              new_name
          in
-         FP { location; level;
-              name = find_name fbdef_names 0; arity }
+         let fp_ = { location; level; name = find_name fbdef_names 0; arity } in
+         mkref_formal_param term_db fp_
 (*
     let remove_from_subst fps =
       let remove_from_subst_ fps =

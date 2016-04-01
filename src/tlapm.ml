@@ -9,7 +9,8 @@ open Expr_simple
 open Expr_substitution
 open Simple_obligation
 open Simple_expr_prover_parser
-       
+open Expr_termdb_utils
+
 (*
 module Clocks = struct
   include Timing
