@@ -42,8 +42,8 @@ class expr_to_simple_expr = object(self)
 
   method context _ _ = failwith "Can not convert full contexts!"
   method mule _ _ = failwith "Can not convert modules!"
-  method entry _ _ = failwith "Can not convert entries!"
 
+			     
 			      
   (** ----------------------------------------------**)
   (** failsafe: those operators should be removed during preprocessing **)
@@ -458,8 +458,37 @@ class expr_to_simple_expr = object(self)
     | E_let_in _ -> failwith "remove -let_in- during preprocessing"
 
 		     
-                         
+
+  (** Entry **)				      
+  method entry acc x = match x with
+    | (i, FP_entry fp_) ->
+      let sfp_:simple_formal_param_ =  {
+        location          = fp_.location;
+        level             = fp_.level;
+        name              = fp_.name;
+        arity             = fp_.arity;
+	}
+      in set_any acc (Any_entry (i,FP_entry sfp_))
+    | (i, OPDec_entry od_) ->
+      let sod_:simple_op_decl_ = {
+        location          = od_.location;
+        level             = od_.level;
+        name              = od_.name;
+        arity             = od_.arity;
+        kind              = od_.kind;
+      }
+      in set_any acc (Any_entry (i,OPDec_entry sod_))
+    | (i, OPDef_entry op) ->
+      let sop = unany#op_def (get_any (self#op_def acc op))
+      in set_any acc (Any_entry (i,OPDef_entry sop))
+    | (_,MOD_entry _) -> failwith "Can not get module as entry" 			 
+    | (_,THM_entry _) -> failwith "Can not get theorem as entry" 			 
+    | (_,ASSUME_entry _) -> failwith "Can not get assume as entry" 			 
+    | (_,APSUBST_entry _) -> failwith "Can not get ap_subst as entry" 			 
+			     
 end
+
+			          
 
 			      
 
