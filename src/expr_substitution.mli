@@ -2,7 +2,7 @@ open Expr_ds
 
 module Subst :
 sig
-  type subst = Subst of formal_param * expr
+  type subst = Subst of formal_param * expr_or_op_arg
   type substs = subst list
 
   val domain : substs -> formal_param list
@@ -18,5 +18,8 @@ sig
       The default comparator is structural equality.
    *)
   val find_subst : ?cmp:(formal_param_ -> formal_param_ -> bool) ->
-                   term_db -> formal_param -> substs -> expr option
+                   term_db -> formal_param -> substs -> expr_or_op_arg option
+
+  (** Removes all passed formal parameters from a substition *)
+  val remove_from_subst : term_db -> formal_param list -> substs -> substs
 end

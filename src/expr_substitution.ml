@@ -10,7 +10,7 @@ open Expr_termdb_utils
 module Subst =
   struct
     (** substitution of formal parameter by an expression *)
-    type subst = Subst of formal_param * expr
+    type subst = Subst of formal_param * expr_or_op_arg
     type substs = subst list
 
 
@@ -55,14 +55,14 @@ module Subst =
          in
          let fp_ = { location; level; name = find_name fbdef_names 0; arity } in
          mkref_formal_param term_db fp_
-(*
-    let remove_from_subst fps =
-      let remove_from_subst_ fps =
-        fold_left (fun subs ->
-                   function Subst (fp, expr) ->
-                  )
-      in remove_from_subst_ (map dereference_formal_param fps)
- *)
+
+    (* removes formal params in fps from substition domain *)
+    let remove_from_subst termdb fps =
+      let remove_from_subst_ termdb fps =
+        filter (function Subst (fp, expr) ->
+                         mem (dereference_formal_param termdb fp) fps
+               )
+      in remove_from_subst_ termdb (map (dereference_formal_param termdb) fps)
 
     (* looks for mapping of fp in substs *)
     let find_subst ?cmp:(cmp=(=))  term_db fp =
@@ -106,8 +106,7 @@ class ['a] expr_substitution = object(self)
             acc0
          | Some expr ->
             acc
-       end;
-       acc
+       end
     | E_op_appl { location; level; operator; operands }  ->
        (**)
        acc
@@ -120,7 +119,6 @@ class ['a] expr_substitution = object(self)
     | E_string x    -> self#strng acc x
     | E_numeral x   -> self#numeral acc x
     | E_let_in x    -> self#let_in acc x
-    
 
   method binder acc { location; level; operator; operand; bound_symbols } =
     let sacc = get_acc acc in
