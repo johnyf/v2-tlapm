@@ -98,23 +98,27 @@ class expr_to_simple_expr = object(self)
 				      
   (** Op_appl **)
   method op_appl acc x =
-    let soperator:simple_operator =
-      unany#operator
-	(get_any (self#operator acc (x.operator)))
-    and soperands:(simple_expr_or_op_arg list) =
-      List.map
-	(fun eooa -> unany#expr_or_op_arg
-	   (get_any (self#expr_or_op_arg acc eooa))
-	)
-	(x.operands)
+    let acc1 = self#operator acc (x.operator)
     in
-   let sx:simple_op_appl = {
+    let soperator:simple_operator =
+      unany#operator (get_any acc1)
+    in
+    let f (l,acct) op =
+      let acctemp = self#expr_or_op_arg acct op
+      in
+      let t = (unany#expr_or_op_arg (get_any acctemp))
+      in
+      (t::l,acctemp)
+    in
+    let (soperands,acc2) = List.fold_left f ([],acc1) x.operands
+    in
+    let sx:simple_op_appl = {
 	location          = x.location;
 	level             = x.level;
         operator          = soperator;
 	operands          = soperands
-    }
-    in set_any acc (Any_op_appl sx)
+      }
+    in set_any acc2 (Any_op_appl sx)
 
 
 	       
@@ -122,25 +126,40 @@ class expr_to_simple_expr = object(self)
   method expr_or_op_arg acc x =
     match x with
     | EO_expr expr ->
-       let sexpr = EO_expr (unany#expr (get_any (self#expr acc expr)))
+       let acc1 = self#expr acc expr
        in
-       set_any acc (Any_expr_or_op_arg sexpr)
+       let sexpr = EO_expr (unany#expr (get_any acc1))
+       in
+       set_any acc1 (Any_expr_or_op_arg sexpr)
     | EO_op_arg op_arg ->
-       let sop_arg = EO_op_arg (unany#op_arg (get_any (self#op_arg acc op_arg)))
+       let acc1 = self#op_arg acc op_arg
        in
-       set_any acc (Any_expr_or_op_arg sop_arg)
+       let sop_arg = EO_op_arg (unany#op_arg (get_any acc1))
+       in
+       set_any acc1 (Any_expr_or_op_arg sop_arg)
 
 	       
 	       
   (** Binder **)   
   method binder acc x =
+    let acc1 = self#operator acc x.operator
+    in
     let soperator:simple_operator =
-      unany#operator (get_any (self#operator acc x.operator))
-    and soperand:simple_expr_or_op_arg =
-      unany#expr_or_op_arg (get_any (self#expr_or_op_arg acc x.operand))
-    and sbs = List.map
-		(fun x -> (unany#bound_symbol (get_any (self#bound_symbol acc x))))
-		x.bound_symbols
+      unany#operator (get_any acc1)
+    in
+    let acc2 = self#expr_or_op_arg acc1 x.operand
+    in
+    let soperand:simple_expr_or_op_arg =
+      unany#expr_or_op_arg (get_any acc2)
+    in
+    let f (l,acct) bs =
+      let acctemp = self#bound_symbol acct bs
+      in
+      let t = (unany#bound_symbol (get_any acctemp))
+      in
+      (t::l,acctemp)
+    in
+    let (sbs,acc3) = List.fold_left f ([],acc2) x.bound_symbols
     in
     let sx:simple_binder = {
 	location          = x.location;
@@ -149,57 +168,81 @@ class expr_to_simple_expr = object(self)
 	operand           = soperand; 
 	bound_symbols     = sbs
     }
-    in set_any acc (Any_binder sx)
+    in set_any acc3 (Any_binder sx)
 
 
 	       
   (** Bound_symbol **)
   method bound_symbol acc x =
   match x with
-    | B_unbounded_bound_symbol ubs ->
-       let subs = B_unbounded_bound_symbol (unany#unbounded_bound_symbol (get_any (self#unbounded_bound_symbol acc ubs)))
-       in
-       set_any acc (Any_bound_symbol subs)
-    | B_bounded_bound_symbol bbs ->
-       let sbbs = B_bounded_bound_symbol (unany#bounded_bound_symbol (get_any (self#bounded_bound_symbol acc bbs)))
-       in
-       set_any acc (Any_bound_symbol sbbs)
+  | B_unbounded_bound_symbol ubs ->
+     let acc1 = self#unbounded_bound_symbol acc ubs
+     in
+     let subs = B_unbounded_bound_symbol (unany#unbounded_bound_symbol (get_any acc1))
+     in
+     set_any acc1 (Any_bound_symbol subs)
+  | B_bounded_bound_symbol bbs ->
+     let acc1 = self#bounded_bound_symbol acc bbs
+     in
+     let sbbs = B_bounded_bound_symbol (unany#bounded_bound_symbol (get_any acc1))
+     in
+     set_any acc1 (Any_bound_symbol sbbs)
 
 
 	       
   (** Unbounded_bound_symbol **)	       
   method unbounded_bound_symbol acc x =
-    let sparam = unany#formal_param (get_any ( self#formal_param acc x.param))
+    let acc1 = self#formal_param acc x.param
+    in
+    let sparam = unany#formal_param (get_any acc1)
     in
     let sx:simple_unbounded_bound_symbol = {
 	param             = sparam;
 	tuple             = x.tuple
     }
-    in set_any acc (Any_unbounded_bound_symbol sx)
+    in set_any acc1 (Any_unbounded_bound_symbol sx)
 
 
 
   (** Bounded_bound_symbol **)	       
   method bounded_bound_symbol acc x =
-    let sparams = List.map
-		    (fun fp -> (unany#formal_param (get_any ( self#formal_param acc fp))))
-		    x.params
-    and sdomain = unany#expr (get_any (self#expr acc x.domain))
+
+    let f (l,acct) fp =
+      let acctemp = self#formal_param acct fp
+      in
+      let t = (unany#formal_param (get_any acctemp))
+      in
+      (t::l,acctemp)
+    in
+    let (sparams,acc1) = List.fold_left f ([],acc) x.params
+    in
+    let acc2 = self#expr acc1 x.domain
+    in
+    let sdomain = unany#expr (get_any (acc2))
     in
     let sx:simple_bounded_bound_symbol = {
 	params            = sparams;
 	tuple             = x.tuple; 
 	domain            = sdomain 
     }
-    in set_any acc (Any_bounded_bound_symbol sx)
+    in
+    set_any acc2 (Any_bounded_bound_symbol sx)
 
 
   (** Lambda **)	       
   method lambda acc x =
-    let sparams = List.map
-		    (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp)),b))
-		    x.params
-    and sbody = unany#expr (get_any (self#expr acc x.body))
+    let f (l,acct) (fp,b) =
+      let acctemp = self#formal_param acct fp
+      in
+      let t = ((unany#formal_param (get_any acctemp)),b)
+      in
+      (t::l,acctemp)
+    in
+    let (sparams,acc1) = List.fold_left f ([],acc) x.params
+    in
+    let acc2 = self#expr acc1 x.body
+    in
+    let sbody = unany#expr (get_any acc2)
     in
     let sx:simple_lambda = {
 	location          = x.location;
@@ -208,19 +251,68 @@ class expr_to_simple_expr = object(self)
 	body              = sbody; 
 	params            = sparams
     }
-    in set_any acc (Any_lambda sx)
+    in set_any acc2 (Any_lambda sx)
 
 
 	       
   (** Assume_prove **)	       
   method assume_prove acc x =
-    let sns = List.map
+
+(*    print_int (List.length (x.new_symbols));
+    print_int (List.length (x.assumes ) );
+
+    (* DEBUGGINIG *)
+    
+         let rec print_db l = match l with
+	 | [] -> ();
+	 | (k,_)::tl -> print_int k; print_newline (); print_db tl
+	 in
+
+	 print_string "TERM DB: --------------------------------";
+	 print_newline ();
+	 print_db (get_term_db acc);
+	 print_string "SIMPLE TERM DB BEFORE: --------------------------------";
+	 print_newline ();
+	 print_db (get_simple_term_db acc);
+     
+    (* END DEBUGGINIG *)
+ *)
+
+	 
+    let f (l,acct) s =
+      let acctemp = self#new_symb acct s
+      in
+      let ss = (unany#new_symb (get_any acctemp))
+      in
+      (ss::l,acctemp)
+    in
+    let (sns,acc1) = List.fold_left f ([],acc) x.new_symbols
+    in
+
+    let f2 (l,acct) s =
+      let acctemp = self#assume_prove acct s
+      in
+      let ss = (unany#assume_prove (get_any acctemp))
+      in
+     (ss::l,acctemp)
+    in
+    let (sassumes,acc2) = List.fold_left f2 ([],acc1) x.assumes
+    in
+
+				    
+ (*   let sns = List.map
 		    (fun x -> (unany#new_symb (get_any ( self#new_symb acc x))))
 		    x.new_symbols
     and sassumes = List.map
 		    (fun x -> (unany#assume_prove (get_any ( self#assume_prove acc x))))
 		    x.assumes
-    and sprove = unany#expr (get_any (self#expr acc x.prove))
+  *)
+
+
+    
+    let acc3 = self#expr acc2 x.prove
+    in
+    let sprove = unany#expr (get_any acc3)
     in
     let sx = {
 	location          = x.location;
@@ -228,26 +320,50 @@ class expr_to_simple_expr = object(self)
 	new_symbols       = sns;
 	assumes           = sassumes;
 	prove             = sprove
-    }
-    in set_any acc (Any_assume_prove sx)
+      }
+    in
+
+(*
+    (* DEBUGGINIG *)
+    
+     print_string "SIMPLE TERM DB ACC1: --------------------------------";
+     print_newline ();
+     print_db (get_simple_term_db acc1);
+     print_string "SIMPLE TERM DB ACC2: --------------------------------";
+     print_newline ();
+     print_db (get_simple_term_db acc2);
+     print_string "SIMPLE TERM DB ACC3: --------------------------------";
+     print_newline ();
+     print_db (get_simple_term_db acc3);
+
+    (* END DEBUGGINIG *)
+ *)
+
+	       
+    set_any acc3 (Any_assume_prove sx)
 
 
 	       
   (** New symb **)	
   method new_symb acc x =
-    let sset = match x.set with	
-      | None -> None
+    let (acc1,sset) = match x.set with	
+      | None -> (acc,None)
       | Some e ->
-	 let se = unany#expr (get_any (self#expr acc e))
-	 in Some se
-    and sop_decl = unany#op_decl (get_any  (self#op_decl acc x.op_decl)) in
+	 let acct = self#expr acc e
+	 in
+	 let se = unany#expr (get_any acct)
+	 in (acct,Some se)
+    in
+    let acc2 = self#op_decl acc x.op_decl
+    in
+    let sop_decl = unany#op_decl (get_any  acc2) in
     let sx = {
 	location          = x.location;
 	level             = x.level;
 	op_decl           = sop_decl; 
 	set               = sset
     }
-    in set_any acc (Any_new_symb sx)
+    in set_any acc2 (Any_new_symb sx)
 
 
 	       
@@ -255,23 +371,32 @@ class expr_to_simple_expr = object(self)
   method op_def acc x = match x with
     | O_module_instance _ -> failwith "Can not convert modules!"
     | O_user_defined_op udo -> 
-      let sudo = unany#user_defined_op (get_any (self#user_defined_op acc udo))
-      in
-      let sx = O_user_defined_op sudo
-      in set_any acc (Any_op_def sx) 
+       let acc1 = self#user_defined_op acc udo
+       in
+       let sudo = unany#user_defined_op (get_any acc1)
+       in
+       let sx = O_user_defined_op sudo
+       in set_any acc1 (Any_op_def sx) 
     | O_builtin_op bo ->
-      let sbo = unany#builtin_op (get_any (self#builtin_op acc bo))
-      in
-      let sx = O_builtin_op sbo
-      in set_any acc (Any_op_def sx)
+       let acc1 = self#builtin_op acc bo
+       in
+       let sbo = unany#builtin_op (get_any acc1)
+       in
+       let sx = O_builtin_op sbo
+       in set_any acc1 (Any_op_def sx)
 
 
 	       
   (** Builtin_op **)			 
   method builtin_op acc x =
-    let sparams = List.map
-		    (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp)),b))
-		    x.params
+    let f (l,acct) (fp,b) =
+      let acctemp = self#formal_param acct fp
+      in
+      let t = ((unany#formal_param (get_any acctemp)),b)
+      in
+      (t::l,acctemp)
+    in
+    let (sparams,acc1) = List.fold_left f ([],acc) x.params
     in
     let sx:simple_builtin_op = {
 	level             = x.level;
@@ -280,17 +405,19 @@ class expr_to_simple_expr = object(self)
 	params            = sparams
     }
     in
-    set_any acc (Any_builtin_op sx)
+    set_any acc1 (Any_builtin_op sx)
 
 
 	    
   (** Expr_or_module_or_module_instance **) 
   method expr_or_module_or_module_instance acc x = match x with
    | EMM_expr e -> 
-      let se = unany#expr (get_any (self#expr acc e))
+      let acc1 = self#expr acc e
+      in
+      let se = unany#expr (get_any acc1)
       in
       let sx = EMM_expr se
-      in set_any acc (Any_expr_or_module_or_module_instance sx)
+      in set_any acc1 (Any_expr_or_module_or_module_instance sx)
    | EMM_module _ -> failwith "Can not convert modules!"
    | EMM_module_instance _ -> failwith "Can not convert modules!"
 
@@ -303,7 +430,7 @@ class expr_to_simple_expr = object(self)
 
   (** Formal_param **) 		   
   method formal_param acc x =
-    let fp_:Expr_ds.formal_param_ = dereference_formal_param (get_term_db acc) x
+    let fp_:formal_param_ = dereference_formal_param (get_term_db acc) x
     in
     let sfp_:simple_formal_param_ =  {
         location          = fp_.location;
@@ -314,14 +441,18 @@ class expr_to_simple_expr = object(self)
     in
     match x with
     | FP_ref i ->
-      let stdb2 = (i,FP_entry sfp_)::(get_simple_term_db acc)
+       let rec add (j,t) l = match l with
+	 | [] -> [(j,t)]
+	 | (k,_)::tl when j=k -> l
+	 | hd::tl -> hd::(add (j,t) tl)
+       in
+      let stdb2 = add (i,FP_entry sfp_) (get_simple_term_db acc)
       in
       let acc2 = (set_simple_term_db acc stdb2)
       in
       set_any acc2 (Any_formal_param (FP_ref i))
     | FP fp_ -> let sx = FP sfp_
 		in set_any acc (Any_formal_param sx)
-
 
 			   
   (** Op_decl **) 		   		 
@@ -338,7 +469,12 @@ class expr_to_simple_expr = object(self)
     in
     match x with
     | OPD_ref i ->
-      let stdb2 = (i,OPDec_entry sod_)::(get_simple_term_db acc)
+       let rec add (j,t) l = match l with
+	 | [] -> [(j,t)]
+	 | (k,_)::tl when j=k -> l
+	 | hd::tl -> hd::(add (j,t) tl)
+       in
+      let stdb2 = add (i,OPDec_entry sod_) (get_simple_term_db acc)
       in
       let acc2 = (set_simple_term_db acc stdb2)
       in
@@ -352,12 +488,21 @@ class expr_to_simple_expr = object(self)
   method user_defined_op acc x =
     let udo_:Expr_ds.user_defined_op_ = dereference_user_defined_op (get_term_db acc) x
     in
-    let sparams = List.map
-		      (fun (fp,b) -> (unany#formal_param (get_any ( self#formal_param acc fp))))
-		      udo_.params
-    and sbody = unany#expr (get_any (self#expr acc udo_.body))
+
+    let f (l,acct) (fp,b) =
+      let acctemp = self#formal_param acct fp
+      in
+      let t = (unany#formal_param (get_any acctemp))
+      in
+      (t::l,acctemp)
     in
-    let sudo_ = {
+    let (sparams,acc1) = List.fold_left f ([],acc) udo_.params
+    in
+    let acc2 = self#expr acc1 udo_.body
+    in
+    let sbody = unany#expr (get_any acc2)
+    in
+   let sudo_ = {
         location          = udo_.location;
         level             = udo_.level;
         name              = udo_.name;
@@ -368,14 +513,19 @@ class expr_to_simple_expr = object(self)
       }
     in
     match x with
-    | UOP_ref i -> 
-      let stdb2 = (i,OPDef_entry (O_user_defined_op (UOP sudo_)))::(get_simple_term_db acc)
+    | UOP_ref i ->
+       let rec add (j,t) l = match l with
+	 | [] -> [(j,t)]
+	 | (k,_)::tl when j=k -> l
+	 | hd::tl -> hd::(add (j,t) tl)
+       in
+      let stdb2 = add (i,OPDef_entry (O_user_defined_op (UOP sudo_))) (get_simple_term_db acc2)
       in
-      let acc2 = (set_simple_term_db acc stdb2)
+      let acc3 = (set_simple_term_db acc2 stdb2)
       in
-      set_any acc2 (Any_user_defined_op (UOP_ref i))
+      set_any acc3 (Any_user_defined_op (UOP_ref i))
     | UOP _ -> let sx = UOP sudo_
-	       in set_any acc (Any_user_defined_op sx)
+	       in set_any acc2 (Any_user_defined_op sx)
 
 
 
@@ -385,23 +535,29 @@ class expr_to_simple_expr = object(self)
   (** global constructors **)
 
 
-  (** Operator **)
+  (** Operator **) (* TODO accumulators *)
   method operator acc x = match x with
-    | FMOTA_formal_param e -> 			 
-      let se = unany#formal_param (get_any (self#formal_param acc e))
-      in
-      let sx = FMOTA_formal_param se
-      in set_any acc (Any_operator sx)
-    | FMOTA_op_decl e -> 			 
-      let se = unany#op_decl (get_any (self#op_decl acc e))
-      in
-      let sx = FMOTA_op_decl se
-      in set_any acc (Any_operator sx)
-    | FMOTA_op_def e -> 			 
-      let se = unany#op_def (get_any (self#op_def acc e))
-      in
-      let sx = FMOTA_op_def se
-      in set_any acc (Any_operator sx)
+    | FMOTA_formal_param e ->
+       let acc1 = self#formal_param acc e
+       in
+       let se = unany#formal_param (get_any acc1)
+       in
+       let sx = FMOTA_formal_param se
+       in set_any acc1 (Any_operator sx)
+    | FMOTA_op_decl e ->
+       let acc1 = self#op_decl acc e
+       in
+       let se = unany#op_decl (get_any acc1)
+       in
+       let sx = FMOTA_op_decl se
+       in set_any acc1 (Any_operator sx)
+    | FMOTA_op_def e ->
+       let acc1 = (self#op_def acc e)
+       in
+       let se = unany#op_def (get_any acc1)
+       in
+       let sx = FMOTA_op_def se
+       in set_any acc1 (Any_operator sx)
     | FMOTA_theorem e -> failwith "TODO : extract statement from theorems"
        (*
        let get_formula s = match s with
@@ -432,26 +588,32 @@ class expr_to_simple_expr = object(self)
       in
       let sx = E_numeral se
       in set_any acc (Any_expr sx)
-    | E_lambda e -> 			 
-      let se = unany#lambda (get_any (self#lambda acc e))
-      in
-      let sx = E_lambda se
-      in set_any acc (Any_expr sx)
     | E_string e -> 			 
       let se = unany#strng (get_any (self#strng acc e))
       in
       let sx = E_string se
       in set_any acc (Any_expr sx)
-    | E_op_appl e -> 			 
-      let se = unany#op_appl (get_any (self#op_appl acc e))
+    | E_lambda e -> 			 
+      let acc1 = self#lambda acc e
+      in
+      let se = unany#lambda (get_any acc1)
+      in
+      let sx = E_lambda se
+      in set_any acc1 (Any_expr sx)
+    | E_op_appl e ->
+      let acc1 = self#op_appl acc e
+      in
+      let se = unany#op_appl (get_any acc1)
       in
       let sx = E_op_appl se
       in set_any acc (Any_expr sx)
-    | E_binder e -> 			 
-      let se = unany#binder (get_any (self#binder acc e))
-      in
-      let sx = E_binder se
-      in set_any acc (Any_expr sx)
+    | E_binder e ->
+       let acc1 = self#binder acc e
+       in
+       let se = unany#binder (get_any acc1)
+       in
+       let sx = E_binder se
+       in set_any acc1 (Any_expr sx)
     | E_subst_in e -> failwith "remove -subst_in- during preprocessing"
     | E_label _ -> failwith "remove -label- during preprocessing"
     | E_at _ -> failwith "remove -at- during preprocessing"
@@ -479,8 +641,10 @@ class expr_to_simple_expr = object(self)
       }
       in set_any acc (Any_entry (i,OPDec_entry sod_))
     | (i, OPDef_entry op) ->
-      let sop = unany#op_def (get_any (self#op_def acc op))
-      in set_any acc (Any_entry (i,OPDef_entry sop))
+      let acc1 = self#op_def acc op
+      in
+      let sop = unany#op_def (get_any acc1)
+      in set_any acc1 (Any_entry (i,OPDef_entry sop))
     | (_,MOD_entry _) -> failwith "Can not get module as entry" 			 
     | (_,THM_entry _) -> failwith "Can not get theorem as entry" 			 
     | (_,ASSUME_entry _) -> failwith "Can not get assume as entry" 			 
