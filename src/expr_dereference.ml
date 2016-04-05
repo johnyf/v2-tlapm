@@ -71,3 +71,8 @@ let dereference_module term_db =  function
   | MOD t -> t
   | MOD_ref x ->
      find_entry unpack_mod_entry term_db x
+
+let compare_modulo_deref_formal_param term_db ?cmp:(cmp=(=)) f1 f2 =
+  let fp1i = dereference_formal_param term_db f1 in
+  let fp2i = dereference_formal_param term_db f2 in
+  cmp fp1i fp2i

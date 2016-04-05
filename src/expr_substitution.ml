@@ -15,7 +15,14 @@ module Subst =
 
 
     let domain = map (function | Subst (x, y) -> x)
-    let range = flat_map free_variables
+    let range =
+      flat_map (function
+                 | Subst (_, EO_expr e) -> free_variables e
+                 | _ -> [] )
+    let bound_range =
+      flat_map (function
+                 | Subst (_, EO_expr e) -> bound_variables e
+                 | _ -> [] )
 
     let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) =
       function
@@ -83,10 +90,12 @@ module Subst =
                 ) None
   end
 
+(* substitution algorithm *)
 type 'a subst_acc = {
     term_db : term_db;
     substs   : Subst.substs;
-    bound_context : bound_symbol list;
+    bound_context : formal_param list;
+    bound_renaming : (formal_param * formal_param) list;
     subclass_acc : 'a;
   }
 
@@ -95,40 +104,165 @@ class ['a] expr_substitution = object(self)
   inherit ['a subst_acc] expr_map as super
 
   method expr acc = function
-    | E_op_appl { location; level; operator = FMOTA_formal_param fp; operands }  ->
+    (* formal param replaced by expression *)
+    | E_op_appl { location; level;
+                  operator = FMOTA_formal_param fp; operands = [] }  ->
        let sacc = get_acc acc in
        begin
          match Subst.find_subst sacc.term_db fp sacc.substs with
          | None ->
-            let extract = self#get_id_extractor in
-            let operadnds, acc0 =
-              unpack_fold extract#expr_or_op_arg self#expr_or_op_arg acc operands in
-            acc0
-         | Some expr ->
-            acc
+            let e = E_op_appl { location; level;
+                                operator = FMOTA_formal_param fp;
+                                operands = []; } in
+            set_anyexpr acc (Any_expr e)
+         | Some (EO_expr e) ->
+            set_anyexpr acc (Any_expr e)
+         | Some (EO_op_arg o) ->
+            failwith "Tried to replace an expression by an operator."
        end
-    | E_op_appl { location; level; operator; operands }  ->
-       (**)
-       acc
-    | E_at x        -> self#at acc x
-    | E_label x     -> self#label acc x
-    | E_subst_in x  -> self#subst_in acc x
-    | E_binder x    -> self#binder acc x
+    (* formal param replaced by operator *)
+    | E_op_appl opappl as e  ->
+       super#expr acc e (* handled in self#operator *)
+    | E_binder b as e -> super#expr acc e (* handled in self#binder *)
+    | E_at x        as e -> super#expr acc e (* TODO: handle *)
+    | E_label x     as e -> super#expr acc e (* TODO: handle *)
+    | E_subst_in x  as e -> super#expr acc e (* TODO: handle *)
     (* can not contain formal parameters *)
-    | E_decimal x   -> self#decimal acc x
-    | E_string x    -> self#strng acc x
-    | E_numeral x   -> self#numeral acc x
-    | E_let_in x    -> self#let_in acc x
+    | E_decimal x   as e -> super#expr acc e
+    | E_string x    as e -> super#expr acc e
+    | E_numeral x   as e -> super#expr acc e
+    | E_let_in x    as e -> super#expr acc e
+
+  method unbounded_bound_symbol acc { param; tuple } =
+    let sacc = get_acc acc in
+    let free = Subst.range sacc.substs in
+    let bound = sacc.bound_context in
+    let (rterm_db, rparam) = Subst.rename sacc.term_db ~free ~bound param in
+    let (bound_context, bound_renaming) =
+      if compare_modulo_deref_formal_param rterm_db param rparam
+      then (sacc.bound_context, [])
+      else (rparam :: sacc.bound_context, [(param, rparam)])
+    in
+    let acc0 = set_acc acc { sacc with term_db = rterm_db; bound_context; } in
+    let ubs = { param = rparam; tuple; } in
+    set_anyexpr acc0 (Any_unbounded_bound_symbol ubs)
+
+  method bounded_bound_symbol acc { params; tuple; domain } =
+    (* recurse into domain first, SANY does not allow params
+       in the domain *)
+    let acc0 = self#expr acc domain in
+    let term_db = (get_acc acc0).term_db in
+    let parent_acc = (get_acc acc) in
+    let bound = parent_acc.bound_context in
+    let free = Subst.range parent_acc.substs in
+    (* do renaming of symbols, if neccessary *)
+    let (rterm_db, rparams_reverse) =
+      fold_left (function
+                  | (rdb, rps) ->
+                     (fun param ->
+                      let db, rp =
+                        Subst.rename term_db ~free ~bound param
+                      in
+                      (db, rp::rps)
+                     )
+                )
+                (term_db, []) params
+    in
+    (* restore parameter order *)
+    let rparams = rev rparams_reverse in
+    (* create the renaming from old to new symbols *)
+    let bound_renaming =
+      filter (function | (fpo, fpn) ->
+                          compare_modulo_deref_formal_param rterm_db fpo fpn)
+             (combine params rparams)
+    in
+    (* add new symbols to bound context *)
+    let bound_context = append parent_acc.bound_context
+                               (map (function (_,x) -> x) bound_renaming)
+    in
+    let acc0 = set_acc acc { parent_acc with term_db = rterm_db;
+                             bound_context; bound_renaming; } in
+    let ubs = { params = rparams; tuple; domain } in
+    set_anyexpr acc0 (Any_bounded_bound_symbol ubs)
+
+  method operator acc = function
+    | FMOTA_formal_param fp as op ->
+       let sacc = get_acc acc in
+       let extract = self#get_id_extractor in
+       begin
+         match Subst.find_subst sacc.term_db fp sacc.substs with
+         | None ->
+            set_anyexpr acc (Any_operator op)
+         | Some (EO_op_arg { location; level; argument }) ->
+            set_anyexpr acc (Any_operator argument)
+         | Some (EO_expr e) ->
+            failwith "Tried to replace an expression by an operator."
+       end
+    | FMOTA_module mule             as op -> super#operator acc op
+    | FMOTA_op_decl op_decl         as op -> super#operator acc op
+    | FMOTA_op_def op_def           as op -> super#operator acc op
+    | FMOTA_theorem theorem         as op -> super#operator acc op
+    | FMOTA_assume assume           as op -> super#operator acc op
+    | FMOTA_ap_subst_in ap_subst_in as op -> super#operator acc op
+    | FMOTA_lambda lambda           as op -> super#operator acc op
 
   method binder acc { location; level; operator; operand; bound_symbols } =
     let sacc = get_acc acc in
-    let bound_context = append sacc.bound_context bound_symbols in
-    let acc0 = set_acc acc { sacc with bound_context } in
-    acc0
+    (* process bound symbols to get the renaming *)
+    let ie = self#get_id_extractor in
+    let bound_symbols, racc =
+      unpack_fold ie#bound_symbol self#bound_symbol acc bound_symbols in
+    (* apply renaming to operand, the operator is always a built-in and
+          doesn't need to be processed *)
+    let rsacc = get_acc racc in
+    let substs =
+      map (function (x,y) ->
+                    let argument = FMOTA_formal_param y in
+                    let eo = EO_op_arg { location; level; argument } in
+                    Subst.Subst (x, eo)
+          )
+          rsacc.bound_renaming
+    in
+    let renaming_acc = set_acc racc
+                               { sacc with substs; term_db = rsacc.term_db }
+    in
+    let renamed_op, sacc0 = self#expr_or_op_arg renaming_acc operand in
+    (* apply substitution to renamed operator *)
+    (* TODO: the renaming assures that we don't need to remove the old
+       bound variables from the substitution. Decide if we want to remove them
+       anyway.
 
-  method context acc { entries; modules } =
-    let inner_acc = get_acc acc in
-    let acc0 = set_acc acc { inner_acc with term_db = entries } in
-    fold_left self#mule acc0 modules
+       Right now, we also do not rename if there is a collision with a
+       formal parameter bound in one of the domains in bound_symbols.
+     *)
+    let substituting_sacc = { sacc with term_db = sacc0.term_db;
+                                        bound_context = rsacc.bound_context;
+                            } in
+    let substituting_acc = (renamed_op, substituting_sacc) in
+    let op, sacc1 =
+      ie#expr_or_op_arg renamed_op
+      |> self#expr_or_op_arg substituting_acc
+    in
+    (* create binder for return value *)
+    let binder = { location; level; operator;
+                   operand = ie#expr_or_op_arg op;
+                   bound_symbols }
+    in
+    (* create subst accumulator for passing up *)
+    let bsacc = { sacc with term_db = sacc0.term_db;
+                            bound_context = rsacc.bound_context } in
+    (Any_binder binder, bsacc)
+
+  method user_defined_op acc = function
+    | UOP_ref uid as uop ->
+       set_anyexpr acc (Any_user_defined_op uop)
+    | UOP uopi as uop ->
+       (* Don't recurse into the body, any substitution is applied
+          to the arguments as soon as the operator is applied.
+        *)
+       set_anyexpr acc (Any_user_defined_op uop)
+
+  method context acc _ =
+    failwith "Can't apply a substitutionto a context."
 
 end

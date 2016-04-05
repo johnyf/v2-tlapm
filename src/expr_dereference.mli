@@ -40,3 +40,8 @@ val dereference_assume : term_db -> assume -> assume_
 (** If the passed theorem is a reference, it will be retrieved from the
  term_db. Otherwise, it is directly extracted. *)
 val dereference_module : term_db -> mule -> mule_
+
+(** compare two formal params after dereferencing *)
+val compare_modulo_deref_formal_param :
+  term_db -> ?cmp:(formal_param_ -> formal_param_ -> bool)
+  -> formal_param -> formal_param -> bool

@@ -73,15 +73,41 @@ let assume_prove_from_expr suffices expr =  {
     boxed = false; (* TODO: check if this is true *)
   }
 
+(* free variables *)
+module OPD_comparable = struct
+    type t = op_decl
+    let compare = Pervasives.compare
+  end
+module OPD_Set = Set.Make( OPD_comparable )
+
 class free_variables_visitor = object
-  inherit [op_decl list] visitor as super
+  inherit [OPD_Set.t] visitor as super
 
   method op_decl acc opd =
-    super#op_decl (opd::acc) opd
+    super#op_decl (OPD_Set.add opd acc) opd
 end
 
 let fv_object = new free_variables_visitor
 
-let free_variables = fv_object#expr []
+let free_variables expr =
+  OPD_Set.fold (fun x xs -> x::xs) (fv_object#expr OPD_Set.empty expr) []
 
+(* bound variables *)
+module FP_comparable = struct
+    type t = formal_param
+    let compare = Pervasives.compare
+  end
+module FP_Set = Set.Make( FP_comparable )
 
+class bound_variables_visitor = object
+  inherit [FP_Set.t] visitor as super
+
+  method formal_param acc fp =
+    super#formal_param (FP_Set.add fp acc) fp
+end
+
+let bv_object = new bound_variables_visitor
+
+let bound_variables expr =
+  FP_Set.fold (fun x xs -> x::xs)
+  (bv_object#expr FP_Set.empty expr) []
