@@ -150,9 +150,6 @@ let init () =
      (* extract obligations *)
      let obligations =
        Extract_obligations.extract_obligations_context fixed_theorems in
-     (* call nunckaku *)
-     ignore(nunchaku obligations)
-
      (* print obligations to stdout *)
      (*
      ignore(
@@ -162,7 +159,10 @@ let init () =
                          no+1
                         ) 1 obligations
        )
-     *)
+      *)
+     (* call nunckaku *)
+     ignore(no_nunchaku obligations "nun/complex.txt");
+     ignore(nunchaku obligations "nun/simple.txt")
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";

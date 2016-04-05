@@ -1,0 +1,24 @@
+Obligation 1:
+TRUE
+
+Obligation 2:
+FALSE
+
+Obligation 3:
+ASSUME FALSE PROVE FALSE
+
+Obligation 4:
+(1 = 1)
+
+Obligation 5:
+(1 = 2)
+
+Obligation 6:
+\E x \in $SetEnumerate(0, 1) : ((x = 3))
+
+Obligation 7:
+ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE ($Tuple(x, $Tuple(y, z)) \in (S \union T))
+
+Obligation 8:
+ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE \E <<u, v>> \in S : (($Tuple(u, v) \in T))
+
