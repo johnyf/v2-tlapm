@@ -35,6 +35,21 @@ let unbounded_exists =
     params = [(formal_param 0 0, false)]; (* TODO: check if this is correct *)
   }
 
+let bounded_forall =
+  { name = "$BoundedForall";
+    level = None;
+    arity = 1;
+    params = [(formal_param 0 0, false)];  (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
+  }
+
+let unbounded_forall =
+  { name = "$UnboundedForall";
+    level = None;
+    arity = 1;
+    params = [(formal_param 0 0, false)]; (* TODO: check if this is correct *)
+  }
+
+
 let set_in =
   { name = "\\in";
     level = None;

@@ -79,9 +79,15 @@ let entry_ids =
 let get_ids =
   map_term_db (fun m e -> to_list (IntSet.union m e))
 
+
+let inconsistent_entries term_db =
+  IntSet.fold (fun x xs -> x::xs) (map_term_db IntSet.diff term_db) []
+
 (* checks if there are mentioned references without term_db entries *)
-let is_consistent =
-  map_term_db (fun e -> IntSet.for_all (fun x -> IntSet.mem x e) )
+let is_consistent term_db =
+  match inconsistent_entries term_db with
+  | [] -> true
+  | _ -> false
 
 (* checks if there are entries which are not mentioned at all *)
 let unmentioned_entries =
@@ -118,7 +124,7 @@ let generate_id term_db =
   in
   map_term_db (fun m e ->
                match max m (max e None) with
-               | Some mid when mid > 10000 -> mid+1
+               | Some mid when mid >= 10000 -> mid+1
                | Some mid (* else *)       -> 10000
                | None                      -> 10000
               ) term_db

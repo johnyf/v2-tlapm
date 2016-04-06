@@ -23,3 +23,6 @@ sig
   (** Removes all passed formal parameters from a substition *)
   val remove_from_subst : term_db -> formal_param list -> substs -> substs
 end
+
+val subst_expr : term_db -> Subst.substs -> expr -> expr * term_db
+val subst_op   : term_db -> Subst.substs -> operator -> operator * term_db

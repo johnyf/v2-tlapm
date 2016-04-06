@@ -11,6 +11,9 @@ open Expr_visitor
 (** Extracts a list of all reference ids in the term db. *)
 val get_ids : term_db -> int list
 
+(** Returns the non-existing entries of the term_db. *)
+val inconsistent_entries : term_db -> int list
+
 (** Checks if any entries in the term_db refer to non-existing entries. *)
 val is_consistent : term_db -> bool
 

@@ -756,12 +756,43 @@ end
 
 let expr_formatter = new formatter
 
-let mk_fmt (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
-  let acc = (formatter_of_out_channel channel, term_db, true, Expression, 0) in
+let mk_formatter (f : fc -> 'a -> fc) term_db fformatter (expr : 'a) =
+  let acc = (fformatter, term_db, true, Expression, 0) in
   ignore (f acc expr)
 
-let fmt_expr = mk_fmt (expr_formatter#expr)
+let mk_printer (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
+  mk_formatter f term_db (formatter_of_out_channel channel) expr
 
-let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
+let prnt_expr = mk_printer (expr_formatter#expr)
 
-let fmt_statement  = mk_fmt (expr_formatter#statement)
+let prnt_assume_prove = mk_printer (expr_formatter#assume_prove)
+
+let prnt_statement  = mk_printer (expr_formatter#statement)
+
+let fmt_expr = mk_formatter (expr_formatter#expr)
+
+let fmt_assume_prove = mk_formatter (expr_formatter#assume_prove)
+
+let fmt_statement  = mk_formatter (expr_formatter#statement)
+
+let fmt_formal_param = mk_formatter (expr_formatter#formal_param)
+
+let fmt_expr_or_op_arg = mk_formatter (expr_formatter#expr_or_op_arg)
+
+let fmt_op_decl = mk_formatter (expr_formatter#op_decl)
+
+let fmt_list ?front:(front="") ?sep:(sep=", ") ?back:(back="")
+              fmt_item formatter =
+  let rec fmt_list_ fmt_item formatter = function
+    | [] ->
+       fprintf formatter "%s" back;
+       ()
+    | [x] ->
+       fprintf formatter "%a%s" fmt_item x back;
+       ()
+    | x::xs ->
+       fprintf formatter "%a%s" fmt_item x sep;
+       fmt_list_ fmt_item formatter xs
+  in
+  fprintf formatter "%s" front;
+  fmt_list_ fmt_item formatter
