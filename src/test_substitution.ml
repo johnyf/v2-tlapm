@@ -97,7 +97,7 @@ let test_fun substs () =
   fprintf std_formatter "Input:  %a@," (fmt_expr term_db) formula;
   let (t1, term_db1) = subst_expr term_db substs formula in
   fprintf std_formatter "Output: %a@," (fmt_expr term_db1) t1;
-  fprintf std_formatter "%!";
+  (*
   fprintf std_formatter "tdb ids: %a@,"
           (fmt_list ~front:"[" ~sep:", " ~back:"]"
                     (fun f ->
@@ -107,6 +107,8 @@ let test_fun substs () =
           )
           term_db1
           ;
+   *)
+  fprintf std_formatter "%!";
   Assert.equal_bool ~msg:"Termdb after sub is inconsistent!"
                     (is_consistent term_db1) true;
   ()
