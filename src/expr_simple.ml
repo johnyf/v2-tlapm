@@ -18,7 +18,7 @@ let get_any (_,_,any) = any
 let set_term_db (_,simple_term_db,any) term_db = (term_db,simple_term_db,any)
 let set_simple_term_db (term_db,_,any) simple_term_db = (term_db,simple_term_db,any)
 let set_any (term_db,simple_term_db,_) any = (term_db,simple_term_db,any)
-		       
+
 class extractor = object
   inherit [anySimpleExpr] any_extractor
   method extract x = x
@@ -112,26 +112,17 @@ class expr_to_simple_expr = object(self)
     in
     let (acc2,soperands) = f acc1 x.operands
     in
-(*    let f (l,acct) op =
-      let acctemp = self#expr_or_op_arg acct op
-      in
-      let t = (unany#expr_or_op_arg (get_any acctemp))
-      in
-      (t::l,acctemp)
-    in
-    let (soperands,acc2) = List.fold_left f ([],acc1) x.operands
-    in
- *)
     let sx:simple_op_appl = {
 	location          = x.location;
 	level             = x.level;
         operator          = soperator;
 	operands          = soperands
       }
-    in set_any acc2 (Any_op_appl sx)
+    in
+    set_any acc2 (Any_op_appl sx)
 
 
-	       
+	    
   (** Expr_or_op_arg **)
   method expr_or_op_arg acc x =
     match x with
@@ -147,7 +138,6 @@ class expr_to_simple_expr = object(self)
        let sop_arg = EO_op_arg (unany#op_arg (get_any acc1))
        in
        set_any acc1 (Any_expr_or_op_arg sop_arg)
-
 	       
 	       
   (** Binder **)   
@@ -171,17 +161,6 @@ class expr_to_simple_expr = object(self)
     in
     let (acc3,sbs) = f acc2 x.bound_symbols
     in
-(*
-    let f (l,acct) bs =
-      let acctemp = self#bound_symbol acct bs
-      in
-      let t = (unany#bound_symbol (get_any acctemp))
-      in
-      (t::l,acctemp)
-    in
-    let (sbs,acc3) = List.fold_left f ([],acc2) x.bound_symbols
-    in
-*)
     let sx:simple_binder = {
 	location          = x.location;
 	level             = x.level;
@@ -236,17 +215,6 @@ class expr_to_simple_expr = object(self)
     in
     let (acc1,sparams) = f acc x.params
     in
-(*
-    let f (l,acct) fp =
-      let acctemp = self#formal_param acct fp
-      in
-      let t = (unany#formal_param (get_any acctemp))
-      in
-      (t::l,acctemp)
-    in
-    let (sparams,acc1) = List.fold_left f ([],acc) x.params
-    in
- *)
     let acc2 = self#expr acc1 x.domain
     in
     let sdomain = unany#expr (get_any (acc2))
@@ -271,17 +239,6 @@ class expr_to_simple_expr = object(self)
     in
     let (acc1,sparams) = f acc x.params
     in
-(*
-    let f (l,acct) (fp,b) =
-      let acctemp = self#formal_param acct fp
-      in
-      let t = ((unany#formal_param (get_any acctemp)),b)
-      in
-      (t::l,acctemp)
-    in
-    let (sparams,acc1) = List.fold_left f ([],acc) x.params
-    in
- *)
     let acc2 = self#expr acc1 x.body
     in
     let sbody = unany#expr (get_any acc2)
@@ -299,29 +256,6 @@ class expr_to_simple_expr = object(self)
 	       
   (** Assume_prove **)	       
   method assume_prove acc x =
-
-(*    print_int (List.length (x.new_symbols));
-    print_int (List.length (x.assumes ) );
-
-    (* DEBUGGINIG *)
-    
-         let rec print_db l = match l with
-	 | [] -> ();
-	 | (k,_)::tl -> print_int k; print_newline (); print_db tl
-	 in
-
-	 print_string "TERM DB: --------------------------------";
-	 print_newline ();
-	 print_db (get_term_db acc);
-	 print_string "SIMPLE TERM DB BEFORE: --------------------------------";
-	 print_newline ();
-	 print_db (get_simple_term_db acc);
-     
-    (* END DEBUGGINIG *)
- *)
-
-	 
-
     let rec f1 acct l = match l with
       | [] -> (acct,[])
       | t::q -> let (acctemp,q') = f1 acct q in
@@ -340,40 +274,6 @@ class expr_to_simple_expr = object(self)
     in
     let (acc2,sassumes) = f2 acc1 x.assumes
     in
-
-(*
-    let f1 (l,acct) s =
-      let acctemp = self#new_symb acct s
-      in
-      let ss = (unany#new_symb (get_any acctemp))
-      in
-      (ss::l,acctemp)
-    in
-    let (sns,acc1) = List.fold_left f ([],acc) x.new_symbols
-    in
-*)
-(*
-    let f2 (l,acct) s =
-      let acctemp = self#assume_prove acct s
-      in
-      let ss = (unany#assume_prove (get_any acctemp))
-      in
-     (ss::l,acctemp)
-    in
-    let (sassumes,acc2) = List.fold_left f2 ([],acc1) x.assumes
-    in
-*)
-				    
- (*   let sns = List.map
-		    (fun x -> (unany#new_symb (get_any ( self#new_symb acc x))))
-		    x.new_symbols
-    and sassumes = List.map
-		    (fun x -> (unany#assume_prove (get_any ( self#assume_prove acc x))))
-		    x.assumes
-  *)
-
-
-    
     let acc3 = self#expr acc2 x.prove
     in
     let sprove = unany#expr (get_any acc3)
@@ -386,24 +286,6 @@ class expr_to_simple_expr = object(self)
 	prove             = sprove
       }
     in
-
-(*
-    (* DEBUGGINIG *)
-    
-     print_string "SIMPLE TERM DB ACC1: --------------------------------";
-     print_newline ();
-     print_db (get_simple_term_db acc1);
-     print_string "SIMPLE TERM DB ACC2: --------------------------------";
-     print_newline ();
-     print_db (get_simple_term_db acc2);
-     print_string "SIMPLE TERM DB ACC3: --------------------------------";
-     print_newline ();
-     print_db (get_simple_term_db acc3);
-
-    (* END DEBUGGINIG *)
- *)
-
-	       
     set_any acc3 (Any_assume_prove sx)
 
 
@@ -454,24 +336,16 @@ class expr_to_simple_expr = object(self)
   (** Builtin_op **)			 
   method builtin_op acc x =
     let rec f acct l = match l with
-      | [] -> (acct,[])
-      | (t,b)::q -> let (acctemp,q') = f acct q in
-		let acct' = self#formal_param acctemp t in
-		let t'=unany#formal_param (get_any acct') in
-		(acct',((t',b)::q'))
+      | [] ->
+	 (acct,[])
+      | (t,b)::q ->
+	 let (acctemp,q') = f acct q in
+    	 let acct' = self#formal_param acctemp t in
+    	 let t'=unany#formal_param (get_any acct') in
+    	 (acct',((t',b)::q'))
     in
     let (acc1,sparams) = f acc x.params
     in
-(*    let f (l,acct) (fp,b) =
-      let acctemp = self#formal_param acct fp
-      in
-      let t = ((unany#formal_param (get_any acctemp)),b)
-      in
-      (t::l,acctemp)
-    in
-    let (sparams,acc1) = List.fold_left f ([],acc) x.params
-    in
-*)
     let sx:simple_builtin_op = {
 	level             = x.level;
 	name              = x.name;
@@ -504,6 +378,7 @@ class expr_to_simple_expr = object(self)
 
   (** Formal_param **) 		   
   method formal_param acc x =
+
     let fp_:formal_param_ = dereference_formal_param (get_term_db acc) x
     in
     let sfp_:simple_formal_param_ =  {
@@ -550,12 +425,11 @@ class expr_to_simple_expr = object(self)
        in
       let stdb2 = add (i,OPDec_entry sod_) (get_simple_term_db acc)
       in
-      let acc2 = (set_simple_term_db acc stdb2)
+      let acc1 = (set_simple_term_db acc stdb2)
       in
-      set_any acc2 (Any_op_decl (OPD_ref i))
+      set_any acc1 (Any_op_decl (OPD_ref i))
     | OPD od_ -> let sx = OPD sod_
 		 in set_any acc (Any_op_decl sx)
-
 
 			    
   (** User_defined_op **) 		   		 			    
@@ -571,22 +445,11 @@ class expr_to_simple_expr = object(self)
     in
     let (acc1,sparams) = f acc udo_.params
     in
-(*
-    let f (l,acct) (fp,b) =
-      let acctemp = self#formal_param acct fp
-      in
-      let t = (unany#formal_param (get_any acctemp))
-      in
-      (t::l,acctemp)
-    in
-    let (sparams,acc1) = List.fold_left f ([],acc) udo_.params
-    in
- *)
     let acc2 = self#expr acc1 udo_.body
     in
     let sbody = unany#expr (get_any acc2)
     in
-   let sudo_ = {
+    let sudo_ = {
         location          = udo_.location;
         level             = udo_.level;
         name              = udo_.name;
@@ -643,17 +506,6 @@ class expr_to_simple_expr = object(self)
        let sx = FMOTA_op_def se
        in set_any acc1 (Any_operator sx)
     | FMOTA_theorem e -> failwith "TODO : extract statement from theorems"
-       (*
-       let get_formula s = match s with
-         | ST_FORMULA ap -> ap
-	 | _ -> failwith "no"
-       in
-       let get_statement thm:theorem = match thm with
-	 | THM thm_ -> (get_formula thm_.statement)
-	 | THM_ref i -> failwith "ref"
-       in
-      self#assume_prove acc (get_statement e)
-	*)
     | FMOTA_module _ -> failwith "Cannot convert module!"
     | FMOTA_assume _ -> failwith "Cannot convert assume!"
     | FMOTA_ap_subst_in _ -> failwith "Cannot convert ap_subst_in!"
@@ -690,7 +542,8 @@ class expr_to_simple_expr = object(self)
       let se = unany#op_appl (get_any acc1)
       in
       let sx = E_op_appl se
-      in set_any acc (Any_expr sx)
+      in
+      set_any acc1 (Any_expr sx)
     | E_binder e ->
        let acc1 = self#binder acc e
        in
@@ -702,7 +555,6 @@ class expr_to_simple_expr = object(self)
     | E_label _ -> failwith "remove -label- during preprocessing"
     | E_at _ -> failwith "remove -at- during preprocessing"
     | E_let_in _ -> failwith "remove -let_in- during preprocessing"
-
 		     
 
   (** Entry **)				      

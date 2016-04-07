@@ -161,8 +161,8 @@ let init () =
        )
       *)
      (* call nunckaku *)
-     ignore(no_nunchaku obligations "nun/complex.txt");
-     ignore(nunchaku obligations "nun/simple.txt")
+     no_nunchaku obligations "nun/complex.txt";
+     nunchaku obligations "nun/simple.txt"
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";
