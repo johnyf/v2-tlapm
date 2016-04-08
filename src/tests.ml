@@ -65,7 +65,8 @@ let () =
         Test_correct_lambda.get_tests without_broken;
         Test_parse_theorems.get_tests without_broken;
         Test_extract_obligations.get_tests without_broken;
-        Test_formatter.get_tests without_broken (* *)
+        Test_formatter.get_tests without_broken (* *);
+	Test_simple_expr.get_tests without_broken;
       ] in
   match check_xmloutput with
   | true  ->
