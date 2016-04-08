@@ -545,10 +545,15 @@ class expr_to_simple_expr = object(self)
 	    (
 	      match thm_.statement with
 	      | ST_FORMULA ap ->
-	 	 let e2 = ap.prove
+		 let e2 = ap.prove
 		 in
-		 self#expr acc e2
-	      | _ -> failwith "error thm parsing"
+		 (
+		   match ap.assumes with
+		   | [] -> ();
+		   | _  -> failwith "error with transforming theorem in simple_expr";
+		 );
+	         self#expr acc e2
+	      | _ -> failwith "error with transforming theorem in simple_expr"
 	    )
 	 | _ ->
  	    let acc1 = self#op_appl acc e
