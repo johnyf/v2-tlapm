@@ -513,7 +513,7 @@ class expr_to_simple_expr = object(self)
 
 
   (** Expr **)				      
-  method expr acc x = match x with
+  method expr acc x = match x with 
     | E_decimal e -> 			 
       let se = unany#decimal (get_any (self#decimal acc e))
       in
@@ -537,13 +537,28 @@ class expr_to_simple_expr = object(self)
       let sx = E_lambda se
       in set_any acc1 (Any_expr sx)
     | E_op_appl e ->
-      let acc1 = self#op_appl acc e
-      in
-      let se = unany#op_appl (get_any acc1)
-      in
-      let sx = E_op_appl se
-      in
-      set_any acc1 (Any_expr sx)
+       (
+	 match e.operator with
+	 | FMOTA_theorem thm ->
+	    let thm_:Expr_ds.theorem_  = dereference_theorem (get_term_db acc) thm
+	    in
+	    (
+	      match thm_.statement with
+	      | ST_FORMULA ap ->
+	 	 let e2 = ap.prove
+		 in
+		 self#expr acc e2
+	      | _ -> failwith "error thm parsing"
+	    )
+	 | _ ->
+ 	    let acc1 = self#op_appl acc e
+	    in
+	    let se = unany#op_appl (get_any acc1)
+	    in
+	    let sx = E_op_appl se
+	    in
+	    set_any acc1 (Any_expr sx)
+       )
     | E_binder e ->
        let acc1 = self#binder acc e
        in
