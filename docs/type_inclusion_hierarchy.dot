@@ -16,18 +16,18 @@ nod -> expr;
 //nod -> theorem;
 //nod -> use_or_hide;
 
-expr -> at;
+expr -> at[color=red];
 expr -> decimal;
 expr -> label;
 expr -> let_in;
 expr -> numeral;
-expr -> op_appl;
+expr -> op_appl[color=red];
 expr -> strng;
 expr -> subst_in;
-expr -> binder;
+expr -> binder[color=red];
 
-expr_or_op_arg -> expr;
-expr_or_op_arg -> op_arg;
+expr_or_op_arg -> expr[color=red];
+expr_or_op_arg -> op_arg[color=red];
 
 ap_subst_in -> subst;
 ap_subst_in -> nod;
@@ -45,13 +45,13 @@ subst -> expr_or_op_arg;
 assume -> expr;
 
 
-theorem ->  assume_prove;
+theorem ->  assume_prove[color=red];
 theorem ->  proof;
 
 
 assume_prove -> new_symb ;
-assume_prove -> assume_prove;
-assume_prove -> expr;
+assume_prove -> assume_prove[color=red];
+assume_prove -> expr[color=red];
 
 
 new_symb ->  op_decl;
@@ -69,7 +69,7 @@ lambda -> formal_param;
 
 builtin_op -> formal_param;
 
-op_arg -> operator;
+op_arg -> operator[color=red];
 
 op_decl -> op_declkind;
 
@@ -104,10 +104,10 @@ use_or_hide -> expr_or_module_or_module_instance;
 use_or_hide -> defined_expr;
 
 
-op_appl_or_binder -> op_appl;
-op_appl_or_binder -> binder;
+op_appl_or_binder -> op_appl[color=red];
+op_appl_or_binder -> binder[color=red];
 
-at -> op_appl_or_binder;
+at -> op_appl_or_binder[color=red];
 
 
 
@@ -125,16 +125,16 @@ operator -> formal_param;
 operator -> mule;
 operator -> op_decl;
 operator -> op_def;
-operator -> theorem;
+operator -> theorem[color=red];
 operator -> assume;
 operator -> ap_subst_in;
 operator -> lambda;
 
-op_appl -> operator;
-op_appl -> expr_or_op_arg;
+op_appl -> operator[color=red];
+op_appl -> expr_or_op_arg[color=red];
 
-binder -> operator;
-binder -> expr_or_op_arg;
+binder -> operator[color=red];
+binder -> expr_or_op_arg[color=red];
 binder -> bound_symbol;
 
 bound_symbol -> unbounded_bound_symbol;

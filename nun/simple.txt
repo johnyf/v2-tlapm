@@ -17,4 +17,15 @@ Obligation 6:
 \E x \in $SetEnumerate(0, 1) : ((x = 3))
 
 Obligation 7:
-ASSUME NEW S, NEW T, ($Tuple(
+\A x : ((x = x))
+
+Obligation 8:
+\A p, q : (((p => q) => \E i : (((((p => i) /\ (i => q)) /\ \lnot((i => p))) /\ \lnot((p => i))))))
+
+Obligation 9:
+ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE ($Tuple(x, $Tuple(y, z)) \in (S \union T))
+
+Obligation 10:
+ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE \E <<u, v>> \in S : (($Tuple(u, v) \in T))
+
+

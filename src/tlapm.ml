@@ -161,8 +161,13 @@ let init () =
        )
       *)
      (* call nunckaku *)
-     no_nunchaku obligations "nun/complex.txt";
-     nunchaku obligations "nun/simple.txt"
+     print_complex obligations "nun/complex.txt";
+     print_simple obligations "nun/simple.txt";
+     print_nunchaku obligations "nun/to_nun"
+            (* Directory in which the .nun files will be created. One file per obligation. *)
+            (* The directory needs to exist, otherwise it won't work. *)
+            (* TODO Add a command to create the directory if it doesn't exist. *)
+
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";
