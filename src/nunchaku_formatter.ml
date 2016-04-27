@@ -3,94 +3,53 @@ open Simple_expr_ds
 open Simple_expr_visitor
 open Simple_expr_utils
 open Simple_expr_dereference
-open Util
-open List
 open Format
 open Simple_expr_prover_parser
-
-type nesting = Module | Expression | ProofStep of int | By
-(* We need to pass on the formatter, the contect for unfolding references and a
-   flag if to unfold *)
-type fc = Format.formatter * simple_term_db * bool * nesting * int
-
+open Nunchaku_statement
+       
+type fc = (statement list) * simple_term_db
+			       
 (* these are extractors for the accumulator type  *)
-let ppf     ( ppf, _, _, _, _ ) = ppf
-let tdb     ( _, db, _, _, _ ) = db
-let undef   ( _, _, expand, _, _ ) = expand
-let nesting ( _, _, _, n, _ ) = n
-let ndepth  ( _, _, _,  _, n ) = n
+let sta     ( sta, _ ) = sta
+let tdb     ( _, tdb ) = tdb
 
-
-(* sets the expand flag of the accumulator *)
-let set_expand (x,y,_,n, d) v = (x,y,v,n,d)
-
-(* sets the expand flag of the first accumulator the the expand flag of the
-   second accumulator *)
-let reset_expand (x,y,_,n,d) (_,_,v,_,_) = (x,y,v,n,d)
-
-(* modifies the accumulator to turn on definition expansion *)
-let enable_expand x = set_expand x true
-
-(* modifies the accumulator to turn off definition expansion *)
-let disable_expand x = set_expand x false
-
-
-let set_nesting (x,y,z,_,u) n = (x,y,z,n,u)
-let reset_nesting x (_,_,_,n,_) = set_nesting x n
-let nest_module x = set_nesting x Module
-let nest_expr x = set_nesting x Expression
-let nest_proof x n = set_nesting x (ProofStep n)
-let nest_by x = set_nesting x By
-
-let set_ndepth (x,y,z,n,d) depth = (x,y,z,n,depth)
-let reset_ndepth x (_,_,_,_,d) = set_ndepth x d
-let inc_ndepth x = set_ndepth x ((ndepth x) + 1)
-
-
-let comma_formatter channel _ =
-  fprintf channel ", ";
-  ()
-let newline_formatter channel _ =
-  fprintf channel "@, ";
-  ()
-let empty_formatter channel _ =
-  fprintf channel "";
-  ()
+let add_statement statement (sta, tdb) =
+  (statement::sta,tdb)
+			   
+(* let comma_formatter channel _ = *)
+(*   fprintf channel ", "; *)
+(*   () *)
+(* let newline_formatter channel _ = *)
+(*   fprintf channel "@, "; *)
+(*   () *)
+(* let empty_formatter channel _ = *)
+(*   fprintf channel ""; *)
+(*   () *)
 
 (* folds the function f into the given list, but extracts the formatter from
    the accumulator and prints the string s after all but the last elements.  *)
-let rec ppf_fold_with ?str:(s=comma_formatter) f acc = function
-  | [x] ->
-     f acc x
-  | x::xs ->
-     let y = f acc x in
-     fprintf (ppf y) "%a" s ();
-     ppf_fold_with ~str:s f y xs
-  | [] -> acc
+(* let rec ppf_fold_with ?str:(s=comma_formatter) f acc = function *)
+(*   | [x] -> *)
+(*      f acc x *)
+(*   | x::xs -> *)
+(*      let y = f acc x in *)
+(*      fprintf (ppf y) "%a" s (); *)
+(*      ppf_fold_with ~str:s f y xs *)
+(*   | [] -> acc *)
 
-(** encloses the given string with parenthesis. can be used as a %a
-    argument in a formatter.  *)
-let ppf_parens ppf x = fprintf ppf "(%s)" x
-(** encloses the given string with a formatting box. can be used as a %a
-    argument in a formatter.  *)
-let ppf_box ppf x = fprintf ppf "@[%s@]" x
-(** prints the given string as it is. can be used as a %a
-    argument in a formatter.  *)
-let ppf_ident ppf x = fprintf ppf "%s" x
+(* (\** encloses the given string with parenthesis. can be used as a %a *)
+(*     argument in a formatter.  *\) *)
+(* let ppf_parens ppf x = fprintf ppf "(%s)" x *)
+(* (\** encloses the given string with a formatting box. can be used as a %a *)
+(*     argument in a formatter.  *\) *)
+(* let ppf_box ppf x = fprintf ppf "@[%s@]" x *)
+(* (\** prints the given string as it is. can be used as a %a *)
+(*     argument in a formatter.  *\) *)
+(* let ppf_ident ppf x = fprintf ppf "%s" x *)
 
-(** extracts the ppf from the given accumulator and outputs a newline *)
-let ppf_newline acc = fprintf (ppf acc) "@\n"
+(* (\** extracts the ppf from the given accumulator and outputs a newline *\) *)
+(* let ppf_newline acc = fprintf (ppf acc) "@\n" *)
 
-
-(** checks if a user defined operator is defined in a standard module
-   (TLAPS, Naturals etc.) *)
-let is_standard_location location =
-  match location.filename with
-  | "--TLA+ BUILTINS--" -> true
-  | "TLAPS" -> true
-  | "TLC" -> true
-  | "Naturals" -> true
-  | _ -> false
 
 class formatter =
 object(self)
@@ -104,6 +63,7 @@ object(self)
             column.rbegin column.rend;
      *)
     acc
+
   method level acc l : 'a =
     (*
     let lstr = match l with
@@ -119,17 +79,17 @@ object(self)
 
   (* non-recursive expressions *)
   method decimal acc { location; level; mantissa; exponent;  } =
-    let value =
-      (float_of_int mantissa) /. ( 10.0 ** (float_of_int exponent)) in
-    fprintf (ppf acc) "%s" (string_of_float value);
+    (* let value = *)
+    (*   (float_of_int mantissa) /. ( 10.0 ** (float_of_int exponent)) in *)
+    (* fprintf (ppf acc) "%s" (string_of_float value); *)
     acc
 
   method numeral acc {location; level; value } =
-    fprintf (ppf acc) "%s" (string_of_int value);
+    (* fprintf (ppf acc) "%s" (string_of_int value); *)
     acc
 
   method strng acc {location; level; value} =
-    fprintf (ppf acc) "\"%s\"" value;
+    (* fprintf (ppf acc) "\"%s\"" value; *)
     acc
 
   method op_arg acc {location; level; argument } =
@@ -139,292 +99,295 @@ object(self)
 
   (* recursive expressions *)
   method at acc0 {location; level; except; except_component} =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc3 = self#op_appl_or_binder acc2 except in
-    let acc = self#op_appl_or_binder acc3 except_component in
-    (* todo make this better or manually remove the @ operators? *)
-    fprintf (ppf acc) "@@" ;
-    acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc3 = self#op_appl_or_binder acc2 except in *)
+    (* let acc = self#op_appl_or_binder acc3 except_component in *)
+    (* (\* todo make this better or manually remove the @ operators? *\) *)
+    (* fprintf (ppf acc) "@@" ; *)
+    acc0
 
   method op_appl acc0 {location; level; operator; operands} =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc = match match_infix_op (tdb acc2) operator with
-      | true ->
-         (* infix binary operators *)
-         fprintf (ppf acc2) "(";
-         let left, right = match operands with
-           | [l;r] -> l,r
-           | _ -> failwith "Binary operator does not have 2 arguments!"
-         in
-         let acc3 = self#expr_or_op_arg acc2 left in
-         fprintf (ppf acc3) " ";
-         let acc4 = self#operator acc3 operator in
-         fprintf (ppf acc4) " ";
-         let acc5 = self#expr_or_op_arg acc4 right in
-         fprintf (ppf acc5) ")";
-         acc5
-      | false -> (
-        match match_ternary_op (tdb acc2) operator with
-        | Some name ->
-           (* ternary binary operators *)
-           let str_begin,str_middle,str_end = expand_ternary_name name in
-           fprintf (ppf acc2) "(";
-           let op1, op2, op3 = match operands with
-             | [o1;o2;o3] -> o1,o2,o3
-             | _ -> failwith "Binary operator does not have 2 arguments!"
-           in
-           fprintf (ppf acc2) "(%s " str_begin;
-           let acc3 = self#expr_or_op_arg acc2 op1 in
-           fprintf (ppf acc3) " %s " str_middle;
-           let acc4 = self#expr_or_op_arg acc3 op2 in
-           fprintf (ppf acc4) " %s " str_end;
-           let acc5 = self#expr_or_op_arg acc4 op3 in
-           fprintf (ppf acc5) ")";
-           acc5
-        | _ ->
-           (* other operators *)
-           let acc3 = self#operator acc2 operator in
-           let oparens, cparens =
-             if (operands <> []) then ("(",")") else ("","") in
-           fprintf (ppf acc3) "%s" oparens;
-           let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
-           fprintf (ppf acc4) "%s" cparens;
-           acc4
-      )
-    in
-    acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc = match match_infix_op (tdb acc2) operator with *)
+    (*   | true -> *)
+    (*      (\* infix binary operators *\) *)
+    (*      fprintf (ppf acc2) "("; *)
+    (*      let left, right = match operands with *)
+    (*        | [l;r] -> l,r *)
+    (*        | _ -> failwith "Binary operator does not have 2 arguments!" *)
+    (*      in *)
+    (*      let acc3 = self#expr_or_op_arg acc2 left in *)
+    (*      fprintf (ppf acc3) " "; *)
+    (*      let acc4 = self#operator acc3 operator in *)
+    (*      fprintf (ppf acc4) " "; *)
+    (*      let acc5 = self#expr_or_op_arg acc4 right in *)
+    (*      fprintf (ppf acc5) ")"; *)
+    (*      acc5 *)
+    (*   | false -> ( *)
+    (*     match match_ternary_op (tdb acc2) operator with *)
+    (*     | Some name -> *)
+    (*        (\* ternary binary operators *\) *)
+    (*        let str_begin,str_middle,str_end = expand_ternary_name name in *)
+    (*        fprintf (ppf acc2) "("; *)
+    (*        let op1, op2, op3 = match operands with *)
+    (*          | [o1;o2;o3] -> o1,o2,o3 *)
+    (*          | _ -> failwith "Binary operator does not have 2 arguments!" *)
+    (*        in *)
+    (*        fprintf (ppf acc2) "(%s " str_begin; *)
+    (*        let acc3 = self#expr_or_op_arg acc2 op1 in *)
+    (*        fprintf (ppf acc3) " %s " str_middle; *)
+    (*        let acc4 = self#expr_or_op_arg acc3 op2 in *)
+    (*        fprintf (ppf acc4) " %s " str_end; *)
+    (*        let acc5 = self#expr_or_op_arg acc4 op3 in *)
+    (*        fprintf (ppf acc5) ")"; *)
+    (*        acc5 *)
+    (*     | _ -> *)
+    (*        (\* other operators *\) *)
+    (*        let acc3 = self#operator acc2 operator in *)
+    (*        let oparens, cparens = *)
+    (*          if (operands <> []) then ("(",")") else ("","") in *)
+    (*        fprintf (ppf acc3) "%s" oparens; *)
+    (*        let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in *)
+    (*        fprintf (ppf acc4) "%s" cparens; *)
+    (*        acc4 *)
+    (*   ) *)
+    (* in *)
+    acc0
 
   method lambda acc0 {level; arity; body; params} =
-    let acc1 = self#level acc0 level in
-    fprintf (ppf acc1) "LAMBDA ";
-    let acc2 = ppf_fold_with
-                 (fun x (fp,_) -> self#formal_param x fp) acc1 params in
-    fprintf (ppf acc1) " : (";
-    let acc3 = self#expr acc2 body in
-    fprintf (ppf acc1) ")";
-    acc3
+    (* let acc1 = self#level acc0 level in *)
+    (* fprintf (ppf acc1) "LAMBDA "; *)
+    (* let acc2 = ppf_fold_with *)
+    (*              (fun x (fp,_) -> self#formal_param x fp) acc1 params in *)
+    (* fprintf (ppf acc1) " : ("; *)
+    (* let acc3 = self#expr acc2 body in *)
+    (* fprintf (ppf acc1) ")"; *)
+    acc0
 
   method binder acc0 {location; level; operator; operand; bound_symbols} =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc3 = self#operator acc2 operator in
-    fprintf (ppf acc3) " ";
-    let acc4 = ppf_fold_with self#bound_symbol acc3 bound_symbols in
-    fprintf (ppf acc4) " : ";
-    let oparens, cparens = "(",")" in
-    fprintf (ppf acc4) "%s" oparens;
-    let acc5 = self#expr_or_op_arg acc3 operand in
-    fprintf (ppf acc5) "%s" cparens;
-    acc4
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc3 = self#operator acc2 operator in *)
+    (* fprintf (ppf acc3) " "; *)
+    (* let acc4 = ppf_fold_with self#bound_symbol acc3 bound_symbols in *)
+    (* fprintf (ppf acc4) " : "; *)
+    (* let oparens, cparens = "(",")" in *)
+    (* fprintf (ppf acc4) "%s" oparens; *)
+    (* let acc5 = self#expr_or_op_arg acc3 operand in *)
+    (* fprintf (ppf acc5) "%s" cparens; *)
+    acc0
 
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
-    match params with
-    | [] ->
-       failwith "Trying to process empty tuple of bound symbols with domain!"
-    | [param] ->
-       if tuple then fprintf (ppf acc) "<<";
-       let acc1 = self#formal_param acc param in
-       if tuple then fprintf (ppf acc1) ">> ";
-       fprintf (ppf acc1) " \\in ";
-       let acc2 = self#expr acc domain in
-       acc2
-    | _ ->
-       fprintf (ppf acc) "<<";
-       let acc1 = ppf_fold_with self#formal_param acc params in
-       fprintf (ppf acc1) ">> \\in ";
-       let acc2 = self#expr acc domain in
-       acc2
-
+    (* match params with *)
+    (* | [] -> *)
+    (*    failwith "Trying to process empty tuple of bound symbols with domain!" *)
+    (* | [param] -> *)
+    (*    if tuple then fprintf (ppf acc) "<<"; *)
+    (*    let acc1 = self#formal_param acc param in *)
+    (*    if tuple then fprintf (ppf acc1) ">> "; *)
+    (*    fprintf (ppf acc1) " \\in "; *)
+    (*    let acc2 = self#expr acc domain in *)
+    (*    acc2 *)
+    (* | _ -> *)
+    (*    fprintf (ppf acc) "<<"; *)
+    (*    let acc1 = ppf_fold_with self#formal_param acc params in *)
+    (*    fprintf (ppf acc1) ">> \\in "; *)
+    (*    let acc2 = self#expr acc domain in *)
+    (*    acc2 *)
+    acc
+      
   method unbounded_bound_symbol acc { param; tuple } =
-    if tuple then fprintf (ppf acc) "<<";
-    let acc1 = self#formal_param acc param in
-    if tuple then fprintf (ppf acc1) ">> ";
-    acc1
+    (* if tuple then fprintf (ppf acc) "<<"; *)
+    (* let acc1 = self#formal_param acc param in *)
+    (* if tuple then fprintf (ppf acc1) ">> "; *)
+    acc
 
   method formal_param acc0 fp =
-    let { location; level; name; arity; } : simple_formal_param_ =
-      dereference_formal_param (tdb acc0) fp in
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc3 = self#name acc2 name in
-    fprintf (ppf acc3) "%s" name;
-    (* arity skipped *)
-    acc3
+    (* let { location; level; name; arity; } : simple_formal_param_ = *)
+    (*   dereference_formal_param (tdb acc0) fp in *)
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc3 = self#name acc2 name in *)
+    (* fprintf (ppf acc3) "%s" name; *)
+    (* (\* arity skipped *\) *)
+    acc0
 
   method op_decl acc0 opdec =
-    let { location ; level ; name ; arity ; kind ; } =
-      dereference_op_decl (tdb acc0) opdec in
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    (* let acc3 = self#name acc2 name in *)
-    let acc3 = match nesting acc0 with
-    | Module ->
-       (* terminal node *)
-       let declaration_string = match kind with
-         | ConstantDecl -> "CONSTANT"
-         | VariableDecl -> "VARIABLE"
-         | _ ->
-            failwith "Global declaration can only be CONSTANT or VARIABLE."
-       in
-       fprintf (ppf acc2) "%s %s" declaration_string name ;
-       ppf_newline acc2;
-       acc2
-    | Expression ->
-       (* the kind is only relevant in the new_symb rule *)
-       (* terminal node *)
-       fprintf (ppf acc2) "%s" name ;
-       acc2
-    | ProofStep _ ->
-       failwith "Operator declarations don't happen as a proof step!"
-    | By ->
-       failwith "Operator declarations don't happen in a BY statement!"
-    in acc3
+    (* let { location ; level ; name ; arity ; kind ; } = *)
+    (*   dereference_op_decl (tdb acc0) opdec in *)
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* (\* let acc3 = self#name acc2 name in *\) *)
+    (* let acc3 = match nesting acc0 with *)
+    (* | Module -> *)
+    (*    (\* terminal node *\) *)
+    (*    let declaration_string = match kind with *)
+    (*      | ConstantDecl -> "CONSTANT" *)
+    (*      | VariableDecl -> "VARIABLE" *)
+    (*      | _ -> *)
+    (*         failwith "Global declaration can only be CONSTANT or VARIABLE." *)
+    (*    in *)
+    (*    fprintf (ppf acc2) "%s %s" declaration_string name ; *)
+    (*    ppf_newline acc2; *)
+    (*    acc2 *)
+    (* | Expression -> *)
+    (*    (\* the kind is only relevant in the new_symb rule *\) *)
+    (*    (\* terminal node *\) *)
+    (*    fprintf (ppf acc2) "%s" name ; *)
+    (*    acc2 *)
+    (* | ProofStep _ -> *)
+    (*    failwith "Operator declarations don't happen as a proof step!" *)
+    (* | By -> *)
+    (*    failwith "Operator declarations don't happen in a BY statement!" *)
+    (* in *) acc0
 
-  method op_def acc = function
-    | O_builtin_op x      ->
-       self#builtin_op acc x
-    | O_user_defined_op x ->
-       let op = dereference_user_defined_op (tdb acc) x
-       in
-       match nesting acc, undef acc, is_standard_location op.location with
-       | Module, _, true ->
-          (* skip standard libraries *)
-          acc
-       | Module, _, _ ->
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = enable_expand acc0a in
-          fprintf (ppf acc0b) " == ";
-          let acc1 = nest_expr acc0b in
-          let acc2 = self#user_defined_op acc1 x in
-          let acc3 = reset_nesting acc2 acc in
-          let acc4 = reset_expand acc3 acc in
-          ppf_newline acc4;
-          acc4
-       | Expression, true, _ ->
-          let acc1 = nest_expr acc in
-          let acc2 = self#user_defined_op acc1 x in
-          let acc3 = reset_nesting acc2 acc in
-          acc3
-       | Expression, false, _ ->
-          fprintf (ppf acc) "%s" op.name;
-          acc
-       | By, _, _ ->
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = reset_expand acc0a acc in
-          acc0b
-       | ProofStep depth, _, _ ->
-          (* TODO: check if this is ok *)
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = reset_expand acc0a acc in
-          acc0b
-  (*
-          failwith ("TODO: implement printing of op definitions in " ^
-                    "proof step environments.")
-   *)
-
+  method op_def acc s = (* function *)
+  (*   | O_builtin_op x      -> *)
+  (*      self#builtin_op acc x *)
+  (*   | O_user_defined_op x -> *)
+  (*      let op = dereference_user_defined_op (tdb acc) x *)
+  (*      in *)
+  (*      match nesting acc, undef acc, is_standard_location op.location with *)
+  (*      | Module, _, true -> *)
+  (*         (\* skip standard libraries *\) *)
+  (*         acc *)
+  (*      | Module, _, _ -> *)
+  (*         let acc0 = disable_expand acc in *)
+  (*         let acc0a = self#user_defined_op acc0 x in *)
+  (*         let acc0b = enable_expand acc0a in *)
+  (*         fprintf (ppf acc0b) " == "; *)
+  (*         let acc1 = nest_expr acc0b in *)
+  (*         let acc2 = self#user_defined_op acc1 x in *)
+  (*         let acc3 = reset_nesting acc2 acc in *)
+  (*         let acc4 = reset_expand acc3 acc in *)
+  (*         ppf_newline acc4; *)
+  (*         acc4 *)
+  (*      | Expression, true, _ -> *)
+  (*         let acc1 = nest_expr acc in *)
+  (*         let acc2 = self#user_defined_op acc1 x in *)
+  (*         let acc3 = reset_nesting acc2 acc in *)
+  (*         acc3 *)
+  (*      | Expression, false, _ -> *)
+  (*         fprintf (ppf acc) "%s" op.name; *)
+  (*         acc *)
+  (*      | By, _, _ -> *)
+  (*         let acc0 = disable_expand acc in *)
+  (*         let acc0a = self#user_defined_op acc0 x in *)
+  (*         let acc0b = reset_expand acc0a acc in *)
+  (*         acc0b *)
+  (*      | ProofStep depth, _, _ -> *)
+  (*         (\* TODO: check if this is ok *\) *)
+  (*         let acc0 = disable_expand acc in *)
+  (*         let acc0a = self#user_defined_op acc0 x in *)
+  (*         let acc0b = reset_expand acc0a acc in *)
+  (*         acc0b *)
+  (* (\* *)
+  (*         failwith ("TODO: implement printing of op definitions in " ^ *)
+  (*                   "proof step environments.") *)
+  (*  *\) *)
+   acc
 	   
   method assume_prove acc0 { location; level; new_symbols; assumes;
                              prove; } =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let s_suffices, s_prove = match (new_symbols, assumes) with
-      | ( [], []) -> "", ""  (* empty antecedent *)
-      | ( _,  _) ->  "ASSUME ", " PROVE "
-    in
-    fprintf (ppf acc2) "%s" s_suffices;
-    let acc3 = ppf_fold_with
-                 self#new_symb acc2 new_symbols in
-    let sep = if (new_symbols <> []) then ", " else "" in
-    fprintf (ppf acc3) "%s" sep;
-    let acc4 = ppf_fold_with
-                 self#assume_prove acc3 assumes in
-    fprintf (ppf acc2) "%s" s_prove;
-    let acc = self#expr acc4 prove in
-    (* ppf_newline acc; *)
-    acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let s_suffices, s_prove = match (new_symbols, assumes) with *)
+    (*   | ( [], []) -> "", ""  (\* empty antecedent *\) *)
+    (*   | ( _,  _) ->  "ASSUME ", " PROVE " *)
+    (* in *)
+    (* fprintf (ppf acc2) "%s" s_suffices; *)
+    (* let acc3 = ppf_fold_with *)
+    (*              self#new_symb acc2 new_symbols in *)
+    (* let sep = if (new_symbols <> []) then ", " else "" in *)
+    (* fprintf (ppf acc3) "%s" sep; *)
+    (* let acc4 = ppf_fold_with *)
+    (*              self#assume_prove acc3 assumes in *)
+    (* fprintf (ppf acc2) "%s" s_prove; *)
+    (* let acc = self#expr acc4 prove in *)
+    (* (\* ppf_newline acc; *\) *)
+    let acc1 = add_statement (Declaration ("x","y")) acc0 in
+    add_statement (Axiom "z") acc1
+
     
   (*TODO: new_decl not used *)
   method new_symb acc0 { location; level; op_decl; set } =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let od = dereference_op_decl (tdb acc0) op_decl in
-    let new_decl = match od.kind with
-      | NewConstant -> "" (* default is constant "CONSTANT " *)
-      | NewVariable -> "VARIABLE "
-      | NewState -> "STATE "
-      | NewAction -> "ACTION "
-      | NewTemporal -> "TEMPORAL "
-      | _ -> failwith "declared new symbol with a non-new kind."
-    in
-    fprintf (ppf acc2) "NEW %s" new_decl;
-    let acc3 = self#op_decl acc2 op_decl in
-    let acc = match set with
-      | None -> acc3
-      | Some e ->
-         fprintf (ppf acc3) " \\in ";
-         self#expr acc3 e
-    in acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let od = dereference_op_decl (tdb acc0) op_decl in *)
+    (* let new_decl = match od.kind with *)
+    (*   | NewConstant -> "" (\* default is constant "CONSTANT " *\) *)
+    (*   | NewVariable -> "VARIABLE " *)
+    (*   | NewState -> "STATE " *)
+    (*   | NewAction -> "ACTION " *)
+    (*   | NewTemporal -> "TEMPORAL " *)
+    (*   | _ -> failwith "declared new symbol with a non-new kind." *)
+    (* in *)
+    (* fprintf (ppf acc2) "NEW %s" new_decl; *)
+    (* let acc3 = self#op_decl acc2 op_decl in *)
+    (* let acc = match set with *)
+    (*   | None -> acc3 *)
+    (*   | Some e -> *)
+    (*      fprintf (ppf acc3) " \\in "; *)
+    (*      self#expr acc3 e *)
+    (* in *) acc0
 
   (* TODO *)
   method let_in acc0 {location; level; body; op_defs } =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc3 = self#expr acc2 body in
-    let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
-    acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc3 = self#expr acc2 body in *)
+    (* let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in *)
+    acc0
 
   (* TODO *)
   method label acc0 ({location; level; name; arity; body; params } : simple_label) =
-    let acc1 = self#location acc0 location in
-    let acc2 = self#level acc1 level in
-    let acc3 = self#name acc2 name in
-    (* skip arity *)
-    fprintf (ppf acc3) "(label)";
-    let acc4 = self#assume_prove acc3 body in
-    let acc = List.fold_left self#formal_param acc4 params in
-    acc
+    (* let acc1 = self#location acc0 location in *)
+    (* let acc2 = self#level acc1 level in *)
+    (* let acc3 = self#name acc2 name in *)
+    (* (\* skip arity *\) *)
+    (* fprintf (ppf acc3) "(label)"; *)
+    (* let acc4 = self#assume_prove acc3 body in *)
+    (* let acc = List.fold_left self#formal_param acc4 params in *)
+    acc0
 
-  method builtin_op acc0 = function
-    | { level; name; arity; params } ->
-       let acc1 = self#level acc0 level in
-       let acc2 = self#name acc1 name in
-       fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
-       acc2
+  method builtin_op acc0 s = (* function *)
+    (* | { level; name; arity; params } -> *)
+    (*    let acc1 = self#level acc0 level in *)
+    (*    let acc2 = self#name acc1 name in *)
+    (*    fprintf (ppf acc0) "%s" (self#translate_builtin_name name); *)
+       acc0
 
   method user_defined_op acc0 op =
-    let { location; level ; name ; arity ;
-          body ; params ; recursive } =
-      dereference_user_defined_op (tdb acc0) op in
-    match nesting acc0, undef acc0, recursive with
-    | _, true, false -> (* expand the definition *)
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       let acc4 = self#expr acc2 body in
-       acc4
-    | By, _, _ ->
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       fprintf (ppf acc2) "%s" name;
-       let acc3 = self#name acc2 name in
-       acc3
-    | _ -> (* don't expand the definition  *)
-       (* TODO: recursive definitions are never unfolded at the moment *)
-       let acc1 = self#location acc0 location in
-       let acc2 = self#level acc1 level in
-       fprintf (ppf acc2) "%s" name;
-       let acc3 = self#name acc2 name in
-       let fp_open, fp_close = if (params <> []) then "(",")" else "","" in
-       fprintf (ppf acc3) "%s" fp_open;
-       let acc = ppf_fold_with
-                   (fun x fp -> self#formal_param x fp) acc3 params in
-       fprintf (ppf acc) "%s" fp_close;
-       acc
+    (* let { location; level ; name ; arity ; *)
+    (*       body ; params ; recursive } = *)
+    (*   dereference_user_defined_op (tdb acc0) op in *)
+    (* match nesting acc0, undef acc0, recursive with *)
+    (* | _, true, false -> (\* expand the definition *\) *)
+    (*    let acc1 = self#location acc0 location in *)
+    (*    let acc2 = self#level acc1 level in *)
+    (*    let acc4 = self#expr acc2 body in *)
+    (*    acc4 *)
+    (* | By, _, _ -> *)
+    (*    let acc1 = self#location acc0 location in *)
+    (*    let acc2 = self#level acc1 level in *)
+    (*    fprintf (ppf acc2) "%s" name; *)
+    (*    let acc3 = self#name acc2 name in *)
+    (*    acc3 *)
+    (* | _ -> (\* don't expand the definition  *\) *)
+    (*    (\* TODO: recursive definitions are never unfolded at the moment *\) *)
+    (*    let acc1 = self#location acc0 location in *)
+    (*    let acc2 = self#level acc1 level in *)
+    (*    fprintf (ppf acc2) "%s" name; *)
+    (*    let acc3 = self#name acc2 name in *)
+    (*    let fp_open, fp_close = if (params <> []) then "(",")" else "","" in *)
+    (*    fprintf (ppf acc3) "%s" fp_open; *)
+    (*    let acc = ppf_fold_with *)
+    (*                (fun x fp -> self#formal_param x fp) acc3 params in *)
+    (*    fprintf (ppf acc) "%s" fp_close; *)
+       acc0
 
 
   method name acc x = acc
@@ -480,10 +443,10 @@ end
 
 let expr_formatter = new formatter
 
-let mk_fmt (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
-  let acc = (formatter_of_out_channel channel, term_db, true, Expression, 0) in
-  ignore (f acc expr)
-
+let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
+  let acc = ([], term_db) in
+  fst (f acc goal)
+      
 let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)

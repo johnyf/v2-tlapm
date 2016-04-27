@@ -10,6 +10,5 @@ let fmt_obligation pp { goal; term_db; } =
 
 
 let fmt_nunchaku pp { goal; term_db; } =
-  let acc = (pp, term_db, false, Nunchaku_formatter.Expression, 0) in
-  ignore (Nunchaku_formatter.expr_formatter#assume_prove acc goal);
-  print_flush ()
+  let list = Nunchaku_formatter.fmt_assume_prove term_db goal in
+  ignore(List.map (Nunchaku_statement.print_statement pp) (List.rev list))

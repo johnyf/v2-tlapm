@@ -1,8 +1,9 @@
 open Simple_expr_ds
 open Commons
-
-type nesting = Module | Expression | ProofStep of int | By
-type fc = Format.formatter * simple_term_db * bool * nesting * int
+open Format
+open Nunchaku_statement
+       
+type fc = Nunchaku_statement.statement list * simple_term_db
 
 class formatter :
 object
@@ -52,8 +53,8 @@ val expr_formatter : formatter
 
 (** Creates a function which is compatible with printf's %a statement. *)
 val mk_fmt           : (fc -> 'a -> fc) ->
-                       simple_term_db -> out_channel -> 'a -> unit
+                       simple_term_db -> 'a -> statement list
 
 
-val fmt_expr         : simple_term_db -> out_channel -> simple_expr -> unit
-val fmt_assume_prove : simple_term_db -> out_channel -> simple_assume_prove -> unit
+val fmt_expr         : simple_term_db -> simple_expr -> statement list
+val fmt_assume_prove : simple_term_db -> simple_assume_prove -> statement list
