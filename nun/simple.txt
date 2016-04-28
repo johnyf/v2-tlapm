@@ -1,31 +1,31 @@
 Obligation 1:
-TRUE
+BUILTIN_OP : ( TRUE )
 
 Obligation 2:
-FALSE
+BUILTIN_OP : ( FALSE )
 
 Obligation 3:
-ASSUME FALSE PROVE FALSE
+ASSUME BUILTIN_OP : ( FALSE ) PROVE BUILTIN_OP : ( FALSE )
 
 Obligation 4:
-(1 = 1)
+(1 BUILTIN_OP : ( = ) 1)
 
 Obligation 5:
-(1 = 2)
+(1 BUILTIN_OP : ( = ) 2)
 
 Obligation 6:
-\E x \in $SetEnumerate(0, 1) : ((x = 3))
+BUILTIN_OP : ( \E ) x \in BUILTIN_OP : ( $SetEnumerate )(0, 1) : ((x BUILTIN_OP : ( = ) 3))
 
 Obligation 7:
-\A x : ((x = x))
+BUILTIN_OP : ( \A ) x : ((x BUILTIN_OP : ( = ) x))
 
 Obligation 8:
-\A p, q : (((p => q) => \E i : (((((p => i) /\ (i => q)) /\ \lnot((i => p))) /\ \lnot((p => i))))))
+BUILTIN_OP : ( \A ) p, q : (((p BUILTIN_OP : ( => ) q) BUILTIN_OP : ( => ) BUILTIN_OP : ( \E ) i : (((((p BUILTIN_OP : ( => ) i) BUILTIN_OP : ( /\ ) (i BUILTIN_OP : ( => ) q)) BUILTIN_OP : ( /\ ) BUILTIN_OP : ( \lnot )((i BUILTIN_OP : ( => ) p))) BUILTIN_OP : ( /\ ) BUILTIN_OP : ( \lnot )((p BUILTIN_OP : ( => ) i))))))
 
 Obligation 9:
-ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE ($Tuple(x, $Tuple(y, z)) \in (S \union T))
+ASSUME NEW S, NEW T, (BUILTIN_OP : ( $Tuple )(x, BUILTIN_OP : ( $Tuple )(y, z)) BUILTIN_OP : ( \in ) S) PROVE (BUILTIN_OP : ( $Tuple )(x, BUILTIN_OP : ( $Tuple )(y, z)) BUILTIN_OP : ( \in ) (S BUILTIN_OP : ( \union ) T))
 
 Obligation 10:
-ASSUME NEW S, NEW T, ($Tuple(x, $Tuple(y, z)) \in S) PROVE \E <<u, v>> \in S : (($Tuple(u, v) \in T))
+ASSUME NEW S, NEW T, (BUILTIN_OP : ( $Tuple )(x, BUILTIN_OP : ( $Tuple )(y, z)) BUILTIN_OP : ( \in ) S) PROVE BUILTIN_OP : ( \E ) <<u, v>> \in S : ((BUILTIN_OP : ( $Tuple )(u, v) BUILTIN_OP : ( \in ) T))
 
 

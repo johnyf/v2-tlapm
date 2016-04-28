@@ -1,3 +1,30 @@
-val x : y. 
-axiom : z. 
+# Crossed false 
+
+# the PROVE part 
+
+# Crossed false 
+
+# the PROVE part 
+
+# the ASSUME part 
+
+# the NEW SYMB part 
+
+# the ASSUME part 
+
+# the NEW SYMB part 
+
+# ---------------------------------------------
+ 
+include "prelude.nun". 
+
+# ---------------------------------------------
+
+ 
+# ---------------------------------------------
+
+ 
+# ---------------------------------------------
+
+ goal false. 
 

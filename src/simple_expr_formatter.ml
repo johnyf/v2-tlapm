@@ -394,7 +394,10 @@ object(self)
     | { level; name; arity; params } ->
        let acc1 = self#level acc0 level in
        let acc2 = self#name acc1 name in
-       fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
+       (*CHANGE HERE*)
+       (* fprintf (ppf acc0) "%s" (self#translate_builtin_name name); *)
+       
+       fprintf (ppf acc0) "%s %s %s" "BUILTIN_OP : (" (self#translate_builtin_name name) ")";
        acc2
 
   method user_defined_op acc0 op =

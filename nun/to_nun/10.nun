@@ -1,3 +1,14 @@
-val x : y. 
-axiom : z. 
+include "prelude.nun". 
+# the NEW SYMB part 
+val T : u. 
+val S : u. 
+# the ASSUME part 
+# the NEW SYMB part 
+# the ASSUME part 
+# the PROVE part 
+# Crossed ( \in ) 
+goal ( \in ). 
+# the PROVE part 
+# Crossed ( \in )$BoundedExists 
+goal ( \in )$BoundedExists. 
 

@@ -1,3 +1,26 @@
-val x : y. 
-axiom : z. 
+# Crossed ( = ) 
+
+# Crossed unknown expression 
+
+# Crossed unknown expression 
+
+# the PROVE part 
+
+# the ASSUME part 
+
+# the NEW SYMB part 
+
+# ---------------------------------------------
+ 
+include "prelude.nun". 
+
+# ---------------------------------------------
+
+ 
+# ---------------------------------------------
+
+ 
+# ---------------------------------------------
+
+ goal ( = ). 
 
