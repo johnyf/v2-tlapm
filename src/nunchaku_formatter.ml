@@ -5,34 +5,34 @@ open Simple_expr_utils
 open Simple_expr_dereference
 open Format
 open Simple_expr_prover_parser
-open Nunchaku_statement
+open Nunchaku_ast
        
-type fc = nun_statement * simple_term_db * string
+type fc = statement list * simple_term_db * string
 	    
 (* these are extractors for the accumulator type  *)
 let sta     ( sta, _, _) = sta
 let tdb     ( _, tdb, _) = tdb
 let str     ( _, _, str) = str
 			     
-let add_axiom a ((go, dec, ax, com, inc), tdb, str) =
-  let x = Axiom a in
-  ((go, dec, x::ax, com, inc), tdb, str)
+let add_axiom l (sta, tdb, str) =
+  let x = axiom l in
+  (x::sta, tdb, str)
 
-let add_dec n t ((go, dec, ax, com, inc), tdb, str) =
-  let x = Declaration (n,t) in
-  ((go, x::dec, ax, com, inc), tdb, str)
+let add_decl v t (sta, tdb, str) =
+  let x = decl [] v t in
+  (x::sta, tdb, str)
 
-let add_comment c ((go, dec, ax, com, inc), tdb, str) =
-  let x = Comment c in
-  ((go, dec, ax, x::com, inc), tdb, str)
+let add_comm s (sta, tdb, str) =
+  let x = comm s in
+  (x::sta, tdb, str)
 
-let add_include i ((go, dec, ax, com, inc), tdb, str) =
-  let x = Include i in
-  ((go, dec, ax, com, x::inc), tdb, str)
+let add_include f (sta, tdb, str) =
+  let x = include_ f in
+  (x::sta, tdb, str)
 
-let set_goal g ((go, dec, ax, com, inc), tdb, str) =
-  let x = Goal g in
-  ((x, dec, ax, com, inc), tdb, str)
+let add_goal t (sta, tdb, str) =
+  let x = goal t in
+  (x::sta, tdb, str)
     
 let set_string str (sta, tdb, _) = (sta, tdb, str)
 				     
@@ -47,29 +47,29 @@ object(self)
 
   (* parts of expressions *)
   method location acc { column; line; filename } : 'a =
-    add_comment "Crossed location" acc
+    add_comm "Crossed location" acc
 
   method level acc l : 'a =
-    add_comment "Crossed level" acc
+    add_comm "Crossed level" acc
 
   (* non-recursive expressions *)
   method decimal acc { location; level; mantissa; exponent;  } =
     let value =
       (float_of_int mantissa) /. ( 10.0 ** (float_of_int exponent)) in
-    add_comment ("Crossed decimal = "^(string_of_float value)) acc
+    add_comm ("Crossed decimal = "^(string_of_float value)) acc
 
   method numeral acc {location; level; value } =
-    add_comment ("Crossed numeral = "^(string_of_int value)) acc
+    add_comm ("Crossed numeral = "^(string_of_int value)) acc
 
   method strng acc {location; level; value} =
-    add_comment ("Crossed string = "^value) acc
+    add_comm ("Crossed string = "^value) acc
 
   method op_arg acc {location; level; argument } =
     self#operator acc argument
 
   (* recursive expressions *)
   method at acc {location; level; except; except_component} =
-    add_comment "Crossed AT" acc
+    add_comm "Crossed AT" acc
  
   method op_appl acc0 {location; level; operator; operands} =
     let acc1 = set_string "" acc0 in
@@ -117,10 +117,10 @@ object(self)
            acc5
       )
     in
-    add_comment ("Crossed "^(str acc)) acc
+    add_comm ("Crossed "^(str acc)) acc
 
   method lambda acc {level; arity; body; params} =
-    add_comment "Crossed LAMBDA" acc
+    add_comm "Crossed LAMBDA" acc
 
   method binder acc0 {location; level; operator; operand; bound_symbols} =
     (* let acc1 = self#operator acc0 operator in *)
@@ -132,7 +132,7 @@ object(self)
     (* let acc5 = self#expr_or_op_arg acc3 operand in *)
     (* fprintf (ppf acc5) "%s" cparens; *)
     let acc1 = self#operator acc0 operator in
-    add_comment ("Crossed "^(str acc1)) acc1
+    add_comm ("Crossed "^(str acc1)) acc1
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
     (* match params with *)
@@ -162,7 +162,7 @@ object(self)
   method formal_param acc fp =
     let { location; level; name; arity; } : simple_formal_param_ =
       dereference_formal_param (tdb acc) fp in
-    add_comment ("Crossed formal_param"^name) acc
+    add_comm ("Crossed formal_param"^name) acc
 
   method op_decl acc0 opdec =
     let { location ; level ; name ; arity ; kind ; } =
@@ -175,7 +175,7 @@ object(self)
       (* | NewTemporal -> "TEMPORAL " *)
       | _ -> failwith "declared new symbol with a non-new kind."
     in
-    add_dec name new_decl acc0
+    add_decl name (Unknown new_decl) acc0
     
 
   method op_def acc = function
@@ -184,17 +184,17 @@ object(self)
     | O_user_defined_op x ->
        let op = dereference_user_defined_op (tdb acc) x
        in
-       add_comment op.name acc
+       add_comm op.name acc
 	   
   method assume_prove acc0 { location; level; new_symbols; assumes;
                              prove; } =
-    let acc1 = add_comment "the NEW SYMB part" acc0 in
+    let acc1 = add_comm "the NEW SYMB part" acc0 in
     let acc2 = acc_fold self#new_symb new_symbols acc1 in 
-    let acc3 = add_comment "the ASSUME part" acc2 in
+    let acc3 = add_comm "the ASSUME part" acc2 in
     let acc4 = acc_fold self#assume_prove assumes acc3 in 
-    let acc5 = add_comment "the PROVE part" acc4 in
+    let acc5 = add_comm "the PROVE part" acc4 in
     let acc6 = self#expr acc5 prove in
-    let acc7 = set_goal (str acc6) acc6 in
+    let acc7 = add_goal (Unknown (str acc6)) acc6 in
     acc7
 
     
@@ -216,7 +216,7 @@ object(self)
       | None -> acc0
       | Some e -> acc0 (* TODO add axiom : mem x s *)
     in
-    let acc2 = add_dec od.name new_decl acc1 in
+    let acc2 = add_decl od.name (Unknown new_decl) acc1 in
     acc2
 
   method let_in acc0 {location; level; body; op_defs } =
@@ -271,7 +271,7 @@ object(self)
   method expr acc x = match x with
     | E_binder b -> self#binder acc b
     | E_op_appl b -> self#op_appl acc b
-    | _ -> add_comment "Crossed unknown expression" acc
+    | _ -> add_comm "Crossed unknown expression" acc
 
   method name acc x = acc
 
@@ -329,7 +329,7 @@ end
 let expr_formatter = new formatter
 
 let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
-  let acc = ((Goal "a definir",[],[],[],[Include "prelude.nun"]), term_db, "") in
+  let acc = ([include_ "prelude.nun"], term_db, "") in
   let (l,_,_) = (f acc goal) in
   l
       

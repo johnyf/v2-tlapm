@@ -1,4 +1,5 @@
 open Format
+open CCFormat
        
 let print_simple obligations output_file =
   (*val: obligation list -> unit*)

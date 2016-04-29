@@ -11,4 +11,4 @@ let fmt_obligation pp { goal; term_db; } =
 
 let fmt_nunchaku pp { goal; term_db; } =
   let sta = Nunchaku_formatter.fmt_assume_prove term_db goal in
-  ignore(Nunchaku_statement.print_statement pp sta)
+  ignore(Nunchaku_ast.print_statement_list pp (List.rev sta))

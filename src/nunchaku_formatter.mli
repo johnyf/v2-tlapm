@@ -1,9 +1,9 @@
 open Simple_expr_ds
 open Commons
 open Format
-open Nunchaku_statement
+open Nunchaku_ast
        
-type fc = nun_statement * simple_term_db * string
+type fc = statement list * simple_term_db * string
 	    
 class formatter :
 object
@@ -53,8 +53,8 @@ val expr_formatter : formatter
 
 (** Creates a function which is compatible with printf's %a statement. *)
 val mk_fmt           : (fc -> 'a -> fc) ->
-                       simple_term_db -> 'a -> nun_statement
+                       simple_term_db -> 'a -> statement list
 
 
-val fmt_expr         : simple_term_db -> simple_expr -> nun_statement
-val fmt_assume_prove : simple_term_db -> simple_assume_prove -> nun_statement
+val fmt_expr         : simple_term_db -> simple_expr -> statement list
+val fmt_assume_prove : simple_term_db -> simple_assume_prove -> statement list

@@ -1,22 +1,6 @@
-# Crossed true 
-
-# the PROVE part 
-
-# the ASSUME part 
-
-# the NEW SYMB part 
-
-# ---------------------------------------------
- 
-include "prelude.nun". 
-
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- goal true. 
-
+include prelude.nun.
+# the NEW SYMB part.
+# the ASSUME part.
+# the PROVE part.
+# Crossed true.
+goal  ??? true.

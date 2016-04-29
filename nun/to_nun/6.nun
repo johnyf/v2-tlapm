@@ -1,22 +1,6 @@
-# Crossed exists 
-
-# the PROVE part 
-
-# the ASSUME part 
-
-# the NEW SYMB part 
-
-# ---------------------------------------------
- 
-include "prelude.nun". 
-
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- goal exists. 
-
+include prelude.nun.
+# the NEW SYMB part.
+# the ASSUME part.
+# the PROVE part.
+# Crossed exists.
+goal  ??? exists.

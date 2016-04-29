@@ -1,22 +1,6 @@
-# Crossed forall 
-
-# the PROVE part 
-
-# the ASSUME part 
-
-# the NEW SYMB part 
-
-# ---------------------------------------------
- 
-include "prelude.nun". 
-
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- 
-# ---------------------------------------------
-
- goal forall. 
-
+include prelude.nun.
+# the NEW SYMB part.
+# the ASSUME part.
+# the PROVE part.
+# Crossed forall.
+goal  ??? forall.
