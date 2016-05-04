@@ -150,6 +150,7 @@ object(self)
   method op_appl acc0 {location; level; operator; operands} =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
+    (* fprintf (ppf acc2) "OP_APPL_"; *)
     let acc = match match_infix_op (tdb acc2) operator with
       | true ->
          (* infix binary operators *)
@@ -394,10 +395,7 @@ object(self)
     | { level; name; arity; params } ->
        let acc1 = self#level acc0 level in
        let acc2 = self#name acc1 name in
-       (*CHANGE HERE*)
-       (* fprintf (ppf acc0) "%s" (self#translate_builtin_name name); *)
-       
-       fprintf (ppf acc0) "%s %s %s" "BUILTIN_OP : (" (self#translate_builtin_name name) ")";
+       fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
        acc2
 
   method user_defined_op acc0 op =

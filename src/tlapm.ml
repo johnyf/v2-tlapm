@@ -132,7 +132,11 @@ let init () =
   match  Array.length Sys.argv with
   | 2 ->
      let filename = Sys.argv.(1) in
-     let channel = open_in filename in
+     let tla_filename = ("nun/"^filename^".tla") in
+     let xml_filename = ("nun/"^filename^".xml") in
+     let tla_to_xml = "sh tla2xml.sh -o -I ./library/ "^tla_filename^" > "^xml_filename in
+     ignore(Sys.command tla_to_xml);
+     let channel = open_in xml_filename in
      (* load sany xml ast from file *)
      let sany_context = Sany.import_xml channel in
      (* extract builtins from file *)
@@ -161,13 +165,23 @@ let init () =
        )
       *)
      (* call nunckaku *)
-     print_complex obligations "nun/complex.txt";
-     print_simple obligations "nun/simple.txt";
-     print_nunchaku obligations "nun/to_nun"
+     (* print_complex obligations "nun/complex.txt"; *)
+     print_simple obligations "nun/obligations.txt";
+     let n = print_nunchaku obligations "nun/to_nun" in
             (* Directory in which the .nun files will be created. One file per obligation. *)
             (* The directory needs to exist, otherwise it won't work. *)
             (* TODO Add a command to create the directory if it doesn't exist. *)
 
+     let rec call_nun k = match k with
+       | 0 -> ignore(Sys.command "echo \"\n\n\"")
+       | _ -> call_nun (k-1);
+	      let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\""
+	      in ignore(Sys.command sk) ;
+		 let nunk = "nunchaku nun/to_nun/"^(string_of_int k)^".nun"
+		 in ignore(Sys.command nunk)
+     in
+     call_nun (n-1)
+     
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
      Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";

@@ -42,4 +42,4 @@ let print_nunchaku obligations output_file =
     no+1
   in
   let for_each_obligation = print_obl output_file in
-  ignore(List.fold_left for_each_obligation 1 obligations);
+  List.fold_left for_each_obligation 1 obligations;

@@ -1,8 +1,0 @@
-include prelude.nun.
-# the NEW SYMB part.
-# the ASSUME part.
-# the PROVE part.
-# Crossed unknown expression.
-# Crossed unknown expression.
-# Crossed ( = ).
-goal  ??? ( = ).

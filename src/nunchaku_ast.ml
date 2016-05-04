@@ -28,8 +28,11 @@ module Builtin : sig
     | `True
     | `False
     | `Eq
+    | `Neq
     | `Equiv
     | `Imply
+    | `Forall (* Only for translation *)
+    | `Exists (* Only for translation *)
     | `Undefined of string
     ]
 
@@ -46,8 +49,11 @@ end = struct
     | `True
     | `False
     | `Eq
+    | `Neq
     | `Equiv
     | `Imply
+    | `Forall (* Only for translation *)
+    | `Exists (* Only for translation *)
     | `Undefined of string
     ]
 
@@ -56,12 +62,15 @@ end = struct
     | `True
     | `False
     | `Prop
+    | `Forall
+    | `Exists
     | `Not -> `Prefix
     | `And
     | `Or
     | `Imply
     | `Equiv
     | `Eq
+    | `Neq
     | `Undefined _ -> `Infix
 
   let to_string : t -> string = function
@@ -73,8 +82,11 @@ end = struct
     | `True -> "true"
     | `False -> "false"
     | `Eq -> "="
+    | `Neq -> "!="
     | `Equiv -> "="
     | `Imply -> "=>"
+    | `Forall -> "forall"
+    | `Exists -> "exists"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
@@ -245,7 +257,7 @@ let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
   | Var v -> pp_var_or_wildcard out v
-  | Unknown v -> fpf out "@ ??? %s" v
+  | Unknown v -> fpf out "@ %s_?" v
   | AtVar v -> fpf out "@@%s" v
   | MetaVar v -> fpf out "?%s" v
   | App (f, [a;b]) ->

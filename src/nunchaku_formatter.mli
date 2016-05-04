@@ -3,7 +3,7 @@ open Commons
 open Format
 open Nunchaku_ast
        
-type fc = statement list * simple_term_db * string
+type fc = statement list * simple_term_db * term * bool * string
 	    
 class formatter :
 object
@@ -44,7 +44,7 @@ object
   method op_def_or_theorem_or_assume       :
            fc -> simple_op_def_or_theorem_or_assume -> fc
 
-  method translate_builtin_name : string -> string
+  method translate_builtin_name : string -> Builtin.t
 
 end
 

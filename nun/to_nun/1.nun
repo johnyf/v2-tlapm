@@ -1,6 +1,0 @@
-include prelude.nun.
-# the NEW SYMB part.
-# the ASSUME part.
-# the PROVE part.
-# Crossed true.
-goal  ??? true.
