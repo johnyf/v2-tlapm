@@ -33,7 +33,7 @@ let add_include f (sta, tdb, ter, top, str) =
   (x::sta, tdb, ter, top, str)
 
 let add_goal t (sta, tdb, ter, top, str) =
-  let x = goal t in
+  let x = goal ( App ((Builtin `Not),[t])) in
   (x::sta, tdb, ter, top, str)
     
 let set_term ter (sta, tdb, _, top, str) = (sta, tdb, ter, top, str)
@@ -99,18 +99,23 @@ object(self)
   method lambda acc {level; arity; body; params} =
     add_comm "Crossed LAMBDA" acc
 
-  method binder acc0 {location; level; operator; operand; bound_symbols} =
+  method binder acc {location; level; operator; operand; bound_symbols} =
+    let acc0 = add_comm "Crossed binder" acc in
     let acc1 = self#operator acc0 operator in
     let kind = ter acc1 in
     let acc2 = self#expr_or_op_arg acc1 operand in
-    let t = ter acc2 in 
-    let acc3 = self#bound_symbol acc2 (List.hd bound_symbols) in
-    let v = str acc3 in
-    let v' = (v,None) in
+    let acc2' = add_comm "EOOA" acc2 in
+    let t = ter acc2' in 
+    let acc3 = self#bound_symbol acc2 (List.hd bound_symbols) in (* TODO *)
+    let v = match ter acc3 with
+      | Var (`Var x) -> x
+      | _ -> failwith "variable identification"
+    in
+    let v' = (v,Some (var "u")) in
     match kind with
-      | Builtin `Forall -> set_term (Forall (v',t)) acc0
-      | Builtin `Exists -> set_term (Exists (v',t)) acc0
-      | _ -> failwith "not a binder"
+      | Builtin `Forall -> set_term (Forall (v',t)) acc3
+      | Builtin `Exists -> set_term (Exists (v',t)) acc3
+      | _ -> failwith "binder not a quantifier"
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
     match params with
@@ -129,25 +134,27 @@ object(self)
        (* in *)
        (* let acc4 = add_to_string " \\in " acc3 in *)
        (* let acc5 = self#expr acc4 domain in *)
-       acc
+       self#formal_param acc param
+
     | _ ->
        (* fprintf (ppf acc) "<<"; *)
        (* let acc1 = ppf_fold_with self#formal_param acc params in *)
        (* fprintf (ppf acc1) ">> \\in "; *)
        (* let acc2 = self#expr acc domain in *)
-       acc
+       self#formal_param acc (List.hd params) (* TODO *)
+
     
       
   method unbounded_bound_symbol acc { param; tuple } =
     (* if tuple then fprintf (ppf acc) "<<"; *)
     (* let acc1 = self#formal_param acc param in *)
     (* if tuple then fprintf (ppf acc1) ">> "; *)
-    acc
+    self#formal_param acc param
 
   method formal_param acc fp =
     let { location; level; name; arity; } : simple_formal_param_ =
       dereference_formal_param (tdb acc) fp in
-    add_comm ("Crossed formal_param"^name) acc
+    set_term (var name) acc
 
   method op_decl acc0 opdec =
     let { location ; level ; name ; arity ; kind ; } =
@@ -210,11 +217,11 @@ object(self)
 
   method expr acc x =
     let acc1 = match x with
-    | E_binder b -> add_comm "Crossed binder" acc (* self#binder acc b *)
+    | E_binder  b -> self#binder  acc b
     | E_op_appl b -> self#op_appl acc b
     | E_numeral b -> self#numeral acc b
     | _ -> add_comm "Crossed unknown expression" acc
-    in (* add_goal_or_axiom (term acc1) *) acc1
+    in acc1
 
   method name acc x = acc
 
@@ -269,6 +276,7 @@ object(self)
     | "=" -> `Eq
     | "=>" -> `Imply
     | "/=" -> `Neq
+    | "\\lnot" -> `Not
     | x -> `Undefined x (* catchall case *)
 end
 

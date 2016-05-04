@@ -180,7 +180,9 @@ let init () =
 		 let nunk = "nunchaku nun/to_nun/"^(string_of_int k)^".nun"
 		 in ignore(Sys.command nunk)
      in
-     call_nun (n-1)
+     call_nun (n-1);
+     print_newline ();
+     print_newline ();
      
   | _ ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";

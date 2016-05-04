@@ -26,6 +26,8 @@ THEOREM 1=2 OBVIOUS
 
 LEMMA \A x : x = x OBVIOUS
 
+LEMMA \A x : x # x OBVIOUS
+
 THEOREM INTER == \A p, q : (p => q) => (\E i : (p => i) /\ (i => q) /\ ~(i => p) /\ ~(p => i) ) OBVIOUS
 
 (*
