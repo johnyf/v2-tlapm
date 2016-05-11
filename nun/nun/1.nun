@@ -1,0 +1,6 @@
+# Initial commands.
+val u : type.
+# End of initial commands.
+val d : u.
+val c : u.
+goal ~ ((c ) != (d )).

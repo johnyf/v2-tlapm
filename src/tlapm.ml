@@ -130,10 +130,10 @@ let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
 let init () =
   (* argument handling TODO: rewrite *)
   match  Array.length Sys.argv with
-  | 2 ->
-     let filename = Sys.argv.(1) in
-     let tla_filename = ("nun/"^filename^".tla") in
-     let xml_filename = ("nun/"^filename^".xml") in
+  | 3 when Sys.argv.(1)="auto" ->
+     let filename = Sys.argv.(2) in
+     let tla_filename = ("nun/tla/"^filename^".tla") in
+     let xml_filename = ("nun/xml/"^filename^".xml") in
      let tla_to_xml = "sh tla2xml.sh -o -I ./library/ "^tla_filename^" > "^xml_filename in
      ignore(Sys.command tla_to_xml);
      let channel = open_in xml_filename in
@@ -167,7 +167,7 @@ let init () =
      (* call nunckaku *)
      (* print_complex obligations "nun/complex.txt"; *)
      print_simple obligations "nun/obligations.txt";
-     let n = print_nunchaku obligations "nun/to_nun" in
+     let n = print_nunchaku obligations "nun/nun" in
             (* Directory in which the .nun files will be created. One file per obligation. *)
             (* The directory needs to exist, otherwise it won't work. *)
             (* TODO Add a command to create the directory if it doesn't exist. *)
@@ -177,16 +177,66 @@ let init () =
        | _ -> call_nun (k-1);
 	      let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\""
 	      in ignore(Sys.command sk) ;
-		 let nunk = "nunchaku nun/to_nun/"^(string_of_int k)^".nun"
+		 let nunk = "nunchaku nun/nun/"^(string_of_int k)^".nun"
 		 in ignore(Sys.command nunk)
      in
      call_nun (n-1);
      print_newline ();
      print_newline ();
-     
-  | _ ->
+
+  | 4 when Sys.argv.(1)="xml2obligations" ->
+     let xml_filename = Sys.argv.(2) in
+     let target = Sys.argv.(3) in
+     let channel = open_in xml_filename in
+     (* load sany xml ast from file *)
+     let sany_context = Sany.import_xml channel in
+     (* extract builtins from file *)
+     let sany_builtins =
+       Sany_builtin_extractor.extract_from_context sany_context in
+     (* convert sany ast to internal ast (expr_ds) *)
+     let exprds =
+       Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+     (* replace definitions of name LAMBDA by lambda constructors *)
+     let fixed_lambda =
+       Expr_correct_lambda.correct_lambda_context exprds in
+     (* make language elements represented as builtin operators explicit *)
+     let fixed_theorems =
+       Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
+     (* extract obligations *)
+     let obligations =
+       Extract_obligations.extract_obligations_context fixed_theorems in
+     (* print obligations to stdout *)
+     print_simple obligations target;
+     Printf.eprintf "TLAPM wrote obligations in %s.\n" target;
+
+
+    | 4 when Sys.argv.(1)="xml2nun" ->
+     let xml_filename = Sys.argv.(2) in
+     let target = Sys.argv.(3) in
+     let channel = open_in xml_filename in
+     (* load sany xml ast from file *)
+     let sany_context = Sany.import_xml channel in
+     (* extract builtins from file *)
+     let sany_builtins =
+       Sany_builtin_extractor.extract_from_context sany_context in
+     (* convert sany ast to internal ast (expr_ds) *)
+     let exprds =
+       Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+     (* replace definitions of name LAMBDA by lambda constructors *)
+     let fixed_lambda =
+       Expr_correct_lambda.correct_lambda_context exprds in
+     (* make language elements represented as builtin operators explicit *)
+     let fixed_theorems =
+       Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
+     (* extract obligations *)
+     let obligations =
+       Extract_obligations.extract_obligations_context fixed_theorems in
+     ignore(print_nunchaku obligations target);
+     Printf.eprintf "TLAPM wrote nunchaku files in %s.\n" target;
+
+    | n ->
      Printf.eprintf "TLAPM does no argument handling right now.\n";
-     Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";
+     Printf.eprintf "Syntax: ./tlapm.byte auto file_name\n";
      ()
      
 ;;

@@ -1,4 +1,4 @@
-------------------------------- MODULE tests -------------------------------
+------------------------------- MODULE tests2 -------------------------------
 
 THEOREM TRUE OBVIOUS
 
@@ -10,7 +10,9 @@ THEOREM ASSUME (FALSE => FALSE) PROVE FALSE OBVIOUS
 
 THEOREM ASSUME NEW a, NEW b PROVE a=b OBVIOUS
 
-THEOREM ASSUME NEW c, NEW d PROVE c # d OBVIOUS
+THEOREM ASSUME NEW a, NEW b PROVE a # b OBVIOUS
+
+THEOREM ASSUME NEW a, NEW b, a#b, NEW P PROVE P[a] # P[a] OBVIOUS
 
 THEOREM ASSUME NEW a, NEW b, NEW c, a # b, b # c PROVE a # c OBVIOUS
 
@@ -42,5 +44,5 @@ LEMMA ASSUME NEW CONSTANT S,
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 04 16:46:08 CEST 2016 by Matthieu
+\* Last modified Wed May 11 01:22:18 CEST 2016 by Matthieu
 \* Created Wed Mar 23 16:18:29 CET 2016 by Matthieu

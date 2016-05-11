@@ -1,0 +1,4 @@
+Obligation 1:
+ASSUME NEW c, NEW d,  PROVE (c /= d)
+
+
