@@ -3,7 +3,7 @@ open Commons
 open Format
 open Nunchaku_ast
        
-type fc = statement list * simple_term_db * term * bool * string
+type fc = statement list * simple_term_db * term * bool 
 	    
 class formatter :
 object

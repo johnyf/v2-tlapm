@@ -1,6 +1,14 @@
 # Initial commands.
 val u : type.
+val apply : u -> u -> u.
 # End of initial commands.
-val d : u.
-val c : u.
-goal ~ ((c ) != (d )).
+val P : u.
+val b : u.
+val a : u.
+goal ~
+       ((((a ) != (b ))
+         &&
+         (forall (x:u).
+            forall (y:u).
+              ((x ) != (x )) => ((apply (P ) (x )) != (apply (P ) (y )))))
+        => ((apply (P ) (apply (P ) (a ))) != (apply (P ) (apply (P ) (b ))))).

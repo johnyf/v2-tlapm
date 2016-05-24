@@ -7,43 +7,38 @@ open Format
 open Simple_expr_prover_parser
 open Nunchaku_ast
        
-type fc = statement list * simple_term_db * term * bool * string
+type fc = statement list * simple_term_db * term * bool
 	    
 (* these are extractors for the accumulator type  *)
-let sta     ( sta, _, _, _, _) = sta (* statement list *)
-let tdb     ( _, tdb, _, _, _) = tdb (* term database *)
-let ter     ( _, _, ter, _, _) = ter (* term accumulator *)
-let top     ( _, _, _, top, _) = top (* flag : is_top_level *)
-let str     ( _, _, _, _, str) = str (* some string for comments and debug *)
+let sta     ( sta, _, _, _) = sta (* statement list *)
+let tdb     ( _, tdb, _, _) = tdb (* term database *)
+let ter     ( _, _, ter, _) = ter (* term accumulator *)
+let top     ( _, _, _, top) = top (* flag : is_top_level *)
 			     
-let add_axiom l (sta, tdb, ter, top, str) =
+let add_axiom l (sta, tdb, ter, top) =
   let x = axiom l in
-  (x::sta, tdb, ter, top, str)
+  (x::sta, tdb, ter, top)
 
-let add_decl v t (sta, tdb, ter, top, str) =
+let add_decl v t (sta, tdb, ter, top) =
   let x = decl [] v t in
-  (x::sta, tdb, ter, top, str)
+  (x::sta, tdb, ter, top)
 
-let add_comm s (sta, tdb, ter, top, str) =
+let add_comm s (sta, tdb, ter, top) =
   let x = comm s in
-  (x::sta, tdb, ter, top, str)
+  (x::sta, tdb, ter, top)
 
-let add_include f (sta, tdb, ter, top, str) =
+let add_include f (sta, tdb, ter, top) =
   let x = include_ f in
-  (x::sta, tdb, ter, top, str)
+  (x::sta, tdb, ter, top)
 
-let add_goal t (sta, tdb, ter, top, str) =
+let add_goal t (sta, tdb, ter, top) =
   let x = goal ( App ((Builtin `Not),[t])) in
-  (x::sta, tdb, ter, top, str)
+  (x::sta, tdb, ter, top)
     
-let set_term ter (sta, tdb, _, top, str) = (sta, tdb, ter, top, str)
+let set_term ter (sta, tdb, _, top) = (sta, tdb, ter, top)
 
-let un_top (sta, tdb, ter, _, str) = (sta, tdb, ter, false, str)
-
-let set_string str (sta, tdb, ter, top, _) = (sta, tdb, ter, top, str)
-				     
-let add_to_string x (sta, tdb, ter, top, str) = (sta, tdb, ter, top, str^x)
-				     
+let un_top (sta, tdb, ter, _) = (sta, tdb, ter, false)
+		     
 let acc_fold function_to_apply list_of_args acc =
    List.fold_right (fun arg_temp -> fun acc_temp -> function_to_apply acc_temp arg_temp) list_of_args acc
 
@@ -98,24 +93,41 @@ object(self)
     
   method lambda acc {level; arity; body; params} =
     add_comm "Crossed LAMBDA" acc
+   
+  method binder acc b =
+    match b.bound_symbols with
+    | []     -> let acc1 = self#operator acc b.operator in
+		self#expr_or_op_arg acc1 b.operand
+    | hd::tl -> let b2 = {location = b.location; level = b.level; operator = b.operator; operand = b.operand; bound_symbols = tl} in
+		let acc0 = self#binder acc b2 in
+		let t = ter acc0 in
+		let acc1 = self#operator acc0 b.operator in
+		let kind = ter acc1 in
+		let acc2 = self#bound_symbol acc1 hd in
+		let v = match ter acc2 with
+		  | Var (`Var x) -> x
+		  | _ -> failwith "variable identification"
+		in
+		let v' = (v,Some (var "u")) in
+		match kind with
+		| Builtin `Forall -> set_term (Forall (v',t)) acc2
+		| Builtin `Exists -> set_term (Exists (v',t)) acc2
+		| _ -> failwith "binder not a quantifier"
 
-  method binder acc {location; level; operator; operand; bound_symbols} =
-    let acc0 = add_comm "Crossed binder" acc in
-    let acc1 = self#operator acc0 operator in
-    let kind = ter acc1 in
-    let acc2 = self#expr_or_op_arg acc1 operand in
-    let acc2' = add_comm "EOOA" acc2 in
-    let t = ter acc2' in 
-    let acc3 = self#bound_symbol acc2 (List.hd bound_symbols) in (* TODO *)
-    let v = match ter acc3 with
-      | Var (`Var x) -> x
-      | _ -> failwith "variable identification"
-    in
-    let v' = (v,Some (var "u")) in
-    match kind with
-      | Builtin `Forall -> set_term (Forall (v',t)) acc3
-      | Builtin `Exists -> set_term (Exists (v',t)) acc3
-      | _ -> failwith "binder not a quantifier"
+    (* let acc1 = self#operator acc operator in *)
+    (* let kind = ter acc1 in *)
+    (* let acc2 = self#expr_or_op_arg acc1 operand in *)
+    (* let t = ter acc2 in *)
+    (* let acc3 = self#bound_symbol acc2 (List.hd bound_symbols) in (\* TODO *\) *)
+    (* let v = match ter acc3 with *)
+    (*   | Var (`Var x) -> x *)
+    (*   | _ -> failwith "variable identification" *)
+    (* in *)
+    (* let v' = (v,Some (var "u")) in *)
+    (* match kind with *)
+    (*   | Builtin `Forall -> set_term (Forall (v',t)) acc3 *)
+    (*   | Builtin `Exists -> set_term (Exists (v',t)) acc3 *)
+    (*   | _ -> failwith "binder not a quantifier" *)
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
     match params with
@@ -277,15 +289,16 @@ object(self)
     | "=>" -> `Imply
     | "/=" -> `Neq
     | "\\lnot" -> `Not
+    | "$FcnApply" -> `Apply
     | x -> `Undefined x (* catchall case *)
 end
 
 let expr_formatter = new formatter
 
 let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
-  let initial_commands = [comm "End of initial commands";decl [] "u" (var "type")(* ;include_ "\"prelude.nun\"" *);comm "Initial commands";] in
-  let acc = (initial_commands, term_db, Unknown "starting term", true, "") in
-  let (l,_,_,_,_) = (f acc goal) in
+  let initial_commands = [comm "End of initial commands";decl [] "apply" (var "u -> u -> u");decl [] "u" (var "type")(* ;include_ "\"prelude.nun\"" *);comm "Initial commands";] in
+  let acc = (initial_commands, term_db, Unknown "starting term", true) in
+  let (l,_,_,_) = (f acc goal) in
   l
       
 let fmt_expr = mk_fmt (expr_formatter#expr)

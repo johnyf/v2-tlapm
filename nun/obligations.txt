@@ -1,4 +1,4 @@
 Obligation 1:
-ASSUME NEW c, NEW d,  PROVE (c /= d)
+ASSUME NEW a, NEW b, NEW P, (a /= b), \A x, y : (((x /= x) => ($FcnApply(P, x) /= $FcnApply(P, y)))) PROVE ($FcnApply(P, $FcnApply(P, a)) /= $FcnApply(P, $FcnApply(P, b)))
 
 
