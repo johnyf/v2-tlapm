@@ -10,5 +10,5 @@ goal ~
          &&
          (forall (x:u).
             forall (y:u).
-              ((x ) != (y )) => ((apply (P ) (x )) != (apply (P ) (y )))))
+              ((x ) != (x )) => ((apply (P ) (x )) != (apply (P ) (y )))))
         => ((apply (P ) (apply (P ) (a ))) != (apply (P ) (apply (P ) (b ))))).
