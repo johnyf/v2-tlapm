@@ -4,3 +4,4 @@ B _build/src
 
 PKG xmlm
 PKG kaputt
+PKG sexplib

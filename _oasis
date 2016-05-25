@@ -15,7 +15,8 @@ Executable tlapm
 #  XOCamlbuildExtraArgs: "-w +44"
   BuildDepends: xmlm,
                 str,
-                unix
+                unix,
+                sexplib
 
 
 Document tlapm_api

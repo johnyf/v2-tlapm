@@ -9,6 +9,7 @@ open Expr_simple
 open Expr_substitution
 open Simple_obligation
 open Simple_expr_prover_parser
+open Sexp
        
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
@@ -90,7 +91,7 @@ let init () =
      tla_to_xml tla_filename xml_filename;
      let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
      let n = obl_to_nun obligations "nun/nun" in
-     call_nun (n-1) false;
+     call_nun (n-1) false
 
   | 3 when Sys.argv.(2)="-v" ->
      let filename = Sys.argv.(1) in
@@ -101,6 +102,10 @@ let init () =
      let n = obl_to_nun obligations "nun/nun" in
      call_nun (n-1) true;
      ignore(Sys.command "echo \"\n\n\"")
+
+  | 3 when Sys.argv.(1)="sexp" ->
+     let n = Sys.argv.(2) in
+     Sexp.print_sexp ("nun/sexp/"^n^".sexp")
 	   
   | 4 when Sys.argv.(1)="tla2xml" ->
      tla_to_xml Sys.argv.(2) Sys.argv.(3)
