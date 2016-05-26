@@ -2,4 +2,6 @@
 val u : type.
 val apply : u -> u -> u.
 # End of initial commands.
-goal ~ (true ).
+val d : u.
+val c : u.
+goal ~ ((c ) != (d )).

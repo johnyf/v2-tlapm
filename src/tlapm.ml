@@ -73,20 +73,18 @@ let print_nun k =
   let nunk = "nunchaku nun/nun/"^(string_of_int k)^".nun" in
   ignore(Sys.command nunk)
 
-let rec call_nun k print = match k with
+let rec call_nun k = match k with
   | 0 -> ();
-  | _ -> call_nun (k-1) print ;
-	 if print
-	 then print_nun k ;
+  | _ -> call_nun (k-1) ;
 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp")
 
 let sexp_to_mod sexp_file mod_file =
-  (* let model = Sexp.print_mod sexp_file in *)
-  (* let c = "echo \""^model^"\" > "^mod_file in *)
-  (* ignore(Sys.command c) *)
-  Sexp.print_sexp sexp_file;
-  let c = "echo \""^"READ STDOUT"^"\" > "^mod_file in
-  ignore(Sys.command c)
+  Sexp.print_sexp sexp_file mod_file
+  		     
+let rec convert_to_mod k = match k with
+  | 0 -> ();
+  | _ -> convert_to_mod (k-1);
+	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod")
 		     
 let init () =
   (* argument handling TODO: rewrite *)
@@ -99,18 +97,9 @@ let init () =
      tla_to_xml tla_filename xml_filename;
      let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
      let n = obl_to_nun obligations "nun/nun" in
-     call_nun (n-1) false
-
-  | 3 when Sys.argv.(2)="-v" ->
-     let filename = Sys.argv.(1) in
-     let tla_filename = ("nun/tla/"^filename^".tla") in
-     let xml_filename = ("nun/xml/"^filename^".xml") in
-     tla_to_xml tla_filename xml_filename;
-     let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
-     let n = obl_to_nun obligations "nun/nun" in
-     call_nun (n-1) true;
-     ignore(Sys.command "echo \"\n\n\"")
-
+     call_nun (n-1) ;
+     convert_to_mod (n-1)
+	   
   | 4 when Sys.argv.(1)="sexp2mod" ->
      sexp_to_mod Sys.argv.(2) Sys.argv.(3)
 	   
