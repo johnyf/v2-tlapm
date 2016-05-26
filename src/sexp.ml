@@ -17,10 +17,15 @@ type model_entry =
 
 type model = model_entry list
 
-type sexp_tree = UNSAT | UNKNOWN | SAT of model (* TODO : add a failure case when Nunchaku failed e.g. obl 11 *)
+type sexp_tree = UNSAT | UNKNOWN | SAT of model | FAIL
+							    
+let rec tree_to_term t = match t with
+  | Atom s -> Var s 	
+  | List ((Atom s)::l) -> App (s,(List.map tree_to_term l))
+  | _ -> failwith "unparsed term"
 
-let string_to_term s = Var s 	(* TODO : interprete types *)
-					    
+let string_to_term s =  Var s
+	      
 let type_to_model t = match t with
   | ((Atom name)::[List l]) ->
      let rec unroll m = match m with
@@ -32,11 +37,11 @@ let type_to_model t = match t with
   | _ -> failwith "type_to_model failed"
 
 let val_to_model t = match t with
-  | ((Atom name)::[Atom value]) -> Const (name,string_to_term value)
+  | ((Atom name)::[value]) -> Const (name,tree_to_term value)
   | _ -> failwith "val_to_model failed"
 
-let fun_to_model t = match t with (* FIXME : fails with obligation 7 in case no if *)
-  | ((Atom name)::[List ((Atom "lambda")::(List vars)::[List values])]) ->
+let fun_to_model t = match t with 
+  | ((Atom name)::[List ((Atom "lambda")::(List vars)::[values])]) ->
      let rec unroll_vars v = match v with
        | [] -> []
        | (List ((Atom n)::[Atom t]))::m2 -> (n,t)::(unroll_vars m2)
@@ -44,7 +49,7 @@ let fun_to_model t = match t with (* FIXME : fails with obligation 7 in case no 
      in
      let rec unroll_conditions c = match c with
        | [] -> []
-       | (List [(Atom "=");(Atom v);(Atom t)])::tl -> (v,string_to_term t)::(unroll_conditions tl)
+       | (List [(Atom "=");(Atom v);t])::tl -> (v,tree_to_term t)::(unroll_conditions tl)
        | _ -> failwith "unroll fun conditions failed"
      in
      let match_conditions c = match c with
@@ -52,19 +57,16 @@ let fun_to_model t = match t with (* FIXME : fails with obligation 7 in case no 
        | _ -> unroll_conditions c
      in
      let rec unroll_values v = match v with
-       | [Atom a] -> {cases = []; else_= string_to_term a}
-       | ((Atom "if")::(List conditions)::(Atom s_then)::(Atom s_else)::[]) ->
+       | List ((Atom "if")::(List conditions)::(then_)::(tl)::[]) ->
+	  let dt = unroll_values tl in
 	  {
-	    cases = [match_conditions conditions, string_to_term s_then];
-	    else_ = string_to_term s_else
-	  }
-       | ((Atom "if")::(List conditions)::(Atom s_then)::(List l)::[]) ->
-	  let dt = unroll_values l in
-	  {
-	    cases = (match_conditions conditions,string_to_term s_then)::dt.cases ;
+	    cases = (match_conditions conditions,tree_to_term then_)::dt.cases ;
 	    else_ = dt.else_
 	  }
+       | Atom s             -> {cases = []; else_= tree_to_term v}
+       | List ((Atom _)::_) -> {cases = []; else_= tree_to_term v}
        | _ -> failwith "unroll values fun_to_model failed"
+     			 
      in
      Fun (name,(unroll_vars vars),(unroll_values values))
   | _ -> failwith "type_to_model failed"
@@ -86,10 +88,13 @@ let sexplib_tree_to_sexp_tree t =
   | _ -> failwith "Unknown structure"
 
 let sexplib_to_sexplib_tree path =
-  let ic = open_in path in
-  let t = Sexplib.Sexp.input_sexp ic in
-  sexplib_tree_to_sexp_tree t
-
+  try
+    let ic = open_in path in
+    let t = Sexplib.Sexp.input_sexp ic in
+    sexplib_tree_to_sexp_tree t
+  with
+    _ -> FAIL
+			      
 let rec term_to_string t = match t with
   | Var s -> s
   | App (s,l) -> s^" ("^(list_to_string l)^")"
@@ -97,24 +102,26 @@ and
   list_to_string x = match x with
   | [] -> ""
   | [t] -> term_to_string t
-  | t::q -> (term_to_string t)^(list_to_string q)
+  | t::q -> (term_to_string t)^", "^(list_to_string q)
 			    
 let print_model s =
-  let rec print_list print_one list =
+  let comma = ", " in
+  let andand = " && " in
+  let rec print_list print_one separator list =
     match list with
     | [] -> ""
     | [x] -> print_one x
-    | t::q -> (print_one t)^", "^(print_list print_one q)
+    | t::q -> (print_one t)^separator^(print_list print_one separator q)
   in
-  let print_type_vars = print_list (fun x -> x)
+  let print_type_vars = print_list (fun x -> x) comma
   in
-  let print_fun_vars = print_list (fun (s1,s2) -> "("^s1^" : "^s2^")")
+  let print_fun_vars = print_list (fun (s1,s2) -> "("^s1^" : "^s2^")") comma
   in
-  let print_fun_conditions = print_list (fun (s,t) -> "("^s^" = "^(term_to_string t)^")")
+  let print_fun_conditions = print_list (fun (s,t) -> "("^s^" = "^(term_to_string t)^")") andand
   in
   let rec print_dt dt = match dt.cases with
     | [] -> "\t else : "^(term_to_string dt.else_)
-    | (cond_l,then_)::q -> "\t if "^(print_fun_conditions cond_l)^", then : "^(term_to_string then_)^"\n"^(print_dt {cases = q; else_=dt.else_})
+    | (cond_l,then_)::q -> "\t if "^(print_fun_conditions cond_l)^" then : "^(term_to_string then_)^"\n"^(print_dt {cases = q; else_=dt.else_})
   in
   let to_print = match s with
     | Type (name,vars) -> "type "^name^" : "^(print_type_vars vars)
@@ -131,10 +138,11 @@ let print_sexp_tree t =
   | UNSAT -> print_string "UNSAT";
   | UNKNOWN -> print_string "UNKNOWN";
   | SAT l -> print_string "SAT ("; print_newline (); ignore(List.map print_model l) ; print_string ")";
+  | FAIL -> print_string "Failed reading model.";
   in
   print_ ;
   print_newline ()
 			  
-let print_sexp s = print_sexp_tree (sexplib_to_sexplib_tree s)
+let print_sexp path = print_sexp_tree (sexplib_to_sexplib_tree path)
 
 	     

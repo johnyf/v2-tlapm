@@ -79,7 +79,15 @@ let rec call_nun k print = match k with
 	 if print
 	 then print_nun k ;
 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp")
-	 
+
+let sexp_to_mod sexp_file mod_file =
+  (* let model = Sexp.print_mod sexp_file in *)
+  (* let c = "echo \""^model^"\" > "^mod_file in *)
+  (* ignore(Sys.command c) *)
+  Sexp.print_sexp sexp_file;
+  let c = "echo \""^"READ STDOUT"^"\" > "^mod_file in
+  ignore(Sys.command c)
+		     
 let init () =
   (* argument handling TODO: rewrite *)
   match  Array.length Sys.argv with
@@ -103,9 +111,8 @@ let init () =
      call_nun (n-1) true;
      ignore(Sys.command "echo \"\n\n\"")
 
-  | 3 when Sys.argv.(1)="sexp" ->
-     let n = Sys.argv.(2) in
-     Sexp.print_sexp ("nun/sexp/"^n^".sexp")
+  | 4 when Sys.argv.(1)="sexp2mod" ->
+     sexp_to_mod Sys.argv.(2) Sys.argv.(3)
 	   
   | 4 when Sys.argv.(1)="tla2xml" ->
      tla_to_xml Sys.argv.(2) Sys.argv.(3)
