@@ -9,7 +9,7 @@ open Expr_termdb_utils
 open Expr_formatter
 open Format
 
-let debug f = ignore( ())
+let debug f = ignore(f ())
 
 module Subst =
   struct
@@ -57,18 +57,21 @@ module Subst =
                  opi.name :: x
              ) fbound_names defs
          in
-         let rec find_name blacklist n =
-           let new_name = name ^ (string_of_int n) in
-           if mem new_name fbdef_names then
-             find_name blacklist (n+1)
-           else
-             new_name
+         let find_name blacklist =
+           let rec find_name_ blacklist n =
+             let new_name = name ^ (string_of_int n) in
+             if mem new_name fbdef_names then
+               find_name_ blacklist (n+1)
+             else
+               new_name
+           in
+           if mem name blacklist then find_name_ blacklist 0 else name
          in
          debug (fun () ->
                 fprintf std_formatter "@[Renaming blacklist %a@,@]"
                         (fmt_list ~front:"[" ~back:"]" (function f -> fprintf f "%s"))
                         fbdef_names);
-         let fp_ = { location; level; name = find_name fbdef_names 0; arity } in
+         let fp_ = { location; level; name = find_name fbdef_names; arity } in
          debug (fun () ->
                 fprintf std_formatter "@.mapped %s <- %s@." name fp_.name);
          mkref_formal_param term_db fp_
@@ -144,6 +147,9 @@ module Debug = struct
     let fmt_formal_param_ref term_db formatter = function
       | FP_ref id -> fprintf formatter "%d" id
       | _ as fp -> fmt_formal_param term_db formatter fp
+
+    let print_acc ?text:(text="acc:") sacc () =
+      fprintf std_formatter "@[<v>%s@,%a@,@]" text fmt_sacc sacc
   end
 
 class ['a] expr_substitution = object(self)
@@ -185,18 +191,7 @@ class ['a] expr_substitution = object(self)
     let bound = append (Subst.bound_range sacc.substs) sacc.bound_context in
     let (rterm_db, rparam) = Subst.rename sacc.term_db ~free ~bound param in
     let (bound_context, bound_renaming) =
-      if compare_modulo_deref_formal_param rterm_db param rparam
-      then
-        begin
-          (sacc.bound_context, sacc.bound_renaming)
-        end
-      else
-        begin
-          debug (fun () ->
-                 fprintf std_formatter "Renamed vars #: 1 (unbounded)@."
-                );
-          (rparam :: sacc.bound_context, (param, rparam) :: sacc.bound_renaming)
-        end
+      (rparam :: sacc.bound_context, (param, rparam) :: sacc.bound_renaming)
     in
     let acc0 = set_acc acc { term_db = rterm_db;
                              substs = sacc.substs;
@@ -211,9 +206,11 @@ class ['a] expr_substitution = object(self)
     (* recurse into domain first, SANY does not allow params
        in the domain *)
     let sacc = get_acc acc in
+    (*
     let acc0  = self#expr acc domain in
     let sacc0 = get_acc acc0 in
-    let domain = self#get_macc_extractor#expr acc0 in
+    let domain = self#get_macc_extractor#expr acc in
+     *)
     let bound = sacc.bound_context in
     let free = Subst.range sacc.substs in
     (* do renaming of symbols, if neccessary *)
@@ -222,11 +219,11 @@ class ['a] expr_substitution = object(self)
                   | (rdb, rps) ->
                      fun param ->
                       let db, rp =
-                        Subst.rename rdb ~free ~bound param
+                        Subst.rename rdb ~free ~bound:rps param
                       in
                       (db, rp::rps)
                 )
-                (sacc0.term_db, []) params
+                (sacc.term_db, bound) params
     in
     (* restore parameter order *)
     let rparams = rev rparams_reverse in
@@ -248,7 +245,7 @@ class ['a] expr_substitution = object(self)
                      (Debug.fmt_renaming rterm_db) bound_renaming
           );
     (* add new symbols to bound context *)
-    let bound_context = map (function (_,x) -> x) bound_renaming
+    let bound_context =  append bound rparams 
     in
     let acc0 = set_acc acc { term_db = rterm_db;
                              substs = sacc.substs;
@@ -258,8 +255,10 @@ class ['a] expr_substitution = object(self)
                                append sacc.bound_renaming bound_renaming;
                              subclass_acc = ();
                            } in
+    let acc1  = self#expr acc domain in
+    let domain = self#get_macc_extractor#expr acc1 in
     let ubs = { params = rparams; tuple; domain } in
-    set_anyexpr acc0 (Any_bounded_bound_symbol ubs)
+    set_anyexpr acc1 (Any_bounded_bound_symbol ubs)
 
   method operator acc = function
     | FMOTA_formal_param fp as op ->
@@ -332,7 +331,7 @@ class ['a] expr_substitution = object(self)
      *)
     let sacc3 = { term_db = sacc2.term_db;
                   substs = sacc.substs;
-                  bound_context = sacc0.bound_context;
+                  bound_context = sacc2.bound_context;
                   bound_renaming = [];
                   subclass_acc = ();
                 } in
@@ -363,6 +362,13 @@ class ['a] expr_substitution = object(self)
           to the arguments as soon as the operator is applied.
         *)
        set_anyexpr acc (Any_user_defined_op uop)
+
+  method bound_symbol acc b =
+    Debug.print_acc ~text:"Bound symbol before:" (get_acc acc) |> debug;
+    let acc0 = super#bound_symbol acc b in
+    Debug.print_acc ~text:"Bound symbol after:" (get_acc acc0) |> debug;
+    acc0
+    
 
   method context acc _ =
     failwith "Can't apply a substitutionto a context."
