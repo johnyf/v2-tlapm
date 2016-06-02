@@ -33,13 +33,30 @@ let sexp_from_file sexp_file =
   with
     _ -> failwith ("Unable to parse file "^sexp_file)
 
+(* PRINT LIST *)
+
+let rec list_to_string print_one separator list =
+    match list with
+    | [] -> ""
+    | [x] -> print_one x
+    | t::q -> (print_one t)^separator^(list_to_string print_one separator q)
+
+let comma = ", "
+let andand = " && " 
+let newline = " \n"
+let space = " "
+
 (* SEXP TO MOD_TREE *)
-		  
+		
 let rec sexp_to_term t = match t with
   | Atom s -> Var s 	
   | List ((Atom s)::l) -> App (s,(List.map sexp_to_term l))
   | _ -> failwith "unparsed term"
 
+let rec sexp_to_string t = match t with
+  | Atom s -> s 	
+  | List l -> "("^(list_to_string sexp_to_string space l)^")"
+		  
 let sexp_to_type_model_entry t = match t with
   | ((Atom name)::[List l]) ->
      let rec unroll m = match m with
@@ -52,10 +69,11 @@ let sexp_to_type_model_entry t = match t with
 
 let sexp_to_val_model_entry t = match t with
   | ((Atom name)::[value]) -> Const (name,sexp_to_term value)
+  | ((List [(Atom "_witness_of");(prop)])::[value]) -> Const ("witness_of "^(sexp_to_string prop), sexp_to_term value)
   | _ -> failwith "val_to_model failed"
 
-let sexp_to_fun_model_entry t = match t with 
-  | ((Atom name)::[List ((Atom "lambda")::(List vars)::[values])]) ->
+let sexp_to_fun_model_entry name t = match t with 
+  | [(List vars);values] ->
      let rec unroll_vars v = match v with
        | [] -> []
        | (List ((Atom n)::[Atom t]))::m2 -> (n,t)::(unroll_vars m2)
@@ -87,8 +105,8 @@ let sexp_to_fun_model_entry t = match t with
   
 let sexp_to_model_entry t = match t with
   | List ((Atom "type")::tl) -> sexp_to_type_model_entry tl 
-  | List ((Atom "val")::tl)  -> sexp_to_val_model_entry tl 
-  | List ((Atom "fun")::tl)  -> sexp_to_fun_model_entry tl 
+  | List [(Atom "val");(Atom name);(List ((Atom "fun")::tl))]  -> sexp_to_fun_model_entry name tl 
+  | List ((Atom "val")::tl)  -> sexp_to_val_model_entry tl
   | List _ -> failwith "list fail"
   | Atom _ -> failwith "atom fail"
 								     
@@ -109,16 +127,6 @@ let mod_tree_from_file sexp_file =
 			      
 (* MOD_TREE PRINTER *)
 	   
-let rec list_to_string print_one separator list =
-    match list with
-    | [] -> ""
-    | [x] -> print_one x
-    | t::q -> (print_one t)^separator^(list_to_string print_one separator q)
-
-let comma = ", "
-let andand = " && " 
-let newline = " \n"
-		
 let rec term_to_string t = match t with
   | Var s -> s
   | App (s,l) -> s^" ("^(list_to_string term_to_string comma l)^")"
