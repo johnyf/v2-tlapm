@@ -46,6 +46,7 @@ let files flt =
            "OneBit";
            (* contains duplicates of multiple modules, takes long to load *)
            (*"pharos";  *)
+           (* "obligation_bug1" TODO: fix this bug! *)
            ])
 
 let () =
@@ -65,7 +66,8 @@ let () =
         Test_correct_lambda.get_tests without_broken;
         Test_parse_theorems.get_tests without_broken;
         Test_extract_obligations.get_tests without_broken;
-        Test_formatter.get_tests without_broken (* *)
+        Test_formatter.get_tests without_broken (* *);
+        Test_issue2.get_tests without_broken;
       ] in
   match check_xmloutput with
   | true  ->
