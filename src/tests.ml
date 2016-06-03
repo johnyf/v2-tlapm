@@ -46,7 +46,7 @@ let files flt =
            "OneBit";
            (* contains duplicates of multiple modules, takes long to load *)
            (*"pharos";  *)
-           (* "obligation_bug1" TODO: fix this bug! *)
+           "obligation_bug1" (* TODO: fix this bug! *)
            ])
 
 let () =
