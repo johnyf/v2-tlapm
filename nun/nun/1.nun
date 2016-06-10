@@ -2,6 +2,5 @@
 val u : type.
 val apply : u -> u -> u.
 # End of initial commands.
-val d : u.
-val c : u.
-goal ~ ((c ) != (d )).
+goal ~
+       (forall (x:u).  mem x S  => exists (x0:u).  mem x0 S  && (x ) != (x0 )).

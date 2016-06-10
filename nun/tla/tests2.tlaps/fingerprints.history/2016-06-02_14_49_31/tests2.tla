@@ -30,7 +30,7 @@ LEMMA \A x : x = x OBVIOUS
 
 LEMMA \A x : x # x OBVIOUS
 
-\* THEOREM INTER == \A p, q : (p => q) => (\E i : (p => i) /\ (i => q) /\ ~(i => p) /\ ~(p => i) ) OBVIOUS
+THEOREM INTER == \A p, q : (p => q) => (\E i : (p => i) /\ (i => q) /\ ~(i => p) /\ ~(p => i) ) OBVIOUS
 
 (*
 VARIABLES x,y,z
@@ -44,5 +44,5 @@ LEMMA ASSUME NEW CONSTANT S,
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jun 02 14:51:01 CEST 2016 by Matthieu
+\* Last modified Thu Jun 02 14:49:30 CEST 2016 by Matthieu
 \* Created Wed Mar 23 16:18:29 CET 2016 by Matthieu

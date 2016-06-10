@@ -1,4 +1,7 @@
 Obligation 1:
-ASSUME NEW c, NEW d,  PROVE (c /= d)
+\A x \in S : (\E x0 \in S : ((x /= x0)))
+
+Obligation 2:
+\A x \in $SetEnumerate(a, b, c) : (\E x0 \in $SetEnumerate(a, b, c, d) : ((x /= x0)))
 
 

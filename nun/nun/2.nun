@@ -2,4 +2,11 @@
 val u : type.
 val apply : u -> u -> u.
 # End of initial commands.
-goal ~ (false ).
+goal ~
+       (forall (x:u). 
+          mem x ?_$SetEnumerate (a ) (b ) (c ) => exists (x0:u). 
+                                                    mem x0 ?_$SetEnumerate
+                                                             (a ) (b ) (
+                                                             c ) (d ) && 
+                                                    (x )
+                                                    != (x0 )).

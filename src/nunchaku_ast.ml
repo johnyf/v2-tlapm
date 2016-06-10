@@ -96,8 +96,9 @@ end = struct
   let print out s = Format.pp_print_string out (to_string s)
 end
 
+type set = term option
 
-type term =
+and term =
   | Builtin of Builtin.t
   | Var of var_or_wildcard
   | AtVar of var  (* variable without implicit arguments *)
@@ -107,12 +108,13 @@ type term =
   | Let of var * term * term
   | Match of term * (var * var_or_wildcard list * term) list
   | Ite of term * term * term
-  | Forall of typed_var * term
-  | Exists of typed_var * term
+  | Forall of typed_var * set * term
+  | Exists of typed_var * set * term
   | Mu of typed_var * term
   | TyArrow of ty * ty
   | TyForall of var * ty
   | Asserting of term * term list
+  | Set of term list
   | Unknown of string
 
 (* we mix terms and types because it is hard to know, in
@@ -198,8 +200,8 @@ let imply  a b = app  (builtin  `Imply) [a;b]
 let equiv  a b = app  (builtin  `Equiv) [a;b]
 let eq  a b = app  (builtin  `Eq) [a;b]
 let neq  a b = not_  (eq  a b)
-let forall  v t = (Forall (v, t))
-let exists  v t = (Exists (v, t))
+(* let forall  v t = (Forall (v, t, None)) *)
+(* let exists  v t = (Exists (v, t, None)) *)
 let mu  v t = (Mu (v,t))
 let asserting  t l = match l with
   | [] -> t
@@ -210,8 +212,8 @@ let ty_forall  v t = (TyForall (v,t))
 let ty_forall_list  = List.fold_right (ty_forall )
 let ty_arrow_list  = List.fold_right (ty_arrow )
 
-let forall_list  = List.fold_right (forall )
-let exists_list  = List.fold_right (exists )
+(* let forall_list  = List.fold_right (forall ) *)
+(* let exists_list  = List.fold_right (exists ) *)
 let fun_list  = List.fold_right (fun_ )
 
 let forall_term = var "!!"
@@ -239,9 +241,9 @@ let rec head t = match t with
   | Unknown v | Var (`Var v) | AtVar v | MetaVar v -> v
   | Asserting (f,_)
   | App (f,_) -> head f
-  | Var `Wildcard | Builtin _ | TyArrow (_,_)
+  | Var `Wildcard | Builtin _ | TyArrow (_,_) | Set (_)
   | Fun (_,_) | Let _ | Match _ | Ite (_,_,_)
-  | Forall (_,_) | Mu _ | Exists (_,_) | TyForall (_,_) ->
+  | Forall (_,_,_) | Mu _ | Exists (_,_,_) | TyForall (_,_) ->
       invalid_arg "untypedAST.head"
 
 let fpf = Format.fprintf
@@ -257,7 +259,7 @@ let rec unroll_if_ t = match t with
   | _ -> [], t
 
 let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
-
+	 
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
   | Var v -> pp_var_or_wildcard out v
@@ -299,22 +301,23 @@ let rec print_term out term = match term with
         print_term a print_term b
         (pp_list_ ~sep:"" pp_middle) middle
         print_term last
-  | Forall (v, t) ->
-      fpf out "@[<2>forall %a.@ %a@]" print_typed_var v print_term t
-  | Exists (v, t) ->
-      fpf out "@[<2>exists %a.@ %a@]" print_typed_var v print_term t
+  | Forall ((var,ty),s,t) ->
+      fpf out "@[<2>forall %a.@ %a => %a@]" print_typed_var (var,ty) print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
+  | Exists ((var,ty),s,t) ->
+      fpf out "@[<2>exists %a.@ %a && %a@]" print_typed_var (var,ty) print_mem (var,s) print_term t
   | Asserting (_, []) -> assert false
+  | Set t -> fpf out "@[<2>unique_unsafe (fun S. forall x. mem x S = (x = LIST_OR %a))@]" print_term (List.hd t) (* TODO recurse *)
   | Asserting (t, l) ->
       fpf out "@[<2>%a@ @[<2>asserting @[%a@]@]@]"
-        print_term_inner t (pp_list_ ~sep:" ∧ " print_term_inner) l
-  | TyArrow (a, b) ->
+          print_term_inner t (pp_list_ ~sep:" ∧ " print_term_inner) l
+| TyArrow (a, b) ->
       fpf out "@[<2>%a ->@ %a@]"
         print_term_in_arrow a print_term b
   | TyForall (v, t) ->
       fpf out "@[<2>pi %s:type.@ %a@]" v print_term t
 and print_term_inner out term = match term with
   | App _ | Fun _ | Let _ | Ite _ | Match _ | Asserting _
-  | Forall _ | Exists _ | TyForall _ | Mu _ | TyArrow _ ->
+  | Forall _ | Exists _ | TyForall _ | Mu _ | TyArrow _ | Set _->
       fpf out "(%a)" print_term term
       | Unknown _ | Builtin _ | AtVar _ | Var _ | MetaVar _ -> print_term out term
 and print_term_in_arrow out t = match t with
@@ -324,18 +327,29 @@ and print_term_in_arrow out t = match t with
   | App (_,_) -> print_term out t
   | Let _ | Match _
   | Ite _
-  | Forall (_,_)
-  | Exists (_,_)
+  | Forall (_,_,_)
+  | Exists (_,_,_)
   | Mu _
   | Fun (_,_)
   | Asserting _
   | TyArrow (_,_)
+  | Set (_)
   | TyForall (_,_) -> fpf out "@[(%a)@]" print_term t
 
 and print_typed_var out (v,ty) = match ty with
   | None -> fpf out "%s" v
   | Some ty -> fpf out "(%s:%a)" v print_term ty
 
+(* and print_set out list = match list with *)
+(*   | [] -> fpf out "@ %s" "emptyset" *)
+(*   | t::q -> fpf out "@ %a" print_term t *)
+(* (\* TODO . recurser *\) *)
+		
+and print_mem out (var,set) = match set with
+  | None -> fpf out ""
+  | Some t -> fpf out "@ mem %a %a" pp_var_or_wildcard (`Var var) print_term t
+
+		   
 let pp_rec_defs out l =
   let ppterms = pp_list_ ~sep:";" print_term in
   let pp_case out (v,ty,l) =

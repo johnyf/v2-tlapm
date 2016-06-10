@@ -1,8 +1,0 @@
-# Initial commands.
-val u : type.
-val apply : u -> u -> u.
-# End of initial commands.
-val P : u.
-val b : u.
-val a : u.
-goal ~ (((a ) != (b )) => ((apply (P ) (a )) != (apply (P ) (a )))).

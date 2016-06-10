@@ -1,5 +1,0 @@
-# Initial commands.
-val u : type.
-val apply : u -> u -> u.
-# End of initial commands.
-goal ~ (forall (x:u). (x ) = (x )).
