@@ -2,6 +2,9 @@ Obligation 1:
 \A x \in S : (\E x0 \in S : ((x /= x0)))
 
 Obligation 2:
-\A x \in $SetEnumerate(a, b, c) : (\E x0 \in $SetEnumerate(a, b, c, d) : ((x /= x0)))
+\A x1 \in $SetEnumerate(a, b, c) : (\E x0 \in $SetEnumerate(a, b, c) : ((x1 /= x0)))
+
+Obligation 3:
+\A x \in S2 : (\E x0 \in S2 : ((x /= x0)))
 
 

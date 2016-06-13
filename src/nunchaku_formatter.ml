@@ -21,7 +21,8 @@ let add_axiom l (sta, tdb, ter, top) =
 
 let add_decl v t (sta, tdb, ter, top) =
   let x = decl [] v t in
-  (x::sta, tdb, ter, top)
+  let sta' = if List.mem x sta then sta else (x::sta) in
+  (sta', tdb, ter, top)
 
 let add_comm s (sta, tdb, ter, top) =
   let x = comm s in
@@ -161,7 +162,8 @@ object(self)
   method op_decl acc0 opdec =
     let { location ; level ; name ; arity ; kind ; } =
       dereference_op_decl (tdb acc0) opdec in
-    set_term (var name) acc0
+    let acc1 = add_decl name (var "u") acc0 in
+    set_term (var name) acc1
 
   method op_def acc = function
      | O_builtin_op x      -> 
@@ -287,8 +289,12 @@ end
 let expr_formatter = new formatter
 
 let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
-  let initial_commands = [comm "End of initial commands";decl [] "apply" (var "u -> u -> u");decl [] "u" (var "type")(* ;include_ "\"prelude.nun\"" *);comm "Initial commands";] in
-  let acc = (initial_commands, term_db, Unknown "starting term", true) in
+  let initial_commands = [
+      comm "Initial commands";
+      include_ "\"prelude.nun\"";
+      comm "End of initial commands";
+    ] in
+  let acc = (List.rev initial_commands, term_db, Unknown "starting term", true) in
   let (l,_,_,_) = (f acc goal) in
   l
       

@@ -265,7 +265,9 @@ let rec unroll_if_ t = match t with
   | _ -> [], t
 
 let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
-	 
+
+let pp_set p = CCFormat.list ~start:"(unique_unsafe (fun S. forall x. mem x S = (x = " ~stop:")))" ~sep:") || (x = " p			  
+				    
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
   | Var v -> pp_var_or_wildcard out v
@@ -281,6 +283,11 @@ let rec print_term out term = match term with
           fpf out "@[<2>%a@ %a@ %a@]" print_term_inner f
             print_term_inner a print_term_inner b
       end
+  | App (Builtin `Set,l) ->
+     begin match l with
+	   | [] -> fpf out "@[<2>%s@]" "emptyset"
+	   | _ -> fpf out "@[<2>%a@]" (pp_set print_term_inner) l
+     end
   | App (a, l) ->
       fpf out "@[<2>%a@ %a@]"
         print_term_inner a (pp_list_ ~sep:" " print_term_inner) l
@@ -308,11 +315,11 @@ let rec print_term out term = match term with
         (pp_list_ ~sep:"" pp_middle) middle
         print_term last
   | Forall ((var,ty),s,t) ->
-      fpf out "@[<2>forall %a.@ %a => %a@]" print_typed_var (var,ty) print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
+      fpf out "@[<2>(forall %a.@ %a => %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
   | Exists ((var,ty),s,t) ->
-      fpf out "@[<2>exists %a.@ %a && %a@]" print_typed_var (var,ty) print_mem (var,s) print_term t
+      fpf out "@[<2>(exists %a.@ %a && %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t
   | Asserting (_, []) -> assert false
-  | Set t -> fpf out "@[<2>unique_unsafe (fun S. forall x. mem x S = (x = LIST_OR %a))@]" print_term (List.hd t) (* TODO recurse *)
+  | Set t -> fpf out "@[<2>%s@]" "FAIL" (* TODO remove *)
   | Asserting (t, l) ->
       fpf out "@[<2>%a@ @[<2>asserting @[%a@]@]@]"
           print_term_inner t (pp_list_ ~sep:" ∧ " print_term_inner) l

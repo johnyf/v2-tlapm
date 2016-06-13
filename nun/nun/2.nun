@@ -1,12 +1,15 @@
 # Initial commands.
-val u : type.
-val apply : u -> u -> u.
+include "prelude.nun".
 # End of initial commands.
+val c : u.
+val b : u.
+val a : u.
 goal ~
-       (forall (x:u). 
-          mem x ?_$SetEnumerate (a ) (b ) (c ) => exists (x0:u). 
-                                                    mem x0 ?_$SetEnumerate
-                                                             (a ) (b ) (
-                                                             c ) (d ) && 
-                                                    (x )
-                                                    != (x0 )).
+       ((forall (x1:u). 
+          mem x1 (unique_unsafe (fun S. forall x. mem x S = (x = (a )) || (x = 
+                   (b )) || (x = (c )))) => (exists (x0:u). 
+                                              mem x0 (unique_unsafe (fun S. forall x. mem x S = (x = (
+                                                       a )) || (x = 
+                                                       (b )) || (x = (
+                                                       c )))) && (x1 )
+                                                                 != (x0 )))).
