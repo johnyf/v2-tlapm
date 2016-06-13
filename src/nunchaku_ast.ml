@@ -90,7 +90,7 @@ end = struct
     | `Imply -> "=>"
     | `Forall -> "forall"
     | `Exists -> "exists"
-    | `Apply -> "apply"
+    | `Apply -> "app"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
