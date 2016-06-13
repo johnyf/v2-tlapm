@@ -33,11 +33,12 @@ module Builtin : sig
     | `Imply
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
+    | `Set
     | `Apply
     | `Undefined of string
     ]
 
-  val fixity : t -> [`Prefix | `Infix]
+  val fixity : t -> [`Prefix | `Infix | `SetEnum]
   val print : Format.formatter -> t -> unit
   val to_string : t -> string
 end = struct
@@ -56,10 +57,11 @@ end = struct
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
     | `Apply
+    | `Set
     | `Undefined of string
     ]
 
-  let fixity : t -> [`Infix | `Prefix] = function
+  let fixity : t -> [`Infix | `Prefix | `SetEnum] = function
     | `Type
     | `True
     | `False
@@ -75,6 +77,7 @@ end = struct
     | `Eq
     | `Neq
     | `Undefined _ -> `Infix
+    | `Set -> `SetEnum
 
   let to_string : t -> string = function
     | `Type -> "type"
@@ -91,14 +94,13 @@ end = struct
     | `Forall -> "forall"
     | `Exists -> "exists"
     | `Apply -> "apply"
+    | `Set -> "unique_unsafe"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
 end
 
-type set = term option
-
-and term =
+type term =
   | Builtin of Builtin.t
   | Var of var_or_wildcard
   | AtVar of var  (* variable without implicit arguments *)
@@ -122,6 +124,9 @@ and term =
   are terms *)
 and ty = term
 
+(** A set is either undefined (None) or Some Builtin.`Set of term list **)
+and set = term option
+	   
 (** A variable with, possibly, its type *)
 and typed_var = var * ty option
 
@@ -194,6 +199,7 @@ let rec app_infix_l  f l = match l with
   | [t] -> t
   | a :: tl -> app  f [a; app_infix_l  f tl]
 
+let set l = app_infix_l (builtin `Set) l
 let and_  l = app_infix_l  (builtin  `And) l
 let or_  l = app_infix_l  (builtin  `Or) l
 let imply  a b = app  (builtin  `Imply) [a;b]
@@ -340,11 +346,6 @@ and print_typed_var out (v,ty) = match ty with
   | None -> fpf out "%s" v
   | Some ty -> fpf out "(%s:%a)" v print_term ty
 
-(* and print_set out list = match list with *)
-(*   | [] -> fpf out "@ %s" "emptyset" *)
-(*   | t::q -> fpf out "@ %a" print_term t *)
-(* (\* TODO . recurser *\) *)
-		
 and print_mem out (var,set) = match set with
   | None -> fpf out ""
   | Some t -> fpf out "@ mem %a %a" pp_var_or_wildcard (`Var var) print_term t

@@ -109,55 +109,17 @@ object(self)
 		  | _ -> failwith "variable identification"
 		in
 		let v' = (v,Some (var "u")) in
-		let set = 
+		let acc3,set = 
 		  match hd with
-    		  | B_unbounded_bound_symbol _ -> None
-		  | B_bounded_bound_symbol bbs -> Some (ter (self#expr acc2 (bbs.domain))) (* TODO : transmettre acc *)
+    		  | B_unbounded_bound_symbol _ -> acc2,None
+		  | B_bounded_bound_symbol bbs ->
+		     let acctemp = self#expr acc2 (bbs.domain) in
+		     acctemp,(Some (ter acctemp))
 		in
 		match kind with
-		| Builtin `Forall -> set_term (Forall (v',set,t)) acc2
-		| Builtin `Exists -> set_term (Exists (v',set,t)) acc2
+		| Builtin `Forall -> set_term (Forall (v',set,t)) acc3
+		| Builtin `Exists -> set_term (Exists (v',set,t)) acc3
 		| _ -> failwith "binder not a quantifier"
-		
-
-    (* let acc1 = self#operator acc b.operator in *)
-    (* let kind = ter acc1 in *)
-    (* let acc2 = self#expr_or_op_arg acc1 b.operand in *)
-
-    (* let rec unfold a bsl = *)
-    (* match bsl with *)
-    (* |  []  -> a *)
-    (* | t::q -> let b2 = {location = b.location; level = b.level; operator = b.operator; operand = b.operand; bound_symbols = tl} in *)
-
-
-
-    (*    match t with *)
-    (* 	      | B_unbounded_bound_symbol _ -> unfold a q terml  *)
-    (* 	      | B_bounded_bound_symbol bbs -> self#expr acc2 (bbs.domain) in *)
-    (* 						  add_axiom [Mem (v,(ter acc21))] acc2	      | *)
-
-
-   (* match b.bound_symbols with *)
-   (*  | []     -> let acc1 = self#operator acc b.operator in *)
-   (* 		self#expr_or_op_arg acc1 b.operand *)
-   (*  | hd::tl -> let b2 = {location = b.location; level = b.level; operator = b.operator; operand = b.operand; bound_symbols = tl} in *)
-   (* 		let acc0 = self#binder acc b2 in *)
-   (* 		let t = ter acc0 in *)
-   (* 		let acc1 = self#operator acc0 b.operator in *)
-   (* 		let kind = ter acc1 in *)
-   (* 		let acc2 = self#bound_symbol acc1 hd in *)
-   (* 		let v = match ter acc2 with *)
-   (* 		  | Var (`Var x) -> x *)
-   (* 		  | _ -> failwith "variable identification" *)
-   (* 		in *)
-   (* 		let v' = (v,Some (var "u")) in *)
-   (* 		match kind with *)
-   (* 		| Builtin `Forall -> set_term (Forall (v',t)) acc2 *)
-   (* 		| Builtin `Exists -> set_term (Exists (v',t)) acc2 *)
-   (* 		| _ -> failwith "binder not a quantifier" *)
-
-    
-  (* TODO : HERE REMOVE MEM, match the bbs and kind to add finite sets *)
 
   method bounded_bound_symbol acc { params; tuple; domain; } =
       match params with
@@ -183,7 +145,7 @@ object(self)
        (* let acc1 = ppf_fold_with self#formal_param acc params in *)
        (* fprintf (ppf acc1) ">> \\in "; *)
        (* let acc2 = self#expr acc domain in *)
-       self#formal_param acc (List.hd params) (* TODO *)
+       acc_fold self#formal_param params acc 
     
   method unbounded_bound_symbol acc { param; tuple } =
     (* if tuple then fprintf (ppf acc) "<<"; *)
@@ -237,9 +199,8 @@ object(self)
     in
     let acc1 = match set with
       | None -> acc0
-      | Some e -> (* let acc01 = self#expr acc0 e in *)
-		  add_comm "some set" acc0
-		  (* TODO add axiom : mem x s *)
+      | Some e -> let acc01 = self#expr acc0 e in
+		  add_comm "some set" acc01 (* TODO *)
     in
     let acc2 = add_decl od.name (var new_decl) acc1 in
     acc2
@@ -288,9 +249,9 @@ object(self)
     | "$RcdSelect"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$RecursiveFcnSpec"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$Seq"  as x -> failwith ("Unknown operator " ^ x ^"!")
-    | "$SquareAct"  as x -> failwith ("Unknown operator " ^ x ^"!")
-    | "$SetEnumerate"  as x -> failwith ("Unknown operator " ^ x ^"!")
-    | "$SF"  as x -> failwith ("Unknown operator " ^ x ^"!")
+    | "$SquareAct"  as x -> failwith ("Unknown operator " ^ x ^"!") *)
+    | "$SetEnumerate" -> `Set
+    (* | "$SF"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$SetOfAll" as x  -> failwith ("Unknown operator " ^ x ^"!")
     | "$SetOfRcds" as x  -> failwith ("Unknown operator " ^ x ^"!")
     | "$SetOfFcns" as x  -> failwith ("Unknown operator " ^ x ^"!")
