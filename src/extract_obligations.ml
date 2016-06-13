@@ -27,7 +27,7 @@ type current_context = {
     (* the current goal *)
     goal : assume_prove option;
 
-    (* the facts currently known *)
+    (* the facts which should be used as assumptions *)
     usable_facts : assume_prove list;
 
     (* the expanded definitions *)
@@ -345,14 +345,14 @@ object(self)
       | None -> cc.theorems
       | _ -> (THM thmi) :: cc.theorems
     in
+    (* move this to the use/hide statement
     let usable_facts =  match (thmi.name, get_nesting acc) with
       | None, InProof _ -> assume_prove :: cc.usable_facts
       (* a lemma without name does not add its statement to the context *)
       | None, Module -> cc.usable_facts
       | Some _, _ -> cc.usable_facts
-    in
+    in *)
     let outer_cc = { cc with theorems;
-                             usable_facts;
                              thm_statements = outer_stmt :: cc.thm_statements;
                    }
     in
