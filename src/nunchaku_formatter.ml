@@ -17,7 +17,8 @@ let top     ( _, _, _, top) = top (* flag : is_top_level *)
 			     
 let add_axiom l (sta, tdb, ter, top) =
   let x = axiom l in
-  (x::sta, tdb, ter, top)
+  let sta' = if List.mem x sta then sta else (x::sta) in
+  (sta', tdb, ter, top)
 
 let add_decl v t (sta, tdb, ter, top) =
   let x = decl [] v t in
@@ -171,7 +172,17 @@ object(self)
     | O_user_defined_op x ->
        let op = dereference_user_defined_op (tdb acc) x
        in
-       add_comm op.name acc
+       match op.recursive with
+       | true  -> failwith "Cannot deal with recursive user defined ops" 
+       | false -> let rec print_type n = match n with
+				     | 0 -> "u"
+				     | _ -> "u -> "^(print_type (n-1))
+		  in
+		  let acc1 = add_decl op.name (var (print_type op.arity)) acc in
+		  let acc2 = self#expr acc1 op.body in
+		  let acc3 = add_axiom [App (Builtin `Eq,[var op.name;(ter acc2)])] acc2 in
+		    (* TODO add rec if parameters *)
+		  if op.arity = 0 then set_term (var op.name) acc3 else failwith "Cannot handle user defined ops with arguments"
 	   
   method assume_prove acc { location; level; new_symbols; assumes;
                              prove; } =
