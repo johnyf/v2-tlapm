@@ -33,12 +33,11 @@ module Builtin : sig
     | `Imply
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
-    | `Set
     | `Apply
     | `Undefined of string
     ]
 
-  val fixity : t -> [`Prefix | `Infix | `SetEnum]
+  val fixity : t -> [`Prefix | `Infix]
   val print : Format.formatter -> t -> unit
   val to_string : t -> string
 end = struct
@@ -57,11 +56,10 @@ end = struct
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
     | `Apply
-    | `Set
     | `Undefined of string
     ]
 
-  let fixity : t -> [`Infix | `Prefix | `SetEnum] = function
+  let fixity : t -> [`Infix | `Prefix] = function
     | `Type
     | `True
     | `False
@@ -77,7 +75,6 @@ end = struct
     | `Eq
     | `Neq
     | `Undefined _ -> `Infix
-    | `Set -> `SetEnum
 
   let to_string : t -> string = function
     | `Type -> "type"
@@ -94,7 +91,6 @@ end = struct
     | `Forall -> "forall"
     | `Exists -> "exists"
     | `Apply -> "apply"
-    | `Set -> "unique_unsafe"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
@@ -116,7 +112,7 @@ type term =
   | TyArrow of ty * ty
   | TyForall of var * ty
   | Asserting of term * term list
-  | Set of term list
+  | SetEnum of term list
   | Unknown of string
 
 (* we mix terms and types because it is hard to know, in
@@ -124,7 +120,7 @@ type term =
   are terms *)
 and ty = term
 
-(** A set is either undefined (None) or Some Builtin.`Set of term list **)
+(** A set is either undefined (None) or Some Var or Some SetEnum of term list **)
 and set = term option
 	   
 (** A variable with, possibly, its type *)
@@ -199,7 +195,6 @@ let rec app_infix_l  f l = match l with
   | [t] -> t
   | a :: tl -> app  f [a; app_infix_l  f tl]
 
-let set l = app_infix_l (builtin `Set) l
 let and_  l = app_infix_l  (builtin  `And) l
 let or_  l = app_infix_l  (builtin  `Or) l
 let imply  a b = app  (builtin  `Imply) [a;b]
@@ -247,7 +242,7 @@ let rec head t = match t with
   | Unknown v | Var (`Var v) | AtVar v | MetaVar v -> v
   | Asserting (f,_)
   | App (f,_) -> head f
-  | Var `Wildcard | Builtin _ | TyArrow (_,_) | Set (_)
+  | Var `Wildcard | Builtin _ | TyArrow (_,_) | SetEnum (_) 
   | Fun (_,_) | Let _ | Match _ | Ite (_,_,_)
   | Forall (_,_,_) | Mu _ | Exists (_,_,_) | TyForall (_,_) ->
       invalid_arg "untypedAST.head"
@@ -283,11 +278,6 @@ let rec print_term out term = match term with
           fpf out "@[<2>%a@ %a@ %a@]" print_term_inner f
             print_term_inner a print_term_inner b
       end
-  | App (Builtin `Set,l) ->
-     begin match l with
-	   | [] -> fpf out "@[<2>%s@]" "emptyset"
-	   | _ -> fpf out "@[<2>%a@]" (pp_set print_term_inner) l
-     end
   | App (a, l) ->
       fpf out "@[<2>%a@ %a@]"
         print_term_inner a (pp_list_ ~sep:" " print_term_inner) l
@@ -319,7 +309,11 @@ let rec print_term out term = match term with
   | Exists ((var,ty),s,t) ->
       fpf out "@[<2>(exists %a.@ %a && %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t
   | Asserting (_, []) -> assert false
-  | Set t -> fpf out "@[<2>%s@]" "FAIL" (* TODO remove *)
+  | SetEnum l -> 
+     begin match l with
+	   | [] -> fpf out "@[<2>%s@]" "emptyset"
+	   | _ -> fpf out "@[<2>%a@]" (pp_set print_term_inner) l
+     end
   | Asserting (t, l) ->
       fpf out "@[<2>%a@ @[<2>asserting @[%a@]@]@]"
           print_term_inner t (pp_list_ ~sep:" ∧ " print_term_inner) l
@@ -330,7 +324,7 @@ let rec print_term out term = match term with
       fpf out "@[<2>pi %s:type.@ %a@]" v print_term t
 and print_term_inner out term = match term with
   | App _ | Fun _ | Let _ | Ite _ | Match _ | Asserting _
-  | Forall _ | Exists _ | TyForall _ | Mu _ | TyArrow _ | Set _->
+  | Forall _ | Exists _ | TyForall _ | Mu _ | TyArrow _ | SetEnum _ ->
       fpf out "(%a)" print_term term
       | Unknown _ | Builtin _ | AtVar _ | Var _ | MetaVar _ -> print_term out term
 and print_term_in_arrow out t = match t with
@@ -346,7 +340,7 @@ and print_term_in_arrow out t = match t with
   | Fun (_,_)
   | Asserting _
   | TyArrow (_,_)
-  | Set (_)
+  | SetEnum _ 
   | TyForall (_,_) -> fpf out "@[(%a)@]" print_term t
 
 and print_typed_var out (v,ty) = match ty with

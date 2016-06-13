@@ -90,7 +90,11 @@ object(self)
     let (acc2,t2) = List.fold_right
     		     (fun x -> fun (a,t) -> let a' = self#expr_or_op_arg a x in (a',(ter a')::t))
     		     operands (acc1,[]) in
-    set_term (App ((ter acc1),t2)) acc2
+    let term = match ter acc1 with
+      | SetEnum [] -> SetEnum t2
+      | _ -> App ((ter acc1),t2)
+    in
+    set_term term acc2
 
     
   method lambda acc {level; arity; body; params} =
@@ -226,7 +230,12 @@ object(self)
     add_comm "LABEL" acc0
 
   method builtin_op acc { level; name; arity; params } =
-    set_term (builtin (self#translate_builtin_name name)) acc
+    let term =
+      match name with
+      | "$SetEnumerate" -> SetEnum []
+      | _ -> (builtin (self#translate_builtin_name name))
+    in
+    set_term term acc
 
   method user_defined_op acc0 op =    
     acc0
@@ -263,7 +272,7 @@ object(self)
     | "$RecursiveFcnSpec"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$Seq"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$SquareAct"  as x -> failwith ("Unknown operator " ^ x ^"!") *)
-    | "$SetEnumerate" -> `Set
+    (* | "$SetEnumerate" ->  *)
     (* | "$SF"  as x -> failwith ("Unknown operator " ^ x ^"!")
     | "$SetOfAll" as x  -> failwith ("Unknown operator " ^ x ^"!")
     | "$SetOfRcds" as x  -> failwith ("Unknown operator " ^ x ^"!")
