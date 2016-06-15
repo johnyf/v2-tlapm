@@ -1,4 +1,4 @@
 # Initial commands.
 include "prelude.nun".
 # End of initial commands.
-goal ~ (true ).
+goal ~ ((forall (x:u).  => (x ) = (x ))).

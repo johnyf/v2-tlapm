@@ -50,9 +50,20 @@ let space = " "
 		
 let rec sexp_to_term t = match t with
   | Atom s -> Var s 	
+  | List ((Atom "?__")::l) -> Var "UNDEFINED"
   | List ((Atom s)::l) -> App (s,(List.map sexp_to_term l))
-  | _ -> failwith "unparsed term"
+  | _ -> Var "ERROR unparsed term"
+  (* | _ -> failwith "unparsed term" *)
 
+let sexp_to_type t =
+  let rec sexp_to_type_string t = match t with
+    | Atom s -> s 	
+    | List [(Atom "->");a;b] -> (sexp_to_type_string a)^" -> "^(sexp_to_type_string b)
+    | _ -> "ERROR unparsed type"
+    (* | _ -> failwith "unparsed type" *)
+  in
+  Var (sexp_to_type_string t)
+		    
 let rec sexp_to_string t = match t with
   | Atom s -> s 	
   | List l -> "("^(list_to_string sexp_to_string space l)^")"
@@ -62,27 +73,32 @@ let sexp_to_type_model_entry t = match t with
      let rec unroll m = match m with
        | [] -> []
        | (Atom s)::m2 -> s::(unroll m2)
-       | _ -> failwith "unroll type var failed"
+       | _ -> ["ERROR unparsed term"]
+       (* | _ -> failwith "unroll type var failed" *)
      in
      Type (name,(unroll l))
-  | _ -> failwith "type_to_model failed"
+  | _ -> Type ("ERROR type_to_model failed", [])
+  (* | _ -> failwith "type_to_model failed" *)
 
 let sexp_to_val_model_entry t = match t with
-  | ((Atom name)::[value]) -> Const (name,sexp_to_term value)
+  | ((Atom name)::[_type]) -> Const (name,sexp_to_type _type)
   | ((List [(Atom "_witness_of");(prop)])::[value]) -> Const ("witness_of "^(sexp_to_string prop), sexp_to_term value)
-  | _ -> failwith "val_to_model failed"
+  | _ -> Const ("ERROR val_to_model failed",Var "")
+  (* | _ -> failwith "val_to_model failed" *)
 
 let sexp_to_fun_model_entry name t = match t with 
   | [(List vars);values] ->
      let rec unroll_vars v = match v with
        | [] -> []
        | (List ((Atom n)::[Atom t]))::m2 -> (n,t)::(unroll_vars m2)
-       | _ -> failwith "unroll fun var failed"
+       | _ -> ["ERROR unroll fun var failed",""]
+       (* | _ -> failwith "unroll fun var failed" *)
      in
      let rec unroll_conditions c = match c with
        | [] -> []
        | (List [(Atom "=");(Atom v);t])::tl -> (v,sexp_to_term t)::(unroll_conditions tl)
-       | _ -> failwith "unroll fun conditions failed"
+       | _ -> ["ERROR unroll fun conditions failed",Var ""]
+       (* | _ -> failwith "unroll fun conditions failed" *)
      in
      let match_conditions c = match c with
        | (Atom "and")::tl -> unroll_conditions tl
@@ -97,7 +113,8 @@ let sexp_to_fun_model_entry name t = match t with
 	  }
        | Atom s             -> {cases = []; else_= sexp_to_term v}
        | List ((Atom _)::_) -> {cases = []; else_= sexp_to_term v}
-       | _ -> failwith "unroll values fun_to_model failed"
+       | _ -> {cases = []; else_= Var "ERROR unroll fun var failed"}
+       (* | _ -> failwith "unroll values fun_to_model failed" *)
      			 
      in
      Fun (name,(unroll_vars vars),(unroll_values values))

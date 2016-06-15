@@ -1,0 +1,7 @@
+# Initial commands.
+include "prelude.nun".
+# End of initial commands.
+val P : u.
+val b : u.
+val a : u.
+goal ~ (((a ) != (b )) => ((app (P ) (a )) != (app (P ) (a )))).

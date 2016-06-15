@@ -1,14 +1,4 @@
 # Initial commands.
 include "prelude.nun".
 # End of initial commands.
-val S2 : u.
-val c : u.
-val b : u.
-val a : u.
-axiom S2
-      =
-      ((unique_unsafe (fun S. forall x. mem x S = (x = (a )) || (x = 
-         (b )) || (x = (c ))))).
-goal ~
-       ((forall (x:u). 
-          mem x S2  => (exists (x0:u).  mem x0 S2  && (x ) != (x0 )))).
+goal ~ ((false ) => (false )).
