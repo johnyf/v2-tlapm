@@ -85,6 +85,32 @@ let rec convert_to_mod k = match k with
   | 0 -> ();
   | _ -> convert_to_mod (k-1);
 	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod")
+
+let print_all obligations n =
+  let f obl k =
+    let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    fprintf std_formatter "%a" Obligation_formatter.fmt_obligation obl ;
+    print_newline ();
+    let sk = "echo \"\n----- NUNCHAKU "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    let nunk = "cat nun/nun/"^(string_of_int k)^".nun" in
+    ignore(Sys.command nunk);
+    let sk = "echo \"\n----- SEXP "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    let nunk = "cat nun/sexp/"^(string_of_int k)^".sexp" in
+    ignore(Sys.command nunk);
+    let sk = "echo \"\n----- MOD "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in
+    ignore(Sys.command nunk);
+       
+  in
+  let rec map_bis f l n = match l with
+    | [] -> []
+    | hd::tl -> let t = (f hd n) in t::(map_bis f tl (n+1))
+  in
+  ignore (map_bis f obligations 1)
 		     
 let init () =
   (* argument handling TODO: rewrite *)
@@ -98,7 +124,9 @@ let init () =
      let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
      let n = obl_to_nun obligations "nun/nun" in
      call_nun (n-1) ;
-     convert_to_mod (n-1)
+     convert_to_mod (n-1) ;
+     print_all obligations (n-1);
+     print_newline ()
 	   
   | 4 when Sys.argv.(1)="sexp2mod" ->
      sexp_to_mod Sys.argv.(2) Sys.argv.(3)
