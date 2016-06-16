@@ -304,8 +304,12 @@ let rec print_term out term = match term with
         print_term a print_term b
         (pp_list_ ~sep:"" pp_middle) middle
         print_term last
+  | Forall ((var,ty),None,t) ->
+      fpf out "@[<2>(forall %a.@ %a)@]" print_typed_var (var,ty) print_term t (* TODO replace => by to_string Apply *)
   | Forall ((var,ty),s,t) ->
       fpf out "@[<2>(forall %a.@ %a => %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
+  | Exists ((var,ty),None,t) ->
+      fpf out "@[<2>(exists %a.@ %a)@]" print_typed_var (var,ty) print_term t
   | Exists ((var,ty),s,t) ->
       fpf out "@[<2>(exists %a.@ %a && %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t
   | Asserting (_, []) -> assert false

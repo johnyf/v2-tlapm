@@ -78,14 +78,32 @@ let rec call_nun k = match k with
   | _ -> call_nun (k-1) ;
 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp")
 
-let sexp_to_mod sexp_file mod_file =
-  Sexp.print_sexp sexp_file mod_file
+let sexp_to_mod sexp_file mod_file b =
+  Sexp.print_sexp sexp_file mod_file b
   		     
-let rec convert_to_mod k = match k with
+let rec convert_to_mod k b = match k with
   | 0 -> ();
-  | _ -> convert_to_mod (k-1);
-	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod")
+  | _ -> convert_to_mod (k-1) b;
+	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod") b
 
+
+let print_some obligations n =
+  let f obl k =
+    let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    fprintf std_formatter "%a" Obligation_formatter.fmt_obligation obl ;
+    print_newline ();
+    let sk = "echo \"\n----- COUNTEREXAMPLE "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod2" in
+    ignore(Sys.command nunk);
+  in
+  let rec map_bis f l n = match l with
+    | [] -> []
+    | hd::tl -> let t = (f hd n) in t::(map_bis f tl (n+1))
+  in
+  ignore (map_bis f obligations 1)
+	 
 let print_all obligations n =
   let f obl k =
     let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in
@@ -100,9 +118,13 @@ let print_all obligations n =
     ignore(Sys.command sk) ;
     let nunk = "cat nun/sexp/"^(string_of_int k)^".sexp" in
     ignore(Sys.command nunk);
-    let sk = "echo \"\n----- MOD "^(string_of_int k)^": -----\n\"" in
+    let sk = "echo \"\n----- MOD1 "^(string_of_int k)^": -----\n\"" in
     ignore(Sys.command sk) ;
-    let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod1" in
+    ignore(Sys.command nunk);
+    let sk = "echo \"\n----- MOD2 "^(string_of_int k)^": -----\n\"" in
+    ignore(Sys.command sk) ;
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod2" in
     ignore(Sys.command nunk);
        
   in
@@ -124,13 +146,33 @@ let init () =
      let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
      let n = obl_to_nun obligations "nun/nun" in
      call_nun (n-1) ;
-     convert_to_mod (n-1) ;
+     convert_to_mod (n-1) true ;
+     convert_to_mod (n-1) false ;
+     print_some obligations (n-1);
+     print_newline ()
+
+  | 3 when Sys.argv.(2)="--print-all" ->
+     let filename = Sys.argv.(1) in
+     let tla_filename = ("nun/tla/"^filename^".tla") in
+     let xml_filename = ("nun/xml/"^filename^".xml") in
+     tla_to_xml tla_filename xml_filename;
+     let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
+     let n = obl_to_nun obligations "nun/nun" in
+     call_nun (n-1) ;
+     convert_to_mod (n-1) true ;
+     convert_to_mod (n-1) false ;
      print_all obligations (n-1);
      print_newline ()
 	   
   | 4 when Sys.argv.(1)="sexp2mod" ->
-     sexp_to_mod Sys.argv.(2) Sys.argv.(3)
-	   
+     sexp_to_mod Sys.argv.(2) Sys.argv.(3) true
+
+  | 4 when Sys.argv.(1)="sexp2mod1" ->
+     sexp_to_mod Sys.argv.(2) Sys.argv.(3) true
+
+  | 4 when Sys.argv.(1)="sexp2mod2" ->
+     sexp_to_mod Sys.argv.(2) Sys.argv.(3) false
+		 
   | 4 when Sys.argv.(1)="tla2xml" ->
      tla_to_xml Sys.argv.(2) Sys.argv.(3)
 
