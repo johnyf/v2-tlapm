@@ -261,7 +261,7 @@ let rec unroll_if_ t = match t with
 
 let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
 
-let pp_set p = CCFormat.list ~start:"(unique_unsafe (fun S. forall x. mem x S = (x = " ~stop:")))" ~sep:") || (x = " p			  
+let pp_set p = CCFormat.list ~start:"(unique_unsafe (fun S. forall (x:alpha_u). mem (upcast x) S = ((upcast x) = " ~stop:")))" ~sep:") || ((upcast x) = " p			  
 				    
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
