@@ -133,60 +133,38 @@ let print_all obligations n =
     | hd::tl -> let t = (f hd n) in t::(map_bis f tl (n+1))
   in
   ignore (map_bis f obligations 1)
-		     
+
+
+
+
+	 
+(** THE MAIN FUNCTION **)
+
+	 
+let verbose = ref false
+
 let init () =
-  (* argument handling TODO: rewrite *)
-  match  Array.length Sys.argv with
 
-  | 2 ->
-     let filename = Sys.argv.(1) in
-     let tla_filename = ("nun/tla/"^filename^".tla") in
-     let xml_filename = ("nun/xml/"^filename^".xml") in
-     tla_to_xml tla_filename xml_filename;
-     let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
-     let n = obl_to_nun obligations "nun/nun" in
-     call_nun (n-1) ;
-     convert_to_mod (n-1) true ;
-     convert_to_mod (n-1) false ;
-     print_some obligations (n-1);
-     print_newline ()
+  (** Argument handling**)
+  let speclist = [("--print-all", Arg.Set verbose, "Enables verbose mode");
+		 ]
+  in
+  let usage_msg = "Options available:"
+  in
+  Arg.parse speclist print_endline usage_msg;
 
-  | 3 when Sys.argv.(2)="--print-all" ->
-     let filename = Sys.argv.(1) in
-     let tla_filename = ("nun/tla/"^filename^".tla") in
-     let xml_filename = ("nun/xml/"^filename^".xml") in
-     tla_to_xml tla_filename xml_filename;
-     let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
-     let n = obl_to_nun obligations "nun/nun" in
-     call_nun (n-1) ;
-     convert_to_mod (n-1) true ;
-     convert_to_mod (n-1) false ;
-     print_all obligations (n-1);
-     print_newline ()
-	   
-  | 4 when Sys.argv.(1)="sexp2mod" ->
-     sexp_to_mod Sys.argv.(2) Sys.argv.(3) true
-
-  | 4 when Sys.argv.(1)="sexp2mod1" ->
-     sexp_to_mod Sys.argv.(2) Sys.argv.(3) true
-
-  | 4 when Sys.argv.(1)="sexp2mod2" ->
-     sexp_to_mod Sys.argv.(2) Sys.argv.(3) false
-		 
-  | 4 when Sys.argv.(1)="tla2xml" ->
-     tla_to_xml Sys.argv.(2) Sys.argv.(3)
-
-  | 4 when Sys.argv.(1)="xml2obl" ->
-     let xml_filename = Sys.argv.(2) in
-     let target = Sys.argv.(3) in
-     ignore(xml_to_obl xml_filename target);
-     Printf.eprintf "TLAPM wrote obligations in %s.\n" target;
-  
-  | _ ->
-     Printf.eprintf "Syntax: ./tlapm.byte file_name\n";
-     ()
-     
+  let filename = Sys.argv.(1) in
+  let tla_filename = ("nun/tla/"^filename^".tla") in
+  let xml_filename = ("nun/xml/"^filename^".xml") in
+  tla_to_xml tla_filename xml_filename;
+  let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
+  let n = obl_to_nun obligations "nun/nun" in
+  call_nun (n-1) ;
+  convert_to_mod (n-1) true ;
+  convert_to_mod (n-1) false ;
+  if !verbose
+  then begin print_all obligations (n-1); print_newline () end
+  else begin print_some obligations (n-1); print_newline () end
 ;;
-
-
+  
 init ();;
