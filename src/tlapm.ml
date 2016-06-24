@@ -10,6 +10,7 @@ open Expr_substitution
 open Simple_obligation
 open Simple_expr_prover_parser
 open Sexp
+open Mod
        
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
@@ -79,7 +80,7 @@ let rec call_nun k = match k with
 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp")
 
 let sexp_to_mod sexp_file mod_file b =
-  Sexp.print_sexp sexp_file mod_file b
+  Mod.print_sexp sexp_file mod_file b
   		     
 let rec convert_to_mod k b = match k with
   | 0 -> ();
@@ -136,13 +137,11 @@ let print_all obligations n =
 
 
 
-
-	 
 (** THE MAIN FUNCTION **)
 
 	 
 let verbose = ref false
-
+		  
 let init () =
 
   (** Argument handling**)
