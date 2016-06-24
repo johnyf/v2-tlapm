@@ -34,6 +34,7 @@ module Builtin : sig
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
     | `Apply
+    | `Mem
     | `Undefined of string
     ]
 
@@ -56,6 +57,7 @@ end = struct
     | `Forall (* Only for translation *)
     | `Exists (* Only for translation *)
     | `Apply
+    | `Mem
     | `Undefined of string
     ]
 
@@ -67,6 +69,7 @@ end = struct
     | `Forall
     | `Exists
     | `Apply
+    | `Mem
     | `Not -> `Prefix
     | `And
     | `Or
@@ -91,6 +94,7 @@ end = struct
     | `Forall -> "forall"
     | `Exists -> "exists"
     | `Apply -> "app"
+    | `Mem -> "mem"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)

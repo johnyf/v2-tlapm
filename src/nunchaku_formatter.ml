@@ -214,18 +214,17 @@ object(self)
       | NewConstant -> "u" (* default is constant "CONSTANT " *)
       | _ -> failwith "declared new symbol with a non-constant kind."
     in
-    let acc1 = match set with
-      | None -> acc0
-      | Some e -> let acc01 = self#expr acc0 e in
-		  add_comm "some set" acc01 (* TODO *)
+    let acc1 = add_decl od.name (var new_decl) acc0 in
+    let acc2 = match set with
+      | None -> acc1
+      | Some e -> let acc' = self#expr acc1 e in
+		  add_axiom [(App (Builtin `Mem,[Var (`Var od.name);(ter acc')]))] acc'
     in
-    let acc2 = add_decl od.name (var new_decl) acc1 in
     acc2
 
   method let_in acc0 {location; level; body; op_defs } =
     failwith "remove -let_in- during preprocessing"
 
-  (* TODO *)
   method label acc0 ({location; level; name; arity; body; params } : simple_label) =
     add_comm "LABEL" acc0
 
