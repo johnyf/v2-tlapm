@@ -20,7 +20,7 @@ let mkLevel i = match i with
   | 1 -> VariableLevel
   | 2 -> ActionLevel
   | 3 -> TemporalLevel
-  | _ -> Errors.bug ("XML Parser error: unknown level " ^
+  | _ -> failwith ("XML Parser error: unknown level " ^
                      (string_of_int i) ^ " (expected 0-3).")
 
 let opdeclkind_from_int i = match i with
