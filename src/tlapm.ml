@@ -1,9 +1,10 @@
 open Sany
-(* open Tlapm_args *)
 open Obligation
 open Extract_obligations
 open Format
 open Expr_substitution
+open Settings
+open Arg_handler
 (*
 module Clocks = struct
   include Timing
@@ -123,39 +124,34 @@ let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
 
 let init () =
   (* argument handling TODO: rewrite *)
-  match  Array.length Sys.argv with
-  | 2 ->
-     let filename = Sys.argv.(1) in
-     let channel = open_in filename in
-     (* load sany xml ast from file *)
-     let sany_context = Sany.import_xml channel in
-     (* extract builtins from file *)
-     let sany_builtins =
-       Sany_builtin_extractor.extract_from_context sany_context in
-     (* convert sany ast to internal ast (expr_ds) *)
-     let exprds =
-       Sany_expr.convert_context ~builtins:sany_builtins sany_context in
-     (* replace definitions of name LAMBDA by lambda constructors *)
-     let fixed_lambda =
-       Expr_correct_lambda.correct_lambda_context exprds in
-     (* make language elements represented as builtin operators explicit *)
-     let fixed_theorems =
-       Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
-     (* extract obligations *)
-     let obligations =
-       Extract_obligations.extract_obligations_context fixed_theorems in
-     (* print obligations to stdout *)
-     List.fold_left (fun no obl ->
-                     fprintf std_formatter "Obligation %d:\n%a\n\n" no
-                             Obligation_formatter.fmt_obligation obl;
-                     no+1
-                    ) 1 obligations;
-     ()
-  | _ ->
-     Printf.eprintf "TLAPM does no argument handling right now.\n";
-     Printf.eprintf "Syntax: ./tlapm.byte file.xml\n";
-     ()
+  let settings = handle_arguments Sys.argv in
+  Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
+  let filename = settings.input_file in
+  let channel = open_in filename in
+  (* load sany xml ast from file *)
+  let sany_context = Sany.import_xml channel in
+  (* extract builtins from file *)
+  let sany_builtins =
+    Sany_builtin_extractor.extract_from_context sany_context in
+  (* convert sany ast to internal ast (expr_ds) *)
+  let exprds =
+    Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+  (* replace definitions of name LAMBDA by lambda constructors *)
+  let fixed_lambda =
+    Expr_correct_lambda.correct_lambda_context exprds in
+  (* make language elements represented as builtin operators explicit *)
+  let fixed_theorems =
+    Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
+  (* extract obligations *)
+  let obligations =
+    Extract_obligations.extract_obligations_context fixed_theorems in
+  (* print obligations to stdout *)
+  List.fold_left (fun no obl ->
+      fprintf std_formatter "Obligation %d:\n%a\n\n" no
+              Obligation_formatter.fmt_obligation obl;
+      no+1
+    ) 1 obligations;
+  ()
 ;;
-
 
 init ();;
