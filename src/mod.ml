@@ -2,7 +2,9 @@ open Sexplib.Type
 open Format
 open CCFormat
 
-(* STRUCTURE DEFINITION *)
+
+       
+(* AST DEFINITION *)
        
 type term =
   | Var of string
@@ -23,19 +25,14 @@ type model = model_entry list
 
 type mod_tree = UNSAT | UNKNOWN | SAT of model
 
-(* PRINT LIST *)
 
-let rec list_to_string print_one separator list =
-    match list with
-    | [] -> ""
-    | [x] -> print_one x
-    | t::q -> (print_one t)^separator^(list_to_string print_one separator q)
 
-let comma = ", "
-let andand = " && " 
-let newline = " \n"
-let space = " "
 
+
+
+
+
+	      
 (* SEXP TO MOD_TREE *)
 		
 let rec sexp_to_term t = match t with
@@ -51,9 +48,16 @@ let rec sexp_to_type t = match t with
     | _ -> "ERROR unparsed type"
     (* | _ -> failwith "unparsed type" *)
  		    
-let rec sexp_to_string t = match t with
+let rec sexp_to_string t =
+  let rec list_to_string list =
+    match list with
+    | [] -> ""
+    | [x] -> sexp_to_string x
+    | t::q -> (sexp_to_string t)^" "^(list_to_string q)
+  in 
+  match t with
   | Atom s -> s 	
-  | List l -> "("^(list_to_string sexp_to_string space l)^")"
+  | List l -> "("^(list_to_string l)^")"
 		  
 let sexp_to_type_model_entry t = match t with
   | ((Atom name)::[List l]) ->
@@ -125,14 +129,23 @@ let sexp_to_mod_tree t =
   | List (Atom "SAT"::[List l]) -> SAT (sexp_to_model l)
   | _ -> failwith "Unknown structure"
 
-let mod_tree_from_file sexp_file =
-  try
-    sexp_to_mod_tree (Sexp.sexp_parser sexp_file)
-  with
-    _ -> failwith ("Unable to parse file "^sexp_file)
-			      
+
+
+
+		  
 (* MOD_TREE PRINTER *)
-	   
+
+let rec list_to_string print_one separator list =
+    match list with
+    | [] -> ""
+    | [x] -> print_one x
+    | t::q -> (print_one t)^separator^(list_to_string print_one separator q)
+
+let comma = ", "
+let andand = " && " 
+let newline = " \n"
+let space = " "
+
 let rec term_to_string t = match t with
   | Var s -> s
   | App (s,l) -> s^" ("^(list_to_string term_to_string comma l)^")"
@@ -147,37 +160,26 @@ let rec dt_to_string dt = match dt.cases with
   | (cond_l,then_)::q ->
      "\t if "^(fun_conditions_to_string cond_l)^" then : "^(term_to_string then_)^"\n"^(dt_to_string {cases = q; else_=dt.else_})
 
-(* let model_entry_to_string m_e = match m_e with *)
-
-let model_entry_to_string b m_e =
-  if b
-  then
-    match m_e with
-    | Type (name,vars) -> "type "^name^" : "^(type_vars_to_string vars)
-    | Const (name,value) -> "val "^name^" : "^(term_to_string value)
-    | Fun (name,vars,dt) -> "fun "^name^" : "^(fun_vars_to_string vars)^"\n "^(dt_to_string dt)
-  else
-    match m_e with
-    | Type (name,vars) -> "type "^name^" : { "^(type_vars_to_string vars)^" }"
-    | Const (name,value) -> "val "^name^" = "^(term_to_string value)
-    | Fun (name,vars,dt) -> ""
+let model_entry_to_string m_e =
+  match m_e with
+  | Type (name,vars) -> "type "^name^" : "^(type_vars_to_string vars)
+  | Const (name,value) -> "val "^name^" : "^(term_to_string value)
+  | Fun (name,vars,dt) -> "fun "^name^" : "^(fun_vars_to_string vars)^"\n "^(dt_to_string dt)
 											 
-let model_to_string model b =
-  list_to_string (model_entry_to_string b) newline model
+let model_to_string model =
+  list_to_string model_entry_to_string newline model
     
-let mod_tree_to_string t b =
+let mod_tree_to_string t =
   match t with
   | UNSAT -> "UNSAT"
   | UNKNOWN -> "UNKNOWN"
-  | SAT model -> ("SAT (\n"^(model_to_string model b)^")")
+  | SAT model -> ("SAT (\n"^(model_to_string model)^")")
   	      
-let print_sexp input_file output_file b =
-  (*val: model -> string -> unit*)
-  let num = if b then "1" else "2" in
-  let mod_tree = mod_tree_from_file input_file in
-  let oc = open_out (output_file^num) in
+let print_mod_tree output_file mod_tree =
+  (*val: string -> mod_tree -> unit*)
+  let oc = open_out output_file in
   let fft = formatter_of_out_channel oc in
-  fprintf fft "%s" (mod_tree_to_string mod_tree b);
+  fprintf fft "%s" (mod_tree_to_string mod_tree);
   fprintf fft "@.%!";
   print_flush ();
   close_out oc
