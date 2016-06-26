@@ -1,3 +1,4 @@
+open Util
 open Sany
 open Obligation
 open Extract_obligations
@@ -113,23 +114,51 @@ Sys.set_signal Sys.sigusr1 (Sys.Signal_handle (fun _ -> raise Stacktrace));;
 init ();;
  *)
 
-(** Creates the command line string used to invoke the sany parser *)
-let java_cmd offline search_path input_files = "java -jar lib/sany.jar" ^
-  (if !offline then " -o " else "") ^ (* add offline flag, if neccessary *)
-    (if (List.length search_path > 0) then
-       " -I " ^ (String.concat " -I " search_path) (* add include directories*)
-     else "")
-    ^ " " ^ (String.concat " " input_files) (* add input file *)
+(* Run a command and return its results as a string. *)
+(*let read_process command =
+  let buffer_size = 2048 in
+  let buffer = Buffer.create buffer_size in
+  let string = String.create buffer_size in
+  let in_channel = Unix.open_process_in command in
+  let chars_read = ref 1 in
+  while !chars_read <> 0 do
+    chars_read := input in_channel string 0 buffer_size;
+    Buffer.add_substring buffer string 0 !chars_read
+  done;
+  ignore (Unix.close_process_in in_channel);
+  Buffer.contents buffer
+ *)
 
+(** Creates the command line string used to invoke the sany parser *)
+let java_cmd { check_schema; java_path; include_paths; input_file } =
+  let fmt_path = fmt_option ~none:"java" ~some:"" ~some_back:"" fmt_string in
+  let fmt_include = fmt_list ~front:"-I \"" ~middle:"\" -I \""
+                             ~back:"\"" fmt_string in
+  let fmt_offline = if check_schema then "" else "-o" in
+  let cmd = asprintf "%a -jar lib/sany.jar %s %a \"%s\""
+                     fmt_path java_path
+                     fmt_offline
+                     fmt_include include_paths
+                     input_file
+  in
+  cmd
 
 let init () =
-  (* argument handling TODO: rewrite *)
   let settings = handle_arguments Sys.argv in
   Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-  let filename = settings.input_file in
-  let channel = open_in filename in
+  Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
+  let channel = match settings.xml_input with
+    | true  -> open_in settings.input_file
+    | false -> Unix.open_process_in (java_cmd settings)
+  in
   (* load sany xml ast from file *)
   let sany_context = Sany.import_xml channel in
+  (* close process channel, if necessary *)
+  begin
+    match settings.xml_input with
+    | true  -> ()
+    | false -> Unix.close_process_in channel; ()
+  end;
   (* extract builtins from file *)
   let sany_builtins =
     Sany_builtin_extractor.extract_from_context sany_context in

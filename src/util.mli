@@ -4,6 +4,8 @@
  *
  * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
  *)
+open Format
+type 'a fmt = formatter -> 'a -> unit
 
 (** A collection of utilities *)
 
@@ -91,9 +93,33 @@ val mkString : ?front:string -> ?middle:string -> ?back:string  ->
  *)
 
 (** [mkString ~front ~middle ~back fmt list ] *)
-val fmtPair : ?front:string -> ?middle:string -> ?back:string  ->
-              ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
-(** Creates a string from the given
-    list by mapping fmt on each element, using ~middle as a seperator. The
-    string ~front is prepended, while ~back is appended.
+val fmt_pair : ?front:string -> ?middle:string -> ?back:string  ->
+              ('a  fmt) -> ('b fmt) -> formatter -> ('a * 'b) -> unit
+
+(** fmt_pair ~front ~middle ~back fmt_a fmt_b formatter (a,b) prints
+    the pair (a,b) with the formatters fmt_a and fmt_b. They optional
+    arguments ~front, ~middle and ~back are printed at the respective positions.
 *)
+
+
+val fmt_option : ?none:string -> ?some:string -> ?some_back:string -> ('a  fmt)
+                 -> formatter -> 'a option -> unit
+
+(** fmt_option ~none ~somefmt_a fmt_b formatter (a,b) prints
+    the option with the formatter fmt_a. The optional
+    arguments ~none and ~some are printed for the respective cases.
+    The optional argument ~some_back is printed at the end of the some case.
+*)
+
+
+val fmt_string : formatter -> string -> unit
+(** fmt_string formatter string prints the given string to the formatter.
+ *)
+
+val fmt_list : ?front:string -> ?middle:string -> ?back:string  ->
+               ( 'a fmt) -> formatter -> 'a list -> unit
+(** fmt_list ~front ~middle ~back fmt_elem f l prints each
+    element of the list l to the given formatter using the element formatter
+    fmt_elem. First the string ~front is printed, elements are seperated by
+    ~middle and ~back closes the list.
+ *)

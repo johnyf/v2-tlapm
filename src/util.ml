@@ -5,10 +5,13 @@
  * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
  *)
 open Ext
+open Format
+
+type 'a fmt = formatter -> 'a -> unit
 
 (* FIXME remove, replace with assert false *)
 exception Bug
-            
+
 (* FIXME remove, replace with assert false *)
 let bug ?at msg =
   let bugmsg =
@@ -99,21 +102,40 @@ let temp_file (clean_hook : (unit -> unit) ref) suffix =
   (fname, chan)
 ;;
    *)
-  
-(* some general formatting utils *)
-let fmtPair ?front:(f="(") ?middle:(m=", ") ?back:(b=")") left right (x,y) =
-  f ^ (left x) ^ m ^ (right y) ^ b
 
-let rec mkString_ ?middle:(m=";") fmt = function
-  | [] -> ""
-  | [x] -> fmt x
-  | x::xs -> (fmt x) ^ m ^ (mkString_ ~middle:m fmt xs)
+(* some general formatting utils *)
+let fmt_string formatter string =
+  fprintf formatter "%s" string
+
+let fmt_pair ?front:(f="(") ?middle:(m=", ") ?back:(b=")")
+            fmt_left fmt_right formatter (x,y) =
+  fprintf formatter "%s%a%s%a%s" f fmt_left x m fmt_right y b;
+  ()
+
+let fmt_option ?none:(none="None") ?some:(some="Some ") ?some_back:(back="")
+               fmt_arg formatter =
+  function
+  | Some s -> fprintf formatter "%s%a%s" some fmt_arg s back
+  | None -> fprintf formatter "%s" none
+
+
+let fmt_list ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt formatter lst =
+  let rec fmt_list_ ?middle:(m=";") formatter = function
+    | [] ->
+       ()
+    | [x] ->
+       fprintf formatter "%a" fmt x
+    | x::xs ->
+       fprintf formatter "%a%s%a" fmt x m (fmt_list_ ~middle:m) xs;
+       ()
+  in
+  fprintf formatter "%s%a%s" f (fmt_list_ ~middle:m) lst b;
+  ()
+
 
 let mkString ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt lst =
-  f ^ (mkString_ ~middle:m fmt lst) ^ b
-
-let fmt_dependencylist =
-  mkString (fmtPair string_of_int (mkString string_of_int))
+  let fmt_element formatter x = fprintf formatter "%s" (fmt x) in
+  asprintf "%a" (fmt_list ~front:f ~middle:m ~back:b fmt_element) lst
 
 (* right-associative function application just like Haskell's $ *)
 let (  @$ ) f x = f x;;
