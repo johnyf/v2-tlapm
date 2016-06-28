@@ -46,17 +46,19 @@ let handle_rest state s =
 
 let handlers s =
   [
-    ("-fingerprints", Unit (handle_fingerprints s),
+    ("--fingerprints", Unit (handle_fingerprints s),
      "Use fingerprinting (default: no)");
-    ("-xml-input", Unit (handle_xml_input s),
+    ("--xml-input", Unit (handle_xml_input s),
      "Directly load a SANY xml file.");
-    ("-check-schema", Unit (handle_check_schema s),
+    ("--isaprove", Unit (fun _ -> ()),
+     "Compatibility argument."); (* TODO: check if really unneccessary *)
+    ("--check-schema", Unit (handle_check_schema s),
      "Check the SANY xml against its schema (requires internet access).");
-    ("-with-java", String (handle_java_path s),
+    ("--with-java", String (handle_java_path s),
      "Directly load a SANY xml file.");
     ("-I", String (handle_include_path s),
      "Add directory to include paths.");
-    ("-toolbox", Tuple [Int (handle_toolbox_lower s);
+    ("--toolbox", Tuple [Int (handle_toolbox_lower s);
                         Int (handle_toolbox_upper s)],
      "Output in toolbox mode from first argument to second argument");
     ("-v", Unit (handle_verbose s),

@@ -1,3 +1,4 @@
+open Commons
 open Util
 open Sany
 open Obligation
@@ -6,6 +7,7 @@ open Format
 open Expr_substitution
 open Settings
 open Arg_handler
+open Toolbox
 (*
 module Clocks = struct
   include Timing
@@ -114,20 +116,6 @@ Sys.set_signal Sys.sigusr1 (Sys.Signal_handle (fun _ -> raise Stacktrace));;
 init ();;
  *)
 
-(* Run a command and return its results as a string. *)
-(*let read_process command =
-  let buffer_size = 2048 in
-  let buffer = Buffer.create buffer_size in
-  let string = String.create buffer_size in
-  let in_channel = Unix.open_process_in command in
-  let chars_read = ref 1 in
-  while !chars_read <> 0 do
-    chars_read := input in_channel string 0 buffer_size;
-    Buffer.add_substring buffer string 0 !chars_read
-  done;
-  ignore (Unix.close_process_in in_channel);
-  Buffer.contents buffer
- *)
 
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd { check_schema; java_path; include_paths; input_file } =
@@ -135,52 +123,96 @@ let java_cmd { check_schema; java_path; include_paths; input_file } =
   let fmt_include = fmt_list ~front:"-I \"" ~middle:"\" -I \""
                              ~back:"\"" fmt_string in
   let fmt_offline = if check_schema then "" else "-o" in
-  let cmd = asprintf "%a -jar lib/sany.jar %s %a \"%s\""
+  let bin_string = Array.get Sys.argv 0 in
+  let lib_path= Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
+  let cmd = asprintf "%a -jar %s/lib/sany.jar %s %a \"%s\""
                      fmt_path java_path
+                     lib_path
                      fmt_offline
                      fmt_include include_paths
                      input_file
   in
   cmd
 
-let init () =
-  let settings = handle_arguments Sys.argv in
-  Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-  Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
-  let channel = match settings.xml_input with
-    | true  -> open_in settings.input_file
-    | false -> Unix.open_process_in (java_cmd settings)
-  in
-  (* load sany xml ast from file *)
-  let sany_context = Sany.import_xml channel in
-  (* close process channel, if necessary *)
-  begin
-    match settings.xml_input with
-    | true  -> ()
-    | false -> Unix.close_process_in channel; ()
-  end;
-  (* extract builtins from file *)
-  let sany_builtins =
-    Sany_builtin_extractor.extract_from_context sany_context in
-  (* convert sany ast to internal ast (expr_ds) *)
-  let exprds =
-    Sany_expr.convert_context ~builtins:sany_builtins sany_context in
-  (* replace definitions of name LAMBDA by lambda constructors *)
-  let fixed_lambda =
-    Expr_correct_lambda.correct_lambda_context exprds in
-  (* make language elements represented as builtin operators explicit *)
-  let fixed_theorems =
-    Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
-  (* extract obligations *)
-  let obligations =
-    Extract_obligations.extract_obligations_context fixed_theorems in
-  (* print obligations to stdout *)
-  List.fold_left (fun no obl ->
-      fprintf std_formatter "Obligation %d:\n%a\n\n" no
-              Obligation_formatter.fmt_obligation obl;
-      no+1
-    ) 1 obligations;
+type xml_tla_channels =
+  | Xml_channel of in_channel
+  | TLA_channel of in_channel * out_channel * in_channel
+
+let rec dump_channel c =
+  let line = input_line c in
+  Printf.printf "%s\n" line;
+  dump_channel c;
   ()
+
+let init () =
+  Printexc.record_backtrace true;
+  try begin
+      let settings = handle_arguments Sys.argv in
+      (*
+       Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
+       *)
+       Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
+      let fds = match settings.xml_input with
+        | true  ->
+           (* load sany xml ast from file *)
+           let channel = open_in settings.input_file in
+           (* close_in channel; *)
+           Xml_channel channel
+        | false ->
+           (* load tla file from file calling java *)
+           let env = Unix.environment () in
+           let (jin, jout, jerr) =
+             Unix.open_process_full (java_cmd settings) env in
+           (*           Unix.close_process_full fds; *)
+           TLA_channel (jin, jout, jerr)
+      in
+      let channel = match fds with
+        | Xml_channel c -> c
+        | TLA_channel (c, _, _) -> c
+      in
+      let sany_context = Sany.import_xml channel in
+      (* extract builtins from file *)
+      let sany_builtins =
+        Sany_builtin_extractor.extract_from_context sany_context in
+      (* convert sany ast to internal ast (expr_ds) *)
+      let exprds =
+        Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+      (* replace definitions of name LAMBDA by lambda constructors *)
+      let fixed_lambda =
+        Expr_correct_lambda.correct_lambda_context exprds in
+      (* make language elements represented as builtin operators explicit *)
+      let fixed_theorems =
+        Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
+      (* extract obligations *)
+      let obligations =
+        Extract_obligations.extract_obligations_context fixed_theorems in
+      (* print obligations to stdout *)
+      List.fold_left (fun no obl ->
+          (*      fprintf std_formatter "Obligation %d:\n%a\n\n" no
+              Obligation_formatter.fmt_obligation obl;*)
+          let location = mkDummyLocation in
+          let obligation_string =
+            Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
+          let r = {id=no; location; status = ToBeProved; prover = None;
+                   meth=None; already_processed = Some false; obligation_string } in
+          fprintf std_formatter "%a@,@." fmt_toolbox_msg r;
+          no+1
+        ) 1 obligations;
+      let obl_no = List.length obligations in
+      fprintf std_formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+      0
+    end
+  with
+  | (Xmlm.Error ((line,col), error)) as x ->
+     Printf.printf "Xmlm error at position %d:%d with error %s.\n" line col
+                    (Xmlm.error_message error);
+     Printf.printf "Exception: %s\n" (Printexc.to_string x);
+     Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
+     1
+  | x ->
+     Printf.printf "Exception: %s\n" (Printexc.to_string x);
+     Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
+     1
 ;;
 
-init ();;
+init () |> exit;;
