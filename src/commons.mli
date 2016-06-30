@@ -45,6 +45,7 @@ type prover =
   | Zenon
   | SMT
   | LS4
+  | Tlaps
   | Default
 
 (** Creates a range from 0 to 0. *)

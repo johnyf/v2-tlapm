@@ -86,17 +86,20 @@ type step_context_type =
 
 
 (* the accumulator type - containing an open parameter for derived classes *)
-type 'a eoacc = EOAcc of current_context list * obligation list * nesting * 'a
+type 'a eoacc =
+  EOAcc of current_context list * obligation list * nesting * string *'a
 
 (* extractors for the constituents of the accumulator *)
-let get_cc (EOAcc (c, _, _, _)) = c
-let get_obligations (EOAcc (_, o, _, _)) = o
-let get_nesting (EOAcc (_, _, n, _)) = n
+let get_cc (EOAcc (c, _, _, _, _)) = c
+let get_obligations (EOAcc (_, o, _, _, _)) = o
+let get_nesting (EOAcc (_, _, n, _, _)) = n
+let get_root_module (EOAcc (_, _, _, m, _)) = m
 
 (* accumulator updates *)
-let update_cc (EOAcc (_,o,n,a)) cc = EOAcc (cc,o,n,a)
-let update_obligations (EOAcc (cc,_,n,a)) o = EOAcc (cc,o,n,a)
-let update_nesting (EOAcc (cc,o,_,a)) n = EOAcc (cc,o,n,a)
+let update_cc (EOAcc (_,o,n,m,a)) cc = EOAcc (cc,o,n,m,a)
+let update_obligations (EOAcc (cc,_,n,m,a)) o = EOAcc (cc,o,n,m,a)
+let update_nesting (EOAcc (cc,o,_,m,a)) n = EOAcc (cc,o,n,m,a)
+let update_root_module (EOAcc (cc,o,n,_,a)) m = EOAcc (cc,o,n,m,a)
 
 (* convenience function adding one obligation to the accumulator *)
 let enqueue_obligation acc newobs =
@@ -294,6 +297,7 @@ object(self)
        let obligation = {
            goal = { ccgoal with assumes = append assumes ccgoal.assumes };
            expanded_defs;
+           location = by.location;
 
            constants = cc.constants;
            variables = cc.variables;
@@ -545,17 +549,20 @@ object(self)
 
   method proof acc0 = function
     | P_omitted _ -> acc0
-    | P_obvious {location; _} ->
+    | P_obvious { location = {filename; _ } as location; _ }
+         when filename = get_root_module acc0 ->
        (
          let cc = cc_peek acc0 in
          let goal = match cc.goal with
            | Some g -> g
            | None ->
-              failwith_msg location
-                           "No goal in context while processing OBVIOUS statement!"
+              failwith_msg
+                location
+                "No goal in context while processing OBVIOUS statement!"
          in
          let obligation = {
              goal;
+             location;
              expanded_defs = cc.expanded_defs;
              provers = [Default];
              term_db = cc.term_db;
@@ -567,6 +574,8 @@ object(self)
            } in
          enqueue_obligation acc0 [obligation]
        )
+    | P_obvious _ ->
+       acc0
     | P_by by ->
        self#by acc0 by
     | P_steps {steps; location; _ } ->
@@ -607,11 +616,21 @@ object(self)
        acc
 
 
-  method context acc { entries; modules;} =
+  method context acc { entries; modules; root_module; } =
     let old_cc = cc_peek acc in
     let new_cc = { old_cc with term_db = entries } in
     let acc0 = cc_replace new_cc acc in
-    let acc1 = fold_left self#mule acc0 modules in
+    (*    let acc1 = fold_left self#mule acc0 modules in *)
+    let tdb = (get_cc acc0 |> hd).term_db in
+    let root_ms = List.filter
+                    (fun x -> (dereference_module tdb x).name = root_module )
+                    modules
+    in
+    let acc1 = match root_ms with
+      | [m] -> self#mule acc0 m
+      | [] -> failwith "root module not found!"
+      | _ -> failwith "root module not unique!"
+    in
     (* Printf.printf "size of stack in the end: %d\n" (length (get_cc acc1)); *)
     match length (get_cc acc1) with
         | 1 ->
@@ -637,8 +656,9 @@ object(self)
                         "Obligation extraction: Unbalanced pushes/pops"
 end
 
-let extract_obligations_context context =
+let extract_obligations_context ({entries; root_module; _ } as context) =
   let instance = new extract_obligations in
-  let iacc = EOAcc ([emptyCurrentContext context.entries], [], Module, ()) in
-  let EOAcc (_, obs, _, _) = instance#context iacc context in
-  obs
+  let iacc = EOAcc ([emptyCurrentContext entries], [], Module, root_module, ())
+  in
+  let acc = instance#context iacc context in
+  get_obligations acc

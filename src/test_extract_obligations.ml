@@ -26,8 +26,9 @@ let test_extract_obligations record () =
       in
       let cc = emptyCurrentContext context.entries in
       let eo = new extract_obligations in
-      let EOAcc (_, obs, _, _) =
-        eo#context (EOAcc ([cc], [], Module, None)) context in
+      let acc = EOAcc ([cc], [], Module, context.root_module, None) in
+      let acc1 = eo#context acc context in
+      let obs = get_obligations acc1 in
       begin
         match obs with
         | [] -> Printf.printf "%s no obligations extracted!\n" record.filename;

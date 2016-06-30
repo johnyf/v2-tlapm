@@ -55,6 +55,7 @@ let prover_string = function
   | Zenon    -> "zenon"
   | SMT      -> "smt"
   | LS4      -> "ls4"
+  | Tlaps    -> "tlaps"
   | Default  -> ""
 
 let fmt_prover f x =

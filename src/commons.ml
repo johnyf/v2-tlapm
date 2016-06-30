@@ -45,6 +45,7 @@ type prover =
   | Zenon
   | SMT
   | LS4
+  | Tlaps
   | Default
 
 let mkDummyRange = { rbegin = 0; rend = 0 }

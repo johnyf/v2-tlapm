@@ -150,8 +150,8 @@ let init () =
       let settings = handle_arguments Sys.argv in
       (*
        Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-       *)
        Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
+       *)
       let fds = match settings.xml_input with
         | true  ->
            (* load sany xml ast from file *)
@@ -187,19 +187,31 @@ let init () =
       let obligations =
         Extract_obligations.extract_obligations_context fixed_theorems in
       (* print obligations to stdout *)
-      List.fold_left (fun no obl ->
-          (*      fprintf std_formatter "Obligation %d:\n%a\n\n" no
-              Obligation_formatter.fmt_obligation obl;*)
-          let location = mkDummyLocation in
-          let obligation_string =
-            Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
-          let r = {id=no; location; status = ToBeProved; prover = None;
-                   meth=None; already_processed = Some false; obligation_string } in
-          fprintf std_formatter "%a@,@." fmt_toolbox_msg r;
+      List.fold_left (fun no (obl:obligation) ->
+          let r = {id=no; location=obl.location; status = ToBeProved;
+                   prover = None; meth=None; already_processed = Some false;
+                   obligation_string = None } in
+          fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
+          (*          fprintf std_formatter "%d @ %a@." no fmt_location obl.location; *)
           no+1
         ) 1 obligations;
       let obl_no = List.length obligations in
-      fprintf std_formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+      fprintf err_formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+      (* print obligation fail messages to stdout *)
+      List.fold_left (fun no obl ->
+          (*      fprintf std_formatter "Obligation %d:\n%a\n\n" no
+              Obligation_formatter.fmt_obligation obl;*)
+          let obligation_string =
+            Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
+(*          let r = {id=no; location=obl.location; status = BeingProved; prover = Some Tlaps;
+                   meth=None; already_processed = Some false; obligation_string } in
+          fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
+ *)
+          let r = {id=no; location=obl.location; status = Failed; prover = Some Tlaps;
+                   meth=None; already_processed = Some false; obligation_string } in
+          fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
+          no+1
+        ) 1 obligations;
       0
     end
   with
