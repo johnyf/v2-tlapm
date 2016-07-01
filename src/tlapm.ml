@@ -144,14 +144,7 @@ let rec dump_channel c =
   dump_channel c;
   ()
 
-let init () =
-  Printexc.record_backtrace true;
-  try begin
-      let settings = handle_arguments Sys.argv in
-      (*
-       Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-       Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
-       *)
+let load_sany settings =
       let fds = match settings.xml_input with
         | true  ->
            (* load sany xml ast from file *)
@@ -170,7 +163,9 @@ let init () =
         | Xml_channel c -> c
         | TLA_channel (c, _, _) -> c
       in
-      let sany_context = Sany.import_xml channel in
+      Sany.import_xml channel
+
+let compute_obligations settings sany_context =
       (* extract builtins from file *)
       let sany_builtins =
         Sany_builtin_extractor.extract_from_context sany_context in
@@ -184,47 +179,64 @@ let init () =
       let fixed_theorems =
         Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
       (* extract obligations *)
-      let obligations =
-        Extract_obligations.extract_obligations_context fixed_theorems in
+      Extract_obligations.extract_obligations_context fixed_theorems
+
+let announce_obligations settings formatter obligations =
       (* print obligations to stdout *)
       List.fold_left (fun no (obl:obligation) ->
           let r = {id=no; location=obl.location; status = ToBeProved;
                    prover = None; meth=None; already_processed = Some false;
                    obligation_string = None } in
-          fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
+          fprintf formatter "%a@,@." fmt_toolbox_msg r;
           (*          fprintf std_formatter "%d @ %a@." no fmt_location obl.location; *)
           no+1
         ) 1 obligations;
+      (* print obligation count message *)
       let obl_no = List.length obligations in
-      fprintf err_formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+      fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+      ()
+
+let announce_all_failed settings formatter obligations =
       (* print obligation fail messages to stdout *)
       List.fold_left (fun no obl ->
           (*      fprintf std_formatter "Obligation %d:\n%a\n\n" no
               Obligation_formatter.fmt_obligation obl;*)
           let obligation_string =
             Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
-(*          let r = {id=no; location=obl.location; status = BeingProved; prover = Some Tlaps;
-                   meth=None; already_processed = Some false; obligation_string } in
-          fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
- *)
-          let r = {id=no; location=obl.location; status = Failed; prover = Some Tlaps;
-                   meth=None; already_processed = Some false; obligation_string } in
+          let r = {id=no; location=obl.location; status = Failed;
+                   prover = Some Tlaps; meth=None;
+                   already_processed = Some false; obligation_string } in
           fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
           no+1
         ) 1 obligations;
-      0
+      ()
+
+type exit_status = Exit_status of int
+
+let init () =
+  Printexc.record_backtrace true;
+  try begin
+      let settings = handle_arguments Sys.argv in
+      (*
+       Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
+       Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
+       *)
+      let sany_context = load_sany settings in
+      let obligations = compute_obligations settings sany_context in
+      announce_obligations settings err_formatter obligations;
+      Exit_status 0
     end
   with
   | (Xmlm.Error ((line,col), error)) as x ->
      Printf.printf "Xmlm error at position %d:%d with error %s.\n" line col
                     (Xmlm.error_message error);
-     Printf.printf "Exception: %s\n" (Printexc.to_string x);
      Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
-     1
+     Exit_status 1
   | x ->
      Printf.printf "Exception: %s\n" (Printexc.to_string x);
      Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
-     1
+     Exit_status 1
 ;;
 
-init () |> exit;;
+let Exit_status n = init () in
+    exit n;;
