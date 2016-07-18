@@ -79,13 +79,13 @@ let rec call_nun k = match k with
   | _ -> call_nun (k-1) ;
 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp")
 
-let sexp_to_mod sexp_file mod_file b =
-  Mod.print_sexp sexp_file mod_file b
+let sexp_to_mod sexp_file mod_file =
+  Mod.print_mod_tree mod_file (Mod.sexp_to_mod_tree (Sexp.sexp_parser sexp_file))
   		     
-let rec convert_to_mod k b = match k with
+let rec convert_to_mod k = match k with
   | 0 -> ();
-  | _ -> convert_to_mod (k-1) b;
-	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod") b
+  | _ -> convert_to_mod (k-1);
+	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod")
 
 
 let print_some obligations n =
@@ -96,7 +96,7 @@ let print_some obligations n =
     print_newline ();
     let sk = "echo \"\n----- COUNTEREXAMPLE "^(string_of_int k)^": -----\n\"" in
     ignore(Sys.command sk) ;
-    let nunk = "cat nun/mod/"^(string_of_int k)^".mod2" in
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in
     ignore(Sys.command nunk);
   in
   let rec map_bis f l n = match l with
@@ -119,13 +119,9 @@ let print_all obligations n =
     ignore(Sys.command sk) ;
     let nunk = "cat nun/sexp/"^(string_of_int k)^".sexp" in
     ignore(Sys.command nunk);
-    let sk = "echo \"\n----- MOD1 "^(string_of_int k)^": -----\n\"" in
+    let sk = "echo \"\n----- MOD "^(string_of_int k)^": -----\n\"" in
     ignore(Sys.command sk) ;
-    let nunk = "cat nun/mod/"^(string_of_int k)^".mod1" in
-    ignore(Sys.command nunk);
-    let sk = "echo \"\n----- MOD2 "^(string_of_int k)^": -----\n\"" in
-    ignore(Sys.command sk) ;
-    let nunk = "cat nun/mod/"^(string_of_int k)^".mod2" in
+    let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in
     ignore(Sys.command nunk);
        
   in
@@ -141,11 +137,13 @@ let print_all obligations n =
 
 	 
 let verbose = ref false
-		  
+let s2m = ref false
+	      
 let init () =
 
   (** Argument handling**)
   let speclist = [("--print-all", Arg.Set verbose, "Enables verbose mode");
+		  ("--sexp2mod", Arg.Set s2m, "Converts file from Sexplib to Mod")
 		 ]
   in
   let usage_msg = "Options available:"
@@ -153,17 +151,25 @@ let init () =
   Arg.parse speclist print_endline usage_msg;
 
   let filename = Sys.argv.(1) in
-  let tla_filename = ("nun/tla/"^filename^".tla") in
-  let xml_filename = ("nun/xml/"^filename^".xml") in
-  tla_to_xml tla_filename xml_filename;
-  let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
-  let n = obl_to_nun obligations "nun/nun" in
-  call_nun (n-1) ;
-  convert_to_mod (n-1) true ;
-  convert_to_mod (n-1) false ;
-  if !verbose
-  then begin print_all obligations (n-1); print_newline () end
-  else begin print_some obligations (n-1); print_newline () end
+
+  match !s2m with
+  | false ->
+     begin
+       let tla_filename = ("nun/tla/"^filename^".tla") in
+       let xml_filename = ("nun/xml/"^filename^".xml") in
+       tla_to_xml tla_filename xml_filename;
+       let obligations = xml_to_obl xml_filename "nun/obligations.txt" in
+       let n = obl_to_nun obligations "nun/nun" in
+       call_nun (n-1) ;
+       convert_to_mod (n-1) ;
+       if !verbose
+       then begin print_all obligations (n-1); print_newline () end
+       else begin print_some obligations (n-1); print_newline () end
+     end
+  | true ->
+     begin
+       ignore(sexp_to_mod ("nun/sexp/"^filename^".sexp") ("nun/mod/"^filename^".mod"));
+     end
 ;;
   
 init ();;

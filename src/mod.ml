@@ -9,8 +9,9 @@ open CCFormat
 type term =
   | Var of string
   | App of string * term list
-			 
-type decision_tree =
+  | Fun of (string*string) list * decision_tree			 
+
+and decision_tree =
   {
     cases: ((string * term) list * term) list;
     else_ : term;
@@ -19,7 +20,6 @@ type decision_tree =
 type model_entry =
   | Type of string * string list
   | Const of string * term
-  | Fun of string * (string*string) list * decision_tree
 
 type model = model_entry list
 
@@ -37,7 +37,7 @@ type mod_tree = UNSAT | UNKNOWN | SAT of model
 		
 let rec sexp_to_term t = match t with
   | Atom s -> Var s 	
-  | List ((List [Atom "?__";Atom "_"])::l) -> Var "UNDEFINED"
+  | List ((List [Atom "?__";Atom "_"])::l) -> Var "UNKNOWNED"
   | List ((Atom s)::l) -> App (s,(List.map sexp_to_term l))
   | _ -> Var "ERROR unparsed term"
   (* | _ -> failwith "unparsed term" *)
@@ -90,15 +90,19 @@ let rec unroll_vars v = match v with
 	   
 let rec unroll_conditions c = match c with
   | [] -> []
+  | (List [(Atom "=");(Atom v);(List [(Atom "fun");List vars;values]) ])::tl ->
+     let vars_term = unroll_vars vars in
+     let val_term = unroll_values values in
+     (v,Fun (vars_term,val_term))::(unroll_conditions tl)
   | (List [(Atom "=");(Atom v);t])::tl -> (v,sexp_to_term t)::(unroll_conditions tl)
   | _ -> ["ERROR unroll fun conditions failed",Var ""]
 (* | _ -> failwith "unroll fun conditions failed" *)
 
-let match_conditions c = match c with
+and match_conditions c = match c with
   | (Atom "and")::tl -> unroll_conditions tl
   | _ -> unroll_conditions [Sexplib.Type.List c]
 
-let rec unroll_values v = match v with
+and unroll_values v = match v with
   | List ((Atom "if")::(List conditions)::(then_)::(tl)::[]) ->
      let dt = unroll_values tl in
      {
@@ -110,7 +114,7 @@ let rec unroll_values v = match v with
 (* | _ -> failwith "unroll values fun_to_model failed" *)
 
 let sexp_to_fun_model_entry name t = match t with 
-  | [(List vars);values] -> Fun (name,(unroll_vars vars),(unroll_values values))
+  | [(List vars);values] -> Const (name,Fun ((unroll_vars vars),(unroll_values values)))
   | _ -> failwith "type_to_model failed"
   
 let sexp_to_model_entry t = match t with
@@ -146,15 +150,17 @@ let andand = " && "
 let newline = " \n"
 let space = " "
 
-let rec term_to_string t = match t with
-  | Var s -> s
-  | App (s,l) -> s^" ("^(list_to_string term_to_string comma l)^")"
-
 let type_vars_to_string = list_to_string (fun x -> x) comma
 let fun_vars_to_string = list_to_string (fun (s1,s2) -> "("^s1^" : "^s2^")") comma
-let fun_conditions_to_string = list_to_string (fun (s,t) -> "("^s^" = "^(term_to_string t)^")") andand
 
-let rec dt_to_string dt = match dt.cases with
+let rec fun_conditions_to_string fc = list_to_string (fun (s,t) -> "("^s^" = "^(term_to_string t)^")") andand fc
+
+and term_to_string t = match t with
+  | Var s -> s
+  | App (s,l) -> s^" ("^(list_to_string term_to_string comma l)^")"
+  | Fun (vars,dt) -> (fun_vars_to_string vars)^"\n "^(dt_to_string dt)
+			   
+and dt_to_string dt = match dt.cases with
   | []                ->
      "\t else : "^(term_to_string dt.else_)
   | (cond_l,then_)::q ->
@@ -163,8 +169,8 @@ let rec dt_to_string dt = match dt.cases with
 let model_entry_to_string m_e =
   match m_e with
   | Type (name,vars) -> "type "^name^" : "^(type_vars_to_string vars)
+  | Const (name,Fun (f,g)) -> "fun "^name^" : "^(term_to_string (Fun (f,g)))
   | Const (name,value) -> "val "^name^" : "^(term_to_string value)
-  | Fun (name,vars,dt) -> "fun "^name^" : "^(fun_vars_to_string vars)^"\n "^(dt_to_string dt)
 											 
 let model_to_string model =
   list_to_string model_entry_to_string newline model
