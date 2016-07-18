@@ -32,8 +32,7 @@ let create_test record =
     ~title: ("Comparing simple_expression to expression in " ^ record.filename)
     (fun () -> ())
     (fun () ->
-     Assert.no_raise ~msg:"Unexpected exception raised."
-                     (fun () -> exhandler ( test_simple_expr record )  )
+      exhandler ( test_simple_expr record )
     )
     (fun () -> ()  )
 
