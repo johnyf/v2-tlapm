@@ -15,6 +15,7 @@ type settings = {
     toolbox      : int_range;
     fingerprints : bool;
     input_file   : string;
+    pm_path      : string;
 
     (* unchaku backend settings *)
     models_in_tla : bool;

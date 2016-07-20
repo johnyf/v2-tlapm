@@ -15,6 +15,7 @@ type settings = {
     toolbox      : int_range;
     fingerprints : bool;
     input_file   : string;
+    pm_path      : string;
 
     (* unchaku backend settings *)
     models_in_tla : bool;
@@ -33,13 +34,15 @@ let default_settings =
     verbose      = false;
     fingerprints = false;
     input_file   = "";
+    pm_path      = autodetect_executable_path ;
 
     (* unchaku backend settings *)
     models_in_tla = true;
   }
 
 let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
-                             verbose; toolbox; fingerprints; input_file; models_in_tla } =
+                             verbose; toolbox; fingerprints; input_file;
+                             pm_path; models_in_tla } =
   fprintf formatter "@[<v 2>{@,";
   fprintf formatter "java path     = %a@,"
           (fmt_option ~some:"\"" ~some_back:"\"" fmt_string) java_path;
@@ -50,6 +53,7 @@ let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
   fprintf formatter "toolbox range = %a@," fmt_int_range toolbox;
   fprintf formatter "fingerprints  = %b@," fingerprints;
   fprintf formatter "input file    = \"%s\"@," input_file;
+  fprintf formatter "tlapm binary location  = \"%s\"@," pm_path;
   fprintf formatter "print nunchaku models in TLA syntax  = \"%b\"@," models_in_tla;
   fprintf formatter "@]}";
   ()

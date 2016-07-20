@@ -123,3 +123,8 @@ val fmt_list : ?front:string -> ?middle:string -> ?back:string  ->
     fmt_elem. First the string ~front is printed, elements are seperated by
     ~middle and ~back closes the list.
  *)
+
+val autodetect_executable_path : string
+(**
+   Parses argv and extracts the path of the current executable.
+ *)

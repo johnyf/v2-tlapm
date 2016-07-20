@@ -213,7 +213,12 @@ let multiset_equal_lists l1 l2 =
   let s2 = List.sort l2 in
   s1 = s2
 
-(*
+let autodetect_executable_path =
+  let bin_string = Array.get Sys.argv 0 in
+  let lib_path = Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
+  lib_path
+
+ (*
 (* an (inefficient) implementation of flat_map *)
 let flat_map f =
   List.fold_left (fun x y -> List.append x (f y)) []
