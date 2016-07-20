@@ -337,6 +337,7 @@ let init () =
       let obligations = compute_obligations settings sany_context in
       announce_obligations settings err_formatter obligations;
       (* here goes the calling of backends *)
+      
       Exit_status 0
     end
   with
