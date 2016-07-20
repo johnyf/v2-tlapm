@@ -32,8 +32,10 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: pkg_unix
 <src/*.ml{,i,y}>: pkg_xmlm
 # OASIS_STOP
+# this is manually added to support subdirectories
 <src>: include
 <src/core>: include
+<src/expr>: include
 <src/nunchaku>: include
 <src/test>: include
 <src/sany>: include

@@ -1,2 +1,0 @@
-let empty = "<?xml version="1.0" encoding="UTF-8" standalone="no"?><modules><context/><ModuleNode><location><column><begin>1</begin><end>77</end></column><line><begin>1</begin><end>4</end></line><filename>empty</filename></location><uniquename>empty</uniquename><constants/><variables/><definitions/><assumptions/><theorems/></ModuleNode></modules>"
-
