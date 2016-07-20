@@ -6,6 +6,7 @@ open Simple_expr_dereference
 open Format
 open Simple_expr_prover_parser
 open Nunchaku_ast
+open Simple_obligation
        
 type fc = statement list * simple_term_db * term * bool
 	    
@@ -321,7 +322,7 @@ let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
 
-			    
+let simple_obl_to_nun_ast { goal; term_db; } = fmt_assume_prove term_db goal
 
 			    
 			    
