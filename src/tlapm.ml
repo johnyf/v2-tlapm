@@ -213,14 +213,12 @@ let load_sany settings =
     | true  ->
        (* load sany xml ast from file *)
        let channel = open_in settings.input_file in
-       (* close_in channel; *)
        Xml_channel channel
     | false ->
        (* load tla file from file calling java *)
        let env = Unix.environment () in
        let (jin, jout, jerr) =
          Unix.open_process_full (java_cmd settings) env in
-       (*           Unix.close_process_full fds; *)
        TLA_channel (jin, jout, jerr)
   in
   let channel = match fds with
@@ -234,9 +232,11 @@ let load_sany settings =
     | e ->
        Error e
   in
+  (* close_channels *)
   let exit_code = match fds with
     | Xml_channel c ->
-       Unix.close_process_in c
+       close_in c;
+       Unix.WEXITED 0
     | TLA_channel (stdin, stdout, stderr) ->
        Unix.close_process_full (stdin, stdout, stderr)
   in
