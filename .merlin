@@ -1,6 +1,16 @@
 S src
+S src/core
+S src/expr
+S src/sany
+S src/test
+S src/nunchaku
 
 B _build/src
+B _build/src/core
+B _build/src/expr
+B _build/src/sany
+B _build/src/test
+B _build/src/nunchaku
 
 PKG xmlm
 PKG kaputt
