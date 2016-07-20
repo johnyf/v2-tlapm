@@ -4,8 +4,8 @@ open Format
 open Simple_expr_visitor
 open Simple_expr_utils
 open Simple_expr_dereference
+open Nun_pb_ast
 open Simple_expr_prover_parser
-open Nunchaku_ast
 open Simple_obligation
        
 type fc = statement list * simple_term_db * term * bool 

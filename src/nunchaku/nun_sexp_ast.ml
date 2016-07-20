@@ -1,7 +1,3 @@
-open Sexplib.Type
-open Format
-open CCFormat
-
 type sexp_ast = Sexplib.Type.t;;
        
 (* READING SEXP FILE *)

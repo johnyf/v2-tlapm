@@ -1,20 +1,42 @@
 open Format
 open CCFormat
+open Nun_sexp_ast
+open Nunchaku_formatter
+open Nun_mod_ast
+open Expr_simple
+open Obligation
+open Simple_obligation
+       
+type nunchaku_result = mod_tree
 
-type nunchaku_result = Mod.mod_tree
+let nunchaku_result_printer = mod_tree_to_string
 
-let nunchaku_result_printer = Mod.mod_tree_to_string
+let call_nunchaku nun_pb_ast =
+  let nun_file = "tmp.nun" in
+  let sexp_file = "tmp.sexp" in
+  let oc = open_out nun_file in
+  let fft = formatter_of_out_channel oc in
+  Nun_pb_ast.print_statement_list fft nun_pb_ast;
+  let call = "nunchaku -o sexp "^nun_file^" > "^sexp_file in
+  ignore(Sys.command call);
+  sexp_parser sexp_file
 
-let call_nunchaku nun_pb_ast = Sexplib.Type.Atom "UNSAT"
-
+(* let obligation_to_simple_obligation { goal; expanded_defs; provers; term_db; *)
+(*                         constants; variables; definitions; *)
+(*                         assumptions; theorems; } = *)
+(*   let pars = new expr_to_simple_expr in *)
+(*   pars#assume_prove goal goal *)
+              
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
   let tla_simple_pb_ast = Simple_obligation.obligation_to_simple_obligation tla_pb_ast in
   let nun_pb_ast = Nunchaku_formatter.simple_obl_to_nun_ast tla_simple_pb_ast in
   let nun_sexp_ast = call_nunchaku nun_pb_ast in
-  let nun_mod_ast = Mod.sexp_to_mod_tree nun_sexp_ast in
+  let nun_mod_ast = Nun_mod_ast.sexp_to_mod_tree nun_sexp_ast in
   nun_mod_ast
-                                
+
+
+    
 (* let print_simple obligations output_file = *)
 (*   (\*val: obligation list -> unit*\) *)
 (*   let print_obl fft no obl = *)

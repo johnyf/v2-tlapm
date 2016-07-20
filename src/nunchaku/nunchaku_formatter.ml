@@ -5,7 +5,7 @@ open Simple_expr_utils
 open Simple_expr_dereference
 open Format
 open Simple_expr_prover_parser
-open Nunchaku_ast
+open Nun_pb_ast
 open Simple_obligation
        
 type fc = statement list * simple_term_db * term * bool
@@ -311,7 +311,7 @@ let expr_formatter = new formatter
 let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
   let initial_commands = [
       comm "Initial commands";
-      include_ "\"prelude.nun\"";
+      include_ "\"nun\prelude.nun\"";
       comm "End of initial commands";
     ] in
   let acc = (List.rev initial_commands, term_db, Unknown "starting term", true) in
@@ -322,7 +322,7 @@ let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
 
-let simple_obl_to_nun_ast { goal; term_db; } = fmt_assume_prove term_db goal
+let simple_obl_to_nun_ast { goal; term_db; } = List.rev (fmt_assume_prove term_db goal)
 
 			    
 			    

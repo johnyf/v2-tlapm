@@ -1,8 +1,15 @@
 open Obligation
-open Nunchaku_ast
+open Nun_pb_ast
+open Nunchaku_formatter
+open Nun_sexp_ast
+open Expr_simple
+open Obligation
+open Simple_obligation
 
-type nunchaku_result = Mod.mod_tree
+type nunchaku_result = Nun_mod_ast.mod_tree
 
+(* val obligation_to_simple_obligation : obligation -> simple_obligation *)
+                         
 val nunchaku_result_printer : nunchaku_result -> string
        
 (* val print_simple : obligation list -> string -> unit *)
@@ -13,4 +20,4 @@ val nunchaku_result_printer : nunchaku_result -> string
 
 val call_nunchaku : statement list -> Sexplib.Type.t
 
-val nunchaku : 'a -> obligation -> Mod.mod_tree
+val nunchaku : 'a -> obligation -> Nun_mod_ast.mod_tree
