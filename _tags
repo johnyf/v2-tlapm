@@ -1,0 +1,42 @@
+# OASIS_START
+# DO NOT EDIT (digest: f536515fb1fabae13d099fbff1e80075)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Executable tlapm
+"src/tlapm.byte": pkg_result
+"src/tlapm.byte": pkg_sexplib
+"src/tlapm.byte": pkg_str
+"src/tlapm.byte": pkg_unix
+"src/tlapm.byte": pkg_xmlm
+<src/*.ml{,i,y}>: pkg_result
+<src/*.ml{,i,y}>: pkg_sexplib
+# Executable test
+"src/tests.byte": pkg_kaputt
+"src/tests.byte": pkg_str
+"src/tests.byte": pkg_unix
+"src/tests.byte": pkg_xmlm
+<src/*.ml{,i,y}>: pkg_kaputt
+<src/*.ml{,i,y}>: pkg_str
+<src/*.ml{,i,y}>: pkg_unix
+<src/*.ml{,i,y}>: pkg_xmlm
+# OASIS_STOP
+<src>: include
+<src/core>: include
+<src/nunchaku>: include
+<src/test>: include
+<src/sany>: include
+<src/test/*.ml{,i,y}>: pkg_kaputt
+<src/nunchaku/*.ml{,i,y}>: pkg_sexplib
+<src/sany/*.ml{,i,y}>: pkg_xmlm
