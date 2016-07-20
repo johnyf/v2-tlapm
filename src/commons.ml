@@ -11,6 +11,7 @@
  *
  * Author: TL
  *)
+open Format
 
 type int_range = {
   rbegin  : int;
@@ -44,6 +45,7 @@ type prover =
   | Zenon
   | SMT
   | LS4
+  | Tlaps
   | Default
 
 let mkDummyRange = { rbegin = 0; rend = 0 }
@@ -57,3 +59,15 @@ let format_location {filename; column; line} =
   ^ (string_of_int column.rbegin) ^ "-"
   ^ (string_of_int line.rend) ^ ","
   ^ (string_of_int column.rend)
+
+let fmt_int_range f { rbegin; rend; } =
+  fprintf f "@[%d-%d@]" rbegin rend;
+  ()
+
+let fmt_location f { filename = fn;
+                     column   = c;
+                     line     =  l;
+                   } =
+  fprintf f "@[%s:%d,%d-%d,%d@]" fn l.rbegin c.rbegin l.rend c.rend;
+  ()
+

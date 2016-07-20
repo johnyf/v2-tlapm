@@ -1,6 +1,7 @@
 (* Copyright (C) 2014 MSR-INRIA
  * Author: TL
  *)
+open Format
 
 (**
   Tlapm datatypes are constructed in layers,
@@ -44,6 +45,7 @@ type prover =
   | Zenon
   | SMT
   | LS4
+  | Tlaps
   | Default
 
 (** Creates a range from 0 to 0. *)
@@ -53,3 +55,6 @@ val mkDummyRange : int_range
 val mkDummyLocation : location
 
 val format_location : location -> string
+
+val fmt_location  : formatter -> location -> unit
+val fmt_int_range : formatter -> int_range -> unit

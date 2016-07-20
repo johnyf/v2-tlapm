@@ -4,56 +4,16 @@
  *
  * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
  *)
+open Format
+type 'a fmt = formatter -> 'a -> unit
 
 (** A collection of utilities *)
 
-open Property
-
-(** {3 Locations} *)
-
-val locate      : 'a -> Loc.locus -> 'a wrapped
-val location    : ?cap:bool -> 'a wrapped -> string
-
-val get_locus   : 'a wrapped -> Loc.locus
-val query_locus : 'a wrapped -> Loc.locus option
-val set_locus   : 'a wrapped -> Loc.locus -> 'a wrapped
-
-(** {3 Hinting and collections of hints} *)
-
-type hint = string wrapped
-
-val pp_print_hint : Format.formatter -> hint -> unit
-
-module Coll : sig
-  module Sm : Map.S with type key = string
-  module Hm : Map.S with type key = hint
-
-  module Ss : Set.S with type elt = string
-  module Hs : Set.S with type elt = hint
-
-  module Sh : Weak.S with type data = string
-end
-
-(** {3 Printing with locations} *)
-
-val sprintf :
-  ?debug:string -> ?at:('a wrapped) -> ?prefix:string -> ?nonl:unit ->
-  ('r, Format.formatter, unit, string) Pervasives.format4 -> 'r
-val printf  :
-  ?debug:string -> ?at:('a wrapped) -> ?prefix:string -> ?nonl:unit ->
-  ('r, Format.formatter, unit) Pervasives.format -> 'r
-val eprintf :
-  ?debug:string -> ?at:('a wrapped) -> ?prefix:string -> ?nonl:unit ->
-  ('r, Format.formatter, unit) Pervasives.format -> 'r
-val fprintf :
-  ?debug:string -> ?at:('a wrapped) -> ?prefix:string -> ?nonl:unit ->
-  Format.formatter ->
-  ('r, Format.formatter, unit) Pervasives.format -> 'r
 
 (** {3 Convenience functions for exceptions} *)
 
 exception Bug
-val bug : ?at:('a wrapped) -> string -> 'failure
+(* val bug : ?at:('a wrapped) -> string -> 'failure *)
 
 (** {3 File and object checksumming} *)
 
@@ -69,6 +29,8 @@ val line_wrap : ?cols:int -> string -> string
 (** {3 Misc} *)
 
 val heap_stats : unit -> unit
+
+(*
 val temp_file :
   (unit -> unit) ref -> string -> string * out_channel
 ;;
@@ -81,6 +43,8 @@ val temp_file :
 val rm_temp_file : string -> unit
 (** Remove the given temporary file unless debugging "tempfiles" *)
 
+*)
+                           
 val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
 (** [add_hook cleanup fn argument]
     Adds to [cleanup] the action of calling [fn argument] before doing
@@ -129,9 +93,33 @@ val mkString : ?front:string -> ?middle:string -> ?back:string  ->
  *)
 
 (** [mkString ~front ~middle ~back fmt list ] *)
-val fmtPair : ?front:string -> ?middle:string -> ?back:string  ->
-              ('a -> string) -> ('b -> string) -> ('a * 'b) -> string
-(** Creates a string from the given
-    list by mapping fmt on each element, using ~middle as a seperator. The
-    string ~front is prepended, while ~back is appended.
+val fmt_pair : ?front:string -> ?middle:string -> ?back:string  ->
+              ('a  fmt) -> ('b fmt) -> formatter -> ('a * 'b) -> unit
+
+(** fmt_pair ~front ~middle ~back fmt_a fmt_b formatter (a,b) prints
+    the pair (a,b) with the formatters fmt_a and fmt_b. They optional
+    arguments ~front, ~middle and ~back are printed at the respective positions.
 *)
+
+
+val fmt_option : ?none:string -> ?some:string -> ?some_back:string -> ('a  fmt)
+                 -> formatter -> 'a option -> unit
+
+(** fmt_option ~none ~somefmt_a fmt_b formatter (a,b) prints
+    the option with the formatter fmt_a. The optional
+    arguments ~none and ~some are printed for the respective cases.
+    The optional argument ~some_back is printed at the end of the some case.
+*)
+
+
+val fmt_string : formatter -> string -> unit
+(** fmt_string formatter string prints the given string to the formatter.
+ *)
+
+val fmt_list : ?front:string -> ?middle:string -> ?back:string  ->
+               ( 'a fmt) -> formatter -> 'a list -> unit
+(** fmt_list ~front ~middle ~back fmt_elem f l prints each
+    element of the list l to the given formatter using the element formatter
+    fmt_elem. First the string ~front is printed, elements are seperated by
+    ~middle and ~back closes the list.
+ *)

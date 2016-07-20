@@ -1,164 +1,107 @@
-(*
- * toolbox.ml --- toolbox interaction
- *
- * Author: Denis Cousineau <denis(at)cousineau.eu>
- *
- * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
- *)
+open Expr_ds
+open Commons
+open Format
 
-Revision.f "$Rev: 34291 $";;
-
-(* stubs, the code below should be fixed *)
-
-let toolbox_print ob ?(temp=false) status prover meth timeout already print_ob reason
-                  warnings time_used = ()
-
-let print_new_res ob st warns time_used = ()
-let print_old_res ob st really_print = ()
-
-(*
- * TODO fix the code below to use new obligations, locations, etc.
-open Ext
-open O
-open Expr.T
-open Expr.Subst
-open Property
-open Method
-open Types
-
-
-let reason_to_string r =
-  match r with
-  | False -> "false"
-  | Timeout -> "timeout"
-  | Cantwork s -> s
-;;
-
-let toolbox_print ob ?(temp=false) status prover meth timeout already print_ob reason
-                  warnings time_used =
-  if !Params.toolbox then begin
-    let obl =
-      match ob.kind with
-      | Ob_error msg when print_ob ->
-          Some (warnings ^ msg)
-      | _ when print_ob ->
-          let buf = Buffer.create 100 in
-          let ff = Format.formatter_of_buffer buf in
-          if Params.debugging "trivial" && ob.kind = Ob_main then begin
-            Format.fprintf ff "@[\\* not checked against known facts@]@."
-          end;
-          Format.fprintf ff "@[<b0>";
-          ignore (Expr.Fmt.pp_print_sequent (Deque.empty, Ctx.dot) ff
-                                            ~temp:temp ob.obl.core);
-          Format.fprintf ff "@]@.";
-          Some (warnings ^ Buffer.contents buf)
-      | _ -> None
-    in
-    let times =
-      if timeout = 0.
-      then ""
-      else begin
-        match time_used with
-        | None -> Printf.sprintf "time-limit: %g" timeout
-        | Some tm ->
-           Printf.sprintf "time-limit: %g; time-used: %.1f (%.0f%%)"
-                          timeout tm (100. *. tm /. timeout)
-      end
-    in
-    let meth_line =
-      match meth, times with
-      | None, "" -> None
-      | None, _ -> Some times
-      | Some m, "" -> Some m
-      | Some m, _ -> Some (Printf.sprintf "%s; %s" m times)
-    in
-    Toolbox_msg.print_obligation
-      ~id: (Option.get ob.Proof.T.id)
-      ~loc: (Option.get (Util.query_locus ob.Proof.T.obl))
-      ~status: status
-      ~fp: (if !Params.fp_deb then ob.fingerprint else None)
-      ~prover: prover
-      ~meth: meth_line
-      ~reason: (Option.map reason_to_string reason)
-      ~already: already
-      ~obl: obl
-  end
-;;
-
-let print_res_aux ob st fp do_print warns time_used =
-  let status, prover, meth, timeout, print_ob, reason, temp =
-    match st with
-    | Triv ->
-        "trivial", Some "tlapm", None, 0., !Params.printallobs, None, false
-    | NTriv (r, m) ->
-        let timeout = Method.timeout m in
-        let temp = Method.is_temporal m in
-        let p, s = prover_meth_of_tac m in
-        begin match r with
-        | RSucc -> "proved", p, s, timeout, !Params.printallobs, None, temp
-        | RFail r -> "failed", p, s, timeout, do_print, r, temp
-        | RInt -> "interrupted", p, s, timeout, do_print, None, temp
-        end
-  in
-  toolbox_print ob ~temp status prover meth timeout fp print_ob reason warns time_used
-;;
-
-let print_new_res ob st warns time_used =
-  print_res_aux ob st (Some false) true warns time_used
-;;
-
-
-
-(**** duplicates prep.ml *****)
-let expand_defs ?(what = fun _ -> true) ob =
-  let prefix = ref [] in
-  let emit mu = prefix := mu :: (!prefix) in
-  let rec visit sq =
-    match Deque.front sq.context with
-    | None -> sq
-    | Some (h, hs) -> begin
-        match h.core with
-          | Defn ({core = Operator (_, e)}, wd, Visible, _) when what wd ->
-              visit (app_sequent (scons e (shift 0)) { sq with context = hs })
-          | _ ->
-              emit h ;
-              let sq = visit { sq with context = hs } in
-                { sq with context = Deque.cons h sq.context }
-      end
-  in
-  let obl = visit ob.obl.core in
-     { ob with obl = { ob.obl with core = obl } }
-
-
-
-
-let normalize really ob =
-if not really then ob else
-  let ob = expand_defs ob in
-  match (Expr.Elab.normalize Deque.empty (noprops (Expr.T.Sequent ob.obl.core))).core with
-    | Expr.T.Sequent sq ->
-       { ob with obl = { ob.obl with core = sq } }
-    | _ ->
-        failwith "Toolbox.normalize.for.printing"
-
-
-
-let print_old_res ob st really_print =
-  let really_print = !Params.printallobs || really_print in
-   print_res_aux (normalize really_print ob) st (Some true) really_print ""
-                 None
-
+(* This implements the datastructures for the toolbox communication protocol.
+   See also general/docs/tlapm-toolbox-interface.txt in the toolbox code.
 *)
 
-(* FIXME obsolete these functions *)
-let print_message msg =
-  if !Params.toolbox then Toolbox_msg.print_warning msg;
-;;
+type toolbox_status = | ToBeProved | Proved | Failed | Trivial
+                      | BeingProved | Interrupted
 
-let print_message_url msg url =
-  if !Params.toolbox then Toolbox_msg.print_error msg url;
-;;
+(* TODO: how many proofs actually use that? *)
+type toolbox_method = | Auto | Blast | Force | Fail | Sorry
 
-let print_ob_number n =
-  if !Params.toolbox then Toolbox_msg.print_obligationsnumber n;
-;;
+type toolbox_msg = {
+    id       : int;                      (* obligation id *)
+    location : location;                 (* location of statement to prove *)
+    status   : toolbox_status;           (* proving status of the obligation *)
+    prover   : prover option;            (* which prover was used *)
+    meth     : toolbox_method option;    (* which method was passed *)
+    already_processed : bool option;     (* fingerprint used *)
+    obligation_string  : string option;
+  }
+
+let toolbox_status_string = function
+  | ToBeProved -> "to be proved"
+  | Proved -> "proved"
+  | Failed -> "failed"
+  | Trivial -> "trivial"
+  | BeingProved -> "being proved"
+  | Interrupted -> "interrupted"
+
+let toolbox_method_string = function
+  | Auto -> "auto"
+  | Blast -> "blast"
+  | Force -> "force"
+  | Fail -> "fail"
+  | Sorry -> "sorry"
+
+
+let head = "@!!"
+let front = "BEGIN"
+let back = "END"
+
+let fmt_toolbox_status formatter s =
+  fprintf formatter "%s" (toolbox_status_string s);
+  ()
+
+let fmt_toolbox_method formatter s =
+  fprintf formatter "%s" (toolbox_method_string s);
+  ()
+
+let prover_string = function
+  | Isabelle -> "isabelle"
+  | Zenon    -> "zenon"
+  | SMT      -> "smt"
+  | LS4      -> "ls4"
+  | Tlaps    -> "tlaps"
+  | Default  -> ""
+
+let fmt_prover f x =
+  fprintf f "%s"(prover_string x)
+
+let fmt_toolbox_msg_d formatter id location status ?prover:prover
+                      ?meth:meth ?already_processed:already_processed
+                      ?obligation_string:obligation_string =
+  fprintf formatter "@[<v>%s%s@," head front;
+  fprintf formatter "%stype:obligation@," head;
+  fprintf formatter "%sid:%d@," head id;
+  fprintf formatter "%sloc:%d:%d:%d:%d@," head
+          location.line.rbegin location.column.rbegin
+          location.line.rend location.column.rend;
+  fprintf formatter "%sstatus:%a@," head fmt_toolbox_status status;
+  begin
+    match prover with
+    | Some p -> fprintf formatter "%sprover:%a@," head fmt_prover p; ()
+    | None -> ()
+  end;
+  begin
+    match meth with
+    | Some m -> fprintf formatter "%smethod:%a@," head fmt_toolbox_method m; ()
+    | None -> ()
+  end;
+  begin
+    match already_processed with
+    | Some a -> fprintf formatter "%salready:%b@," head a; ()
+    | None -> ()
+  end;
+  begin
+    match obligation_string with
+    | Some os -> fprintf formatter "%sobl:%s@," head os; ()
+    | None -> ()
+  end;
+  fprintf formatter "%s%s@]" head back;
+  ()
+
+let fmt_toolbox_msg formatter { id; location; status; prover;
+                                meth; already_processed; obligation_string } =
+  fmt_toolbox_msg_d formatter id location status ?prover
+                    ?meth ?already_processed ?obligation_string
+
+let fmt_toolbox_msg_count formatter no =
+  fprintf formatter "@[<v>%s%s@," head front;
+  fprintf formatter "%stype:obligationsnumber@," head;
+  fprintf formatter "%scount:%d@," head no;
+  fprintf formatter "%s%s@]" head back;
+  ()

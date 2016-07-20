@@ -77,7 +77,7 @@ method private parse_formula acc ({ location; level; new_symbols;
       match opd with
       | O_builtin_op { name = "$Pick";  _  } ->
          (
-         Printf.printf "Pick! %s" (format_location location); (* *)
+         (* Printf.printf "Pick! %s" (format_location location); *)
          (* recurse on subterms *)
          let acc1 = super#theorem acc thm in
          let extract = self#get_macc_extractor in

@@ -25,13 +25,6 @@ type model = model_entry list
 
 type mod_tree = UNSAT | UNKNOWN | SAT of model
 
-
-
-
-
-
-
-
 	      
 (* SEXP TO MOD_TREE *)
 		
