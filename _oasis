@@ -16,7 +16,8 @@ Executable tlapm
   BuildDepends: xmlm,
                 str,
                 unix,
-                sexplib
+                sexplib,
+                result
 
 
 Document tlapm_api

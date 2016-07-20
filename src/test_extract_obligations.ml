@@ -14,6 +14,7 @@ let fmt_prover = function
   | Zenon -> "Zenon"
   | SMT -> "SMT"
   | LS4 -> "LS4"
+  | Tlaps -> "TLAPS"
   | Default -> "Default provers"
 
 let test_extract_obligations record () =

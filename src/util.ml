@@ -104,8 +104,7 @@ let temp_file (clean_hook : (unit -> unit) ref) suffix =
    *)
 
 (* some general formatting utils *)
-let fmt_string formatter string =
-  fprintf formatter "%s" string
+let fmt_string = pp_print_string
 
 let fmt_pair ?front:(f="(") ?middle:(m=", ") ?back:(b=")")
             fmt_left fmt_right formatter (x,y) =

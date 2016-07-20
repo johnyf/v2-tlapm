@@ -15,10 +15,12 @@ The compilation requirements are:
 * xmlm (http://erratique.ch/software/xmlm)
 * kaputt (http://kaputt.x9c.fr)
 * oasis (http://oasis.forge.ocamlcore.org)
+* result (if you are running ocaml < 4.03 )
+* sexplib
 
 The easiest way to install them is via opam (https://opam.ocaml.org):
 
-opam install oasis xmlm kaputt
+opam install oasis xmlm kaputt result sexplib
 
 To initialize the configuration, call
 

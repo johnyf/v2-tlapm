@@ -15,6 +15,7 @@ open Mod
 open Settings
 open Arg_handler
 open Toolbox
+open Result
 
 
 (*
@@ -150,7 +151,7 @@ let print_some obligations n =
     | hd::tl -> let t = (f hd n) in t::(map_bis f tl (n+1))
   in
   ignore (map_bis f obligations 1)
-	 
+
 let print_all obligations n =
   let f obl k =
     let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in
@@ -169,7 +170,6 @@ let print_all obligations n =
     ignore(Sys.command sk) ;
     let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in
     ignore(Sys.command nunk);
-       
   in
   let rec map_bis f l n = match l with
     | [] -> []
@@ -182,8 +182,9 @@ let print_all obligations n =
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd { check_schema; java_path; include_paths; input_file } =
   let fmt_path = fmt_option ~none:"java" ~some:"" ~some_back:"" fmt_string in
-  let fmt_include = fmt_list ~front:"-I \"" ~middle:"\" -I \""
-                             ~back:"\"" fmt_string in
+  let fmt_include = fmt_list ~front:"" ~middle:""
+                             ~back:""
+                             (fun fmt s -> fprintf fmt "-I \"%s\" " s) in
   let fmt_offline = if check_schema then "" else "-o" in
   let bin_string = Array.get Sys.argv 0 in
   let lib_path= Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
@@ -207,25 +208,52 @@ let rec dump_channel c =
   ()
 
 let load_sany settings =
-      let fds = match settings.xml_input with
-        | true  ->
-           (* load sany xml ast from file *)
-           let channel = open_in settings.input_file in
-           (* close_in channel; *)
-           Xml_channel channel
-        | false ->
-           (* load tla file from file calling java *)
-           let env = Unix.environment () in
-           let (jin, jout, jerr) =
-             Unix.open_process_full (java_cmd settings) env in
-           (*           Unix.close_process_full fds; *)
-           TLA_channel (jin, jout, jerr)
-      in
-      let channel = match fds with
-        | Xml_channel c -> c
-        | TLA_channel (c, _, _) -> c
-      in
-      Sany.import_xml channel
+  let tla_error = "TLA to XML conversion error" in
+  let fds = match settings.xml_input with
+    | true  ->
+       (* load sany xml ast from file *)
+       let channel = open_in settings.input_file in
+       (* close_in channel; *)
+       Xml_channel channel
+    | false ->
+       (* load tla file from file calling java *)
+       let env = Unix.environment () in
+       let (jin, jout, jerr) =
+         Unix.open_process_full (java_cmd settings) env in
+       (*           Unix.close_process_full fds; *)
+       TLA_channel (jin, jout, jerr)
+  in
+  let channel = match fds with
+    | Xml_channel c -> c
+    | TLA_channel (c, _, _) -> c
+  in
+  let sany_context =
+    try
+      Ok (Sany.import_xml channel)
+    with
+    | e ->
+       Error e
+  in
+  let exit_code = match fds with
+    | Xml_channel c ->
+       Unix.close_process_in c
+    | TLA_channel (stdin, stdout, stderr) ->
+       Unix.close_process_full (stdin, stdout, stderr)
+  in
+  match (exit_code, sany_context) with
+  | WEXITED 0,    Ok sc -> sc
+  | WEXITED code, _ ->
+     let msg = asprintf "%s: java return code is %d"
+                        tla_error code
+         in
+         failwith msg
+      | _, Error e ->
+         raise e
+      | _, _ ->
+         let msg = asprintf "%s: unknown error calling java process."
+                 tla_error
+         in
+         failwith msg
 
 let compute_obligations settings sany_context =
       (* extract builtins from file *)
@@ -275,8 +303,6 @@ let announce_all_failed settings formatter obligations =
 
 type exit_status = Exit_status of int
 
-	 
-
 let nunchaku_backend settings obligations =
   let filename = "dummy" in
   match settings.models_in_tla with
@@ -301,13 +327,16 @@ let init () =
   Printexc.record_backtrace true;
   try begin
       let settings = handle_arguments Sys.argv in
-      (*
-       Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-       Format.fprintf Format.std_formatter "call command: %s@." (java_cmd settings);
-       *)
+      if settings.verbose then
+        begin
+          Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
+          Format.fprintf Format.std_formatter "call command: %s@."
+                         (java_cmd settings);
+        end;
       let sany_context = load_sany settings in
       let obligations = compute_obligations settings sany_context in
       announce_obligations settings err_formatter obligations;
+      (* here goes the calling of backends *)
       Exit_status 0
     end
   with
