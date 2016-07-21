@@ -64,7 +64,7 @@ let fmt_prover f x =
 let fmt_toolbox_msg_d formatter id location status ?prover:prover
                       ?meth:meth ?already_processed:already_processed
                       ?obligation_string:obligation_string =
-  fprintf formatter "@[<v>%s%s@," head front;
+  fprintf formatter "@.@[<v>%s%s@," head front;
   fprintf formatter "%stype:obligation@," head;
   fprintf formatter "%sid:%d@," head id;
   fprintf formatter "%sloc:%d:%d:%d:%d@," head
@@ -91,7 +91,7 @@ let fmt_toolbox_msg_d formatter id location status ?prover:prover
     | Some os -> fprintf formatter "%sobl:%s@," head os; ()
     | None -> ()
   end;
-  fprintf formatter "%s%s@]" head back;
+  fprintf formatter "%s%s@]@." head back;
   ()
 
 let fmt_toolbox_msg formatter { id; location; status; prover;

@@ -244,7 +244,21 @@ let announce_all_failed settings formatter obligations =
 type exit_status = Exit_status of int
 
 let nunchaku_backend obligations settings =
-  let f obligation = print_string (Nunchaku.nunchaku_result_printer (Nunchaku.nunchaku settings obligation)) in
+  let f obligation =
+    let result = Nunchaku.nunchaku_result_printer (Nunchaku.nunchaku settings obligation) in
+    let toolbox_msg = {
+        id       = obligation.id;
+        location = obligation.location;     
+        status   = Proved;                (* TO DO *)
+        prover   = None;           
+        meth     = None;  
+        already_processed = Some false;     (* fingerprint used *)
+        obligation_string = Some result;
+      }
+    in
+    print_string "\n\n";
+    fmt_toolbox_msg std_formatter toolbox_msg
+  in
   ignore (List.map f obligations)
 
 let init () =
