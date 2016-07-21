@@ -46,6 +46,7 @@ type prover =
   | SMT
   | LS4
   | Tlaps
+  | Nunchaku
   | Default
 
 (** Creates a range from 0 to 0. *)

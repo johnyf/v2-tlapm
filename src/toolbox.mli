@@ -31,9 +31,9 @@ val fmt_toolbox_method : formatter -> toolbox_method -> unit
 val fmt_toolbox_msg    : formatter -> toolbox_msg -> unit
 (** Formatter for a toolbox_msg. Implements the type:obligation toolbox message. *)
                                                        
-val fmt_toolbox_msg_d  : formatter -> int -> location -> toolbox_status ->
-                         ?prover:prover -> ?meth:toolbox_method ->
-                         ?already_processed:bool -> ?obligation_string:string -> unit
+val fmt_toolbox_msg_d  : ?prover:prover -> ?meth:toolbox_method ->
+                         ?already_processed:bool -> ?obligation_string:string ->
+                         formatter -> int -> location -> toolbox_status -> unit
 (** Alternative formatter to fmt_toolbox_msg without the need to create the record. *)
                                                                                    
 val fmt_toolbox_msg_count : formatter -> int -> unit

@@ -339,7 +339,7 @@ let init () =
       Exit_status 0
     end
   with
-  | (Xmlm.Error ((line,col), error)) as x ->
+  | Xmlm.Error ((line,col), error) ->
      Printf.printf "Xmlm error at position %d:%d with error %s.\n" line col
                     (Xmlm.error_message error);
      Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
