@@ -5,7 +5,7 @@ open Simple_expr_visitor
 open Simple_expr_utils
 open Simple_expr_dereference
 open Nun_pb_ast
-open Tla_simple_pb_ast
+open Tla_simple_pb
        
 type fc = statement list * simple_term_db * term * bool 
 	    
@@ -62,4 +62,4 @@ val mk_fmt           : (fc -> 'a -> fc) ->
 
 val fmt_expr         : simple_term_db -> simple_expr -> statement list
 val fmt_assume_prove : simple_term_db -> simple_assume_prove -> statement list
-val simple_obl_to_nun_ast : simple_obligation -> statement list
+val simple_obl_to_nun_ast : tla_simple_pb -> statement list

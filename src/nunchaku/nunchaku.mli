@@ -3,8 +3,8 @@ open Nun_pb_ast
 open Nunchaku_formatter
 open Nun_sexp_ast
 open Expr_simple
-open Obligation
-open Tla_simple_pb_ast
+open Tla_pb
+open Tla_simple_pb
        
 type nunchaku_result = Nun_mod_ast.mod_tree
 
@@ -20,4 +20,4 @@ val nunchaku_result_printer : nunchaku_result -> string
 
 val call_nunchaku : statement list -> Sexplib.Type.t
 
-val nunchaku : 'a -> obligation -> Nun_mod_ast.mod_tree
+val nunchaku : 'a -> tla_pb -> Nun_mod_ast.mod_tree

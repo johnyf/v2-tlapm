@@ -5,7 +5,7 @@ open Simple_expr_utils
 open Simple_expr_dereference
 open Format
 open Nun_pb_ast
-open Tla_simple_pb_ast
+open Tla_simple_pb
        
 type fc = statement list * simple_term_db * term * bool
 	    

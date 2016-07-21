@@ -18,7 +18,7 @@ let test_simple_expr record () =
 		   Obligation_formatter.fmt_obligation obl;
 	   let s1' = flush_str_formatter () in
 	   fprintf fft "Obligation %d:\n%a\n\n" n
-		     Simple_obligation_formatter.fmt_obligation (Tla_simple_pb_ast.obligation_to_simple_obligation obl);
+		     Tla_simple_pb.fmt_tla_simple_pb (Tla_simple_pb.tla_pb_to_tla_simple_pb obl);
 	   let s2' = flush_str_formatter () in
 	   (s1'^s1,s2'^s2)
       in

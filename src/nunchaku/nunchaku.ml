@@ -4,8 +4,8 @@ open Nun_sexp_ast
 open Nunchaku_formatter
 open Nun_mod_ast
 open Expr_simple
-open Obligation
-open Tla_simple_pb_ast
+open Tla_pb
+open Tla_simple_pb
        
 type nunchaku_result = mod_tree
 let nunchaku_result_printer = mod_tree_to_string
@@ -23,7 +23,7 @@ let call_nunchaku nun_pb_ast =
               
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
-  let tla_simple_pb_ast = obligation_to_simple_obligation tla_pb_ast in
+  let tla_simple_pb_ast = Tla_simple_pb.tla_pb_to_tla_simple_pb tla_pb_ast in
   let nun_pb_ast = Nunchaku_formatter.simple_obl_to_nun_ast tla_simple_pb_ast in
   let nun_sexp_ast = call_nunchaku nun_pb_ast in
   let nun_mod_ast = Nun_mod_ast.sexp_to_mod_tree nun_sexp_ast in
