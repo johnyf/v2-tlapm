@@ -5,10 +5,9 @@ open Nunchaku_formatter
 open Nun_mod_ast
 open Expr_simple
 open Obligation
-open Simple_obligation
+open Tla_simple_pb_ast
        
 type nunchaku_result = mod_tree
-
 let nunchaku_result_printer = mod_tree_to_string
 
 let call_nunchaku nun_pb_ast =
@@ -21,20 +20,20 @@ let call_nunchaku nun_pb_ast =
   ignore(Sys.command call);
   sexp_parser sexp_file
 
-(* let obligation_to_simple_obligation { goal; expanded_defs; provers; term_db; *)
-(*                         constants; variables; definitions; *)
-(*                         assumptions; theorems; } = *)
-(*   let pars = new expr_to_simple_expr in *)
-(*   pars#assume_prove goal goal *)
               
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
-  let tla_simple_pb_ast = Simple_obligation.obligation_to_simple_obligation tla_pb_ast in
+  let tla_simple_pb_ast = obligation_to_simple_obligation tla_pb_ast in
   let nun_pb_ast = Nunchaku_formatter.simple_obl_to_nun_ast tla_simple_pb_ast in
   let nun_sexp_ast = call_nunchaku nun_pb_ast in
   let nun_mod_ast = Nun_mod_ast.sexp_to_mod_tree nun_sexp_ast in
   nun_mod_ast
 
+(* let obligation_to_simple_obligation { goal; expanded_defs; provers; term_db; *)
+(*                         constants; variables; definitions; *)
+(*                         assumptions; theorems; } = *)
+(*   let pars = new expr_to_simple_expr in *)
+(*   pars#assume_prove goal goal *)
 
     
 (* let print_simple obligations output_file = *)

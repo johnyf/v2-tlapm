@@ -4,8 +4,8 @@ open Nunchaku_formatter
 open Nun_sexp_ast
 open Expr_simple
 open Obligation
-open Simple_obligation
-
+open Tla_simple_pb_ast
+       
 type nunchaku_result = Nun_mod_ast.mod_tree
 
 (* val obligation_to_simple_obligation : obligation -> simple_obligation *)

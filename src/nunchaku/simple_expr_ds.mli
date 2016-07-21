@@ -1,51 +1,7 @@
 open Commons
 
-(**
-  These datastructures are close to the xml parser datastructures in sany_ds.
-  The differences are:
-  {ol
-   {- instead of location option we use dummy values (Commons.mkDummyLocation)}
-   {- the expr in expr_or_assume_prove is replaced by assume_prove without
-     assumptions }
-   {- new_symb_or_expr_or_assume_prove is reduced to assume_prove, similar to 2
-     the new symbols are stored in a separate list in assume prove. the order
-     in which they are declared is only relevant for the sany parser. }
-   {- builtin operator references are expanded to applications of $builtinname.
-     the expr_visitor will provide callbacks for each builtin.
-
-     builtins don't have a location anymore. }
-   {- entries in the context cannot contain references anymore }
-   {- module instance references are unfolded. }
-   {- operator definition references contain the name }
-   {- binders were included in opappl before. now they are their own
-      expression type  }
-   {- lambda abstractions are explicit now instead of being treated as
-      user defined operator with name LAMBDA  }
-   {- Renamings:
-    formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst = operator
-    user_defined_op_or_module_instance_or_theorem_or_assume = defined_expr
-   }
-  }
-
-  Still open:
-  {ul
-   {- what to do about references? by default, we don't unfold definitions, etc.
-     does it make so much more sense to refer to them by name instead of ints?
-     this only works for named objects like definitions, but not for unnamed
-     theorems etc.}
-   {- Module instance refer to modules by name, but they don't exist in the
-     representation anymore.
-     At the moment, we try to infer the module name from the definition name. }
-  }
-
-  How the datastructures work:
-  {ol
-    {- The context contains the actual data-structures with an index of a unique
-       reference id. Parent structures refer to their nested children using the
-       id, also within the context. }
-    {- The references may be cyclic (because of recursive definitions) }
-  }
-
+(** This datastructurs is similar to expressions but omitting some parts 
+   especially the proofs.
  *)
 
  (** Represents a TLA expression.
