@@ -2,9 +2,10 @@ open Sexplib.Type
 open Format
 open CCFormat
 
-
        
-(* AST DEFINITION *)
+
+
+(** Definition **)
        
 type term =
   | Var of string
@@ -23,10 +24,13 @@ type model_entry =
 
 type model = model_entry list
 
-type mod_tree = UNSAT | UNKNOWN | SAT of model
+type nun_mod = UNSAT | UNKNOWN | SAT of model
 
+
+
+                                          
 	      
-(* SEXP TO MOD_TREE *)
+(** Translation **)
 		
 let rec sexp_to_term t = match t with
   | Atom s -> Var s 	
@@ -119,7 +123,7 @@ let sexp_to_model_entry t = match t with
 								     
 let sexp_to_model l = List.map sexp_to_model_entry l
 			       
-let sexp_to_mod_tree t =
+let nun_sexp_to_nun_mod t =
   match t with
   | Atom "UNSAT" -> UNSAT
   | Atom "UNKNOWN" -> UNKNOWN
@@ -130,7 +134,7 @@ let sexp_to_mod_tree t =
 
 
 		  
-(* MOD_TREE PRINTER *)
+(** Printer **)
 
 let rec list_to_string print_one separator list =
     match list with
@@ -168,17 +172,17 @@ let model_entry_to_string m_e =
 let model_to_string model =
   list_to_string model_entry_to_string newline model
     
-let mod_tree_to_string t =
+let nun_mod_to_string t =
   match t with
   | UNSAT -> "UNSAT"
   | UNKNOWN -> "UNKNOWN"
   | SAT model -> ("SAT (\n"^(model_to_string model)^")")
   	      
-let print_mod_tree output_file mod_tree =
+let print_nun_mod output_file mod_tree =
   (*val: string -> mod_tree -> unit*)
   let oc = open_out output_file in
   let fft = formatter_of_out_channel oc in
-  fprintf fft "%s" (mod_tree_to_string mod_tree);
+  fprintf fft "%s" (nun_mod_to_string mod_tree);
   fprintf fft "@.%!";
   print_flush ();
   close_out oc

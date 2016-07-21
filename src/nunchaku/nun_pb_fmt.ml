@@ -4,7 +4,7 @@ open Simple_expr_visitor
 open Simple_expr_utils
 open Simple_expr_dereference
 open Format
-open Nun_pb_ast
+open Nun_pb
 open Tla_simple_pb
        
 type fc = statement list * simple_term_db * term * bool
@@ -305,12 +305,24 @@ object(self)
     | x -> `Undefined x (* catchall case *)
 end
 
+
+			    
+			    
+
+
+
+
+
+
+
+
+
 let expr_formatter = new formatter
 
 let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
   let initial_commands = [
       comm "Initial commands";
-      include_ "\"nun\prelude.nun\"";
+      include_ "\"prelude.nun\"";
       comm "End of initial commands";
     ] in
   let acc = (List.rev initial_commands, term_db, Unknown "starting term", true) in
@@ -320,8 +332,5 @@ let mk_fmt (f : fc -> 'a -> fc) term_db (goal : 'a) =
 let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
-
+  
 let simple_obl_to_nun_ast { goal; term_db; } = List.rev (fmt_assume_prove term_db goal)
-
-			    
-			    

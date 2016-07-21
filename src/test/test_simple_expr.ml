@@ -1,7 +1,7 @@
 open Kaputt.Abbreviations
 open Expr_ds
 open Simple_expr_ds
-open Expr_simple
+open Simple_expr
 open Util
 open Test_common
 open Format

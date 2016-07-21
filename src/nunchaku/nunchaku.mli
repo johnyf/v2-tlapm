@@ -1,23 +1,14 @@
-open Obligation
-open Nun_pb_ast
-open Nunchaku_formatter
-open Nun_sexp_ast
-open Expr_simple
 open Tla_pb
 open Tla_simple_pb
+open Nun_pb
+open Nun_pb_fmt
+open Nun_sexp
+open Nun_mod
        
-type nunchaku_result = Nun_mod_ast.mod_tree
-
-(* val obligation_to_simple_obligation : obligation -> simple_obligation *)
-                         
+type nunchaku_result = nun_mod
+                      
 val nunchaku_result_printer : nunchaku_result -> string
        
-(* val print_simple : obligation list -> string -> unit *)
+val call_nunchaku : statement list -> nun_sexp
 
-(* val print_complex : obligation list -> string -> unit *)
-
-(* val print_nunchaku : obligation list -> string -> int *)
-
-val call_nunchaku : statement list -> Sexplib.Type.t
-
-val nunchaku : 'a -> tla_pb -> Nun_mod_ast.mod_tree
+val nunchaku : 'a -> tla_pb -> nun_mod

@@ -1,21 +1,19 @@
-open Format
-open CCFormat
-open Nun_sexp_ast
-open Nunchaku_formatter
-open Nun_mod_ast
-open Expr_simple
 open Tla_pb
 open Tla_simple_pb
+open Nun_pb
+open Nun_pb_fmt
+open Nun_sexp
+open Nun_mod
        
-type nunchaku_result = mod_tree
-let nunchaku_result_printer = mod_tree_to_string
+type nunchaku_result = nun_mod
+let nunchaku_result_printer = nun_mod_to_string
 
 let call_nunchaku nun_pb_ast =
   let nun_file = "tmp.nun" in
   let sexp_file = "tmp.sexp" in
   let oc = open_out nun_file in
-  let fft = formatter_of_out_channel oc in
-  Nun_pb_ast.print_statement_list fft nun_pb_ast;
+  let fft = Format.formatter_of_out_channel oc in
+  print_statement_list fft nun_pb_ast;
   let call = "nunchaku -o sexp "^nun_file^" > "^sexp_file in
   ignore(Sys.command call);
   sexp_parser sexp_file
@@ -23,48 +21,13 @@ let call_nunchaku nun_pb_ast =
               
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
-  let tla_simple_pb_ast = Tla_simple_pb.tla_pb_to_tla_simple_pb tla_pb_ast in
-  let nun_pb_ast = Nunchaku_formatter.simple_obl_to_nun_ast tla_simple_pb_ast in
+  let tla_simple_pb_ast = tla_pb_to_tla_simple_pb tla_pb_ast in
+  let nun_pb_ast = simple_obl_to_nun_ast tla_simple_pb_ast in
   let nun_sexp_ast = call_nunchaku nun_pb_ast in
-  let nun_mod_ast = Nun_mod_ast.sexp_to_mod_tree nun_sexp_ast in
+  let nun_mod_ast = nun_sexp_to_nun_mod nun_sexp_ast in
   nun_mod_ast
 
-(* let obligation_to_simple_obligation { goal; expanded_defs; provers; term_db; *)
-(*                         constants; variables; definitions; *)
-(*                         assumptions; theorems; } = *)
-(*   let pars = new expr_to_simple_expr in *)
-(*   pars#assume_prove goal goal *)
-
     
-(* let print_simple obligations output_file = *)
-(*   (\*val: obligation list -> unit*\) *)
-(*   let print_obl fft no obl = *)
-(*     fprintf fft "Obligation %d:\n%a\n\n" no *)
-(* 	    Simple_obligation_formatter.fmt_obligation (Simple_obligation.obligation_to_simple_obligation obl); *)
-(*     no+1 *)
-(*   in *)
-(*   let oc = open_out output_file in *)
-(*   let fft = formatter_of_out_channel oc in *)
-(*   let for_each_obligation = print_obl fft in *)
-(*   ignore(List.fold_left for_each_obligation 1 obligations); *)
-(*   fprintf fft "@.%!"; *)
-(*   close_out oc *)
-
-	    
-(* let print_complex obligations output_file = *)
-(*   (\*val: obligation list -> unit*\) *)
-(*   let print_obl fft no obl = *)
-(*     fprintf fft "Obligation %d:\n%a\n\n" no *)
-(* 	    Obligation_formatter.fmt_obligation obl; *)
-(*     no+1 *)
-(*   in *)
-(*   let oc = open_out output_file in *)
-(*   let fft = formatter_of_out_channel oc in *)
-(*   let for_each_obligation = print_obl fft in *)
-(*   ignore(List.fold_left for_each_obligation 1 obligations); *)
-(*   fprintf fft "@.%!"; *)
-(*   close_out oc *)
-
 
 (* let print_nunchaku obligations output_file = *)
 (*   (\*val: obligation list -> unit*\) *)
