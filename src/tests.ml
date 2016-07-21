@@ -16,7 +16,7 @@ let check_xmloutput =
   with Not_found -> false
 
 
-let addpath = (fun (str : string) -> "test/resources/xml/" ^ str ^ ".xml")
+let addpath = (fun (str : string) -> "test/xml/" ^ str ^ ".xml")
 
 let id x = true
 
@@ -67,7 +67,7 @@ let () =
         Test_parse_theorems.get_tests without_broken;
         Test_extract_obligations.get_tests without_broken;
         Test_formatter.get_tests without_broken (* *);
-	Test_simple_expr.get_tests without_broken;
+        (*	Test_simple_expr.get_tests without_broken; *)
         Test_issue2.get_tests without_broken;
       ] in
 
