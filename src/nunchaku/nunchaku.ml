@@ -11,16 +11,17 @@ let nunchaku_result_printer = nun_mod_to_string
 
 let call_nunchaku nun_pb_ast settings =
   let path = settings.pm_path ^ "/nunchaku/" in
-  let nun_file = path^"tmp.nun" in
-  let sexp_file = path^"tmp.sexp" in
+  let nun_file = Sys.getcwd() ^ "/"^ path^"tmp.nun" in
+  let sexp_file = Sys.getcwd() ^"/"^ path^"tmp.sexp" in
   let oc = open_out nun_file in
   let fft = Format.formatter_of_out_channel oc in
-  print_statement_list fft nun_pb_ast;
-  let call = "nunchaku -o sexp "^nun_file^" > "^sexp_file in
+  Format.fprintf fft "%a@." print_statement_list nun_pb_ast;
+  close_out oc;
+  let call = Printf.sprintf "nunchaku -o sexp '%s' > '%s'" nun_file sexp_file in
   ignore(Sys.command call);
   let nun_sexp_ast = sexp_parser sexp_file in
-  (* ignore(Sys.command ("rm "^nun_file)); *)
-  (* ignore(Sys.command ("rm "^sexp_file)); *)
+  ignore(Sys.command ("rm "^nun_file));
+  ignore(Sys.command ("rm "^sexp_file));
   nun_sexp_ast
     
               
