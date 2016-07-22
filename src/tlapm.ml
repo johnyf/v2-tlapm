@@ -232,7 +232,7 @@ let announce_all_failed settings formatter obligations =
               Obligation_formatter.fmt_obligation obl;*)
               let obligation_string =
                 Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
-              let r = {id=no; location=obl.location; status = Failed;
+              let r = {id=obl.id; location=obl.location; status = Failed;
                        prover = Some Tlaps; meth=None;
                        already_processed = Some false; obligation_string } in
               fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
@@ -251,16 +251,16 @@ let nunchaku_backend obligations settings =
        let result_string = Nunchaku.nunchaku_result_printer (result) in
        let toolbox_msg = {
            id       = obligation.id;
-           location = obligation.location;     
+           location = obligation.location;   
            status   = Failed;        
-           prover   = None;           
+           prover   = Some Nunchaku;
            meth     = None;  
            already_processed = Some false;
            obligation_string = Some result_string;
          }
        in
        print_string "\n\n";
-       fmt_toolbox_msg std_formatter toolbox_msg
+       fmt_toolbox_msg err_formatter toolbox_msg
     | _ -> ()
   in
   ignore (List.map f obligations)

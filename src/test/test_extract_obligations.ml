@@ -15,6 +15,7 @@ let fmt_prover = function
   | SMT -> "SMT"
   | LS4 -> "LS4"
   | Tlaps -> "TLAPS"
+  | Nunchaku -> "Nunchaku"
   | Default -> "Default provers"
 
 let test_extract_obligations record () =

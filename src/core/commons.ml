@@ -46,6 +46,7 @@ type prover =
   | SMT
   | LS4
   | Tlaps
+  | Nunchaku
   | Default
 
 let mkDummyRange = { rbegin = 0; rend = 0 }

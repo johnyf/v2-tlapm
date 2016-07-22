@@ -56,6 +56,7 @@ let prover_string = function
   | SMT      -> "smt"
   | LS4      -> "ls4"
   | Tlaps    -> "tlaps"
+  | Nunchaku -> "nunchaku"
   | Default  -> ""
 
 let fmt_prover f x =

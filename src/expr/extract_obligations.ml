@@ -155,7 +155,7 @@ let cc_replace cc acc =
 
 (* generates an obligation id based on the current list of obligations *)
 let generate_id acc =
-  get_obligations acc |> length
+  (length (get_obligations acc)) + 1
  
 (* that doesn't work in general anymore, because builtins are expanded and
     may not be present in the term db anymore *)
