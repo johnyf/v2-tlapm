@@ -3,6 +3,7 @@ open Expr_ds
 open Simple_expr_ds
 open Any_simple_expr
 open Expr_dereference
+open Util
 
        
 
@@ -18,6 +19,11 @@ let get_any (_,_,any) = any
 let set_term_db (_,simple_term_db,any) term_db = (term_db,simple_term_db,any)
 let set_simple_term_db (term_db,_,any) simple_term_db = (term_db,simple_term_db,any)
 let set_any (term_db,simple_term_db,_) any = (term_db,simple_term_db,any)
+
+let print_tdb_ids ?msg:(m="") acc =
+  let tdb = get_simple_term_db acc in
+  Format.printf "Tdb ids %s: %a@." m (fmt_list Format.pp_print_int) (List.map fst tdb);
+  acc
 
 class extractor = object
   inherit [anySimpleExpr] any_extractor
@@ -51,9 +57,6 @@ class expr_to_simple_expr = object(self)
   method at acc x = failwith "Remove at first."
   method label acc x = failwith "Remove first."
   method let_in acc x = failwith "Remove first."
-
-
-
 
 				 
   (** ----------------------------------------------**)			       
@@ -137,7 +140,7 @@ class expr_to_simple_expr = object(self)
        in
        let sop_arg = EO_op_arg (unany#op_arg (get_any acc1))
        in
-       set_any acc1 (Any_expr_or_op_arg sop_arg)
+       set_any acc1 (Any_expr_or_op_arg sop_arg) 
 	       
 	       
   (** Binder **)   
@@ -168,7 +171,7 @@ class expr_to_simple_expr = object(self)
 	operand           = soperand; 
 	bound_symbols     = sbs
     }
-    in set_any acc3 (Any_binder sx)
+    in set_any acc3 (Any_binder sx) 
 
 
 	       
@@ -186,7 +189,7 @@ class expr_to_simple_expr = object(self)
      in
      let sbbs = B_bounded_bound_symbol (unany#bounded_bound_symbol (get_any acc1))
      in
-     set_any acc1 (Any_bound_symbol sbbs)
+     set_any acc1 (Any_bound_symbol sbbs) 
 
 
 	       
@@ -200,7 +203,7 @@ class expr_to_simple_expr = object(self)
 	param             = sparam;
 	tuple             = x.tuple
     }
-    in set_any acc1 (Any_unbounded_bound_symbol sx)
+    in set_any acc1 (Any_unbounded_bound_symbol sx) 
 
 
 
@@ -225,7 +228,7 @@ class expr_to_simple_expr = object(self)
 	domain            = sdomain 
     }
     in
-    set_any acc2 (Any_bounded_bound_symbol sx)
+    set_any acc2 (Any_bounded_bound_symbol sx) 
 
 
   (** Lambda **)	       
@@ -250,7 +253,7 @@ class expr_to_simple_expr = object(self)
 	body              = sbody; 
 	params            = sparams
     }
-    in set_any acc2 (Any_lambda sx)
+    in set_any acc2 (Any_lambda sx) 
 
 
 	       
@@ -286,21 +289,21 @@ class expr_to_simple_expr = object(self)
 	prove             = sprove
       }
     in
-    set_any acc3 (Any_assume_prove sx)
+    set_any acc3 (Any_assume_prove sx) 
 
 
 	       
   (** New symb **)	
   method new_symb acc x =
-    let (acc1,sset) = match x.set with	
+    let (acc1, sset) = match x.set with	
       | None -> (acc,None)
       | Some e ->
 	 let acct = self#expr acc e
 	 in
 	 let se = unany#expr (get_any acct)
-	 in (acct,Some se)
+	 in (acct, Some se)
     in
-    let acc2 = self#op_decl acc x.op_decl
+    let acc2 = self#op_decl acc1 x.op_decl
     in
     let sop_decl = unany#op_decl (get_any  acc2) in
     let sx = {
@@ -309,7 +312,7 @@ class expr_to_simple_expr = object(self)
 	op_decl           = sop_decl; 
 	set               = sset
     }
-    in set_any acc2 (Any_new_symb sx)
+    in set_any acc2 (Any_new_symb sx) 
 
 
 	       
@@ -329,7 +332,7 @@ class expr_to_simple_expr = object(self)
        let sbo = unany#builtin_op (get_any acc1)
        in
        let sx = O_builtin_op sbo
-       in set_any acc1 (Any_op_def sx)
+       in set_any acc1 (Any_op_def sx) 
 
 
 	       
@@ -353,7 +356,7 @@ class expr_to_simple_expr = object(self)
 	params            = sparams
     }
     in
-    set_any acc1 (Any_builtin_op sx)
+    set_any acc1 (Any_builtin_op sx) 
 
 
 	    
@@ -365,7 +368,7 @@ class expr_to_simple_expr = object(self)
       let se = unany#expr (get_any acc1)
       in
       let sx = EMM_expr se
-      in set_any acc1 (Any_expr_or_module_or_module_instance sx)
+      in set_any acc1 (Any_expr_or_module_or_module_instance sx) 
    | EMM_module _ -> failwith "Can not convert modules!"
    | EMM_module_instance _ -> failwith "Can not convert modules!"
 
@@ -399,9 +402,9 @@ class expr_to_simple_expr = object(self)
       in
       let acc2 = (set_simple_term_db acc stdb2)
       in
-      set_any acc2 (Any_formal_param (FP_ref i))
+      set_any acc2 (Any_formal_param (FP_ref i)) 
     | FP fp_ -> let sx = FP sfp_
-		in set_any acc (Any_formal_param sx)
+		in set_any acc (Any_formal_param sx) 
 
 			   
   (** Op_decl **) 		   		 
@@ -427,9 +430,10 @@ class expr_to_simple_expr = object(self)
       in
       let acc1 = (set_simple_term_db acc stdb2)
       in
-      set_any acc1 (Any_op_decl (OPD_ref i))
+      (*      Format.fprintf Format.std_formatter "@[Added OPDecl id %d to db!@]@." i; *)
+      set_any acc1 (Any_op_decl (OPD_ref i)) 
     | OPD od_ -> let sx = OPD sod_
-		 in set_any acc (Any_op_decl sx)
+		 in set_any acc (Any_op_decl sx) 
 
 			    
   (** User_defined_op **) 		   		 			    
@@ -468,11 +472,12 @@ class expr_to_simple_expr = object(self)
        in
       let stdb2 = add (i,OPDef_entry (O_user_defined_op (UOP sudo_))) (get_simple_term_db acc2)
       in
+      (* Format.fprintf Format.std_formatter "@[Added UOP id %d to db!@]@." i; *)
       let acc3 = (set_simple_term_db acc2 stdb2)
       in
-      set_any acc3 (Any_user_defined_op (UOP_ref i))
+      set_any acc3 (Any_user_defined_op (UOP_ref i)) 
     | UOP _ -> let sx = UOP sudo_
-	       in set_any acc2 (Any_user_defined_op sx)
+	       in set_any acc2 (Any_user_defined_op sx) 
 
 
 
@@ -490,21 +495,21 @@ class expr_to_simple_expr = object(self)
        let se = unany#formal_param (get_any acc1)
        in
        let sx = FMOTA_formal_param se
-       in set_any acc1 (Any_operator sx)
+       in set_any acc1 (Any_operator sx) 
     | FMOTA_op_decl e ->
        let acc1 = self#op_decl acc e
        in
        let se = unany#op_decl (get_any acc1)
        in
        let sx = FMOTA_op_decl se
-       in set_any acc1 (Any_operator sx)
+       in set_any acc1 (Any_operator sx) 
     | FMOTA_op_def e ->
        let acc1 = (self#op_def acc e)
        in
        let se = unany#op_def (get_any acc1)
        in
        let sx = FMOTA_op_def se
-       in set_any acc1 (Any_operator sx)
+       in set_any acc1 (Any_operator sx) 
     | FMOTA_theorem e -> failwith "TODO : extract statement from theorems"
     | FMOTA_module _ -> failwith "Cannot convert module!"
     | FMOTA_assume _ -> failwith "Cannot convert assume!"
@@ -518,24 +523,24 @@ class expr_to_simple_expr = object(self)
       let se = unany#decimal (get_any (self#decimal acc e))
       in
       let sx = E_decimal se
-      in set_any acc (Any_expr sx)
+      in set_any acc (Any_expr sx) 
     | E_numeral e -> 			 
       let se = unany#numeral (get_any (self#numeral acc e))
       in
       let sx = E_numeral se
-      in set_any acc (Any_expr sx)
+      in set_any acc (Any_expr sx) 
     | E_string e -> 			 
       let se = unany#strng (get_any (self#strng acc e))
       in
       let sx = E_string se
-      in set_any acc (Any_expr sx)
+      in set_any acc (Any_expr sx) 
     | E_lambda e -> 			 
       let acc1 = self#lambda acc e
       in
       let se = unany#lambda (get_any acc1)
       in
       let sx = E_lambda se
-      in set_any acc1 (Any_expr sx)
+      in set_any acc1 (Any_expr sx) 
     | E_op_appl e ->
        (
 	 match e.operator with
@@ -562,7 +567,7 @@ class expr_to_simple_expr = object(self)
 	    in
 	    let sx = E_op_appl se
 	    in
-	    set_any acc1 (Any_expr sx)
+	    set_any acc1 (Any_expr sx) 
        )
     | E_binder e ->
        let acc1 = self#binder acc e
@@ -570,7 +575,7 @@ class expr_to_simple_expr = object(self)
        let se = unany#binder (get_any acc1)
        in
        let sx = E_binder se
-       in set_any acc1 (Any_expr sx)
+       in set_any acc1 (Any_expr sx) 
     | E_subst_in e -> failwith "remove -subst_in- during preprocessing"
     | E_label _ -> failwith "remove -label- during preprocessing"
     | E_at _ -> failwith "remove -at- during preprocessing"
@@ -586,7 +591,7 @@ class expr_to_simple_expr = object(self)
         name              = fp_.name;
         arity             = fp_.arity;
 	}
-      in set_any acc (Any_entry (i,FP_entry sfp_))
+      in set_any acc (Any_entry (i,FP_entry sfp_)) 
     | (i, OPDec_entry od_) ->
       let sod_:simple_op_decl_ = {
         location          = od_.location;
@@ -595,12 +600,12 @@ class expr_to_simple_expr = object(self)
         arity             = od_.arity;
         kind              = od_.kind;
       }
-      in set_any acc (Any_entry (i,OPDec_entry sod_))
+      in set_any acc (Any_entry (i,OPDec_entry sod_)) 
     | (i, OPDef_entry op) ->
       let acc1 = self#op_def acc op
       in
       let sop = unany#op_def (get_any acc1)
-      in set_any acc1 (Any_entry (i,OPDef_entry sop))
+      in set_any acc1 (Any_entry (i,OPDef_entry sop)) 
     | (_,MOD_entry _) -> failwith "Can not get module as entry" 			 
     | (_,THM_entry _) -> failwith "Can not get theorem as entry" 			 
     | (_,ASSUME_entry _) -> failwith "Can not get assume as entry" 			 

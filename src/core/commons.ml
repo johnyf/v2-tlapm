@@ -72,3 +72,13 @@ let fmt_location f { filename = fn;
   fprintf f "@[%s:%d,%d-%d,%d@]" fn l.rbegin c.rbegin l.rend c.rend;
   ()
 
+let format_prover = function
+  | Isabelle -> "Isabelle"
+  | Zenon -> "Zenon"
+  | SMT -> "SMT"
+  | LS4 -> "LS4"
+  | Tlaps -> "TLAPS"
+  | Default -> "Default provers"
+
+let fmt_prover f p =
+  fprintf f "%s" (format_prover p)

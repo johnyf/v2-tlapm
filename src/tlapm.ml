@@ -277,7 +277,7 @@ let init () =
         end;
       let sany_context = load_sany settings in
       let obligations = compute_obligations settings sany_context in
-      announce_obligations settings err_formatter obligations;
+      (* announce_obligations settings err_formatter obligations; *)
       (* here goes the calling of backends *)
       nunchaku_backend obligations settings;
       

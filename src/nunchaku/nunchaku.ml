@@ -28,6 +28,14 @@ let call_nunchaku nun_pb_ast settings =
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
   let tla_simple_pb_ast = tla_pb_to_tla_simple_pb tla_pb_ast in
+  if settings.verbose then
+    begin
+      Printf.printf "Obl : %a\n" (Expr_formatter.fmt_assume_prove obligation.term_db)
+                    obligation.goal;
+      let tdb = tla_simple_pb_ast.term_db in
+      let goal  = tla_simple_pb_ast.goal in
+      Printf.printf "SObl: %a\n\n" (Simple_expr_formatter.fmt_assume_prove tdb) goal;
+    end;
   let nun_pb_ast = simple_obl_to_nun_ast tla_simple_pb_ast in
   let nun_sexp_ast = call_nunchaku nun_pb_ast settings in
   let nun_mod_ast = nun_sexp_to_nun_mod nun_sexp_ast in
