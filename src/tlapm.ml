@@ -245,19 +245,23 @@ type exit_status = Exit_status of int
 
 let nunchaku_backend obligations settings =
   let f obligation =
-    let result = Nunchaku.nunchaku_result_printer (Nunchaku.nunchaku settings obligation) in
-    let toolbox_msg = {
-        id       = obligation.id;
-        location = obligation.location;     
-        status   = Proved;                (* TO DO *)
-        prover   = None;           
-        meth     = None;  
-        already_processed = Some false;     (* fingerprint used *)
-        obligation_string = Some result;
-      }
-    in
-    print_string "\n\n";
-    fmt_toolbox_msg std_formatter toolbox_msg
+    let result = Nunchaku.nunchaku settings obligation in
+    match result with
+    | Nun_mod.SAT _ ->
+       let result_string = Nunchaku.nunchaku_result_printer (result) in
+       let toolbox_msg = {
+           id       = obligation.id;
+           location = obligation.location;     
+           status   = Failed;        
+           prover   = None;           
+           meth     = None;  
+           already_processed = Some false;
+           obligation_string = Some result_string;
+         }
+       in
+       print_string "\n\n";
+       fmt_toolbox_msg std_formatter toolbox_msg
+    | _ -> ()
   in
   ignore (List.map f obligations)
 

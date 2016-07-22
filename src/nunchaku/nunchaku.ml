@@ -4,26 +4,31 @@ open Nun_pb
 open Nun_pb_fmt
 open Nun_sexp
 open Nun_mod
+open Settings
        
 type nunchaku_result = nun_mod
 let nunchaku_result_printer = nun_mod_to_string
 
-let call_nunchaku nun_pb_ast =
-  let nun_file = "tmp.nun" in
-  let sexp_file = "tmp.sexp" in
+let call_nunchaku nun_pb_ast settings =
+  let path = settings.pm_path ^ "/nunchaku/" in
+  let nun_file = path^"tmp.nun" in
+  let sexp_file = path^"tmp.sexp" in
   let oc = open_out nun_file in
   let fft = Format.formatter_of_out_channel oc in
   print_statement_list fft nun_pb_ast;
   let call = "nunchaku -o sexp "^nun_file^" > "^sexp_file in
   ignore(Sys.command call);
-  sexp_parser sexp_file
-
+  let nun_sexp_ast = sexp_parser sexp_file in
+  (* ignore(Sys.command ("rm "^nun_file)); *)
+  (* ignore(Sys.command ("rm "^sexp_file)); *)
+  nun_sexp_ast
+    
               
 let nunchaku settings obligation =
   let tla_pb_ast = obligation in
   let tla_simple_pb_ast = tla_pb_to_tla_simple_pb tla_pb_ast in
   let nun_pb_ast = simple_obl_to_nun_ast tla_simple_pb_ast in
-  let nun_sexp_ast = call_nunchaku nun_pb_ast in
+  let nun_sexp_ast = call_nunchaku nun_pb_ast settings in
   let nun_mod_ast = nun_sexp_to_nun_mod nun_sexp_ast in
   nun_mod_ast
 
