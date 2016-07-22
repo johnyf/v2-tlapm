@@ -10,6 +10,7 @@ open Settings
 open Arg_handler
 open Toolbox
 open Result
+open Backend_exceptions
 
 
 (*
@@ -70,7 +71,7 @@ let handle_abort _ =
 (* let nun_to_sexp nun_file sexp_file = *)
 (*   let nunk = "nunchaku -o sexp "^nun_file^" > "^sexp_file in *)
 (*   ignore(Sys.command nunk) *)
-		  
+
 (* let print_nun k = *)
 (*   let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in *)
 (*   ignore(Sys.command sk) ; *)
@@ -80,15 +81,15 @@ let handle_abort _ =
 (* let rec call_nun k = match k with *)
 (*   | 0 -> (); *)
 (*   | _ -> call_nun (k-1) ; *)
-(* 	 nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp") *)
+(*          nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp") *)
 
 (* let sexp_to_mod sexp_file mod_file = *)
 (*   Mod.print_mod_tree mod_file (Mod.sexp_to_mod_tree (Sexp.sexp_parser sexp_file)) *)
-  		     
+
 (* let rec convert_to_mod k = match k with *)
 (*   | 0 -> (); *)
 (*   | _ -> convert_to_mod (k-1); *)
-(* 	 sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod") *)
+(*          sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod") *)
 
 (* let print_all obligations n = *)
 (*   let f obl k = *)
@@ -238,30 +239,34 @@ let announce_all_failed settings formatter obligations =
               fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
               no+1
             ) 1 obligations
-        ); 
+        );
       ()
 
 type exit_status = Exit_status of int
 
 let nunchaku_backend obligations settings =
   let f obligation =
-    let result = Nunchaku.nunchaku settings obligation in
-    match result with
-    | Nun_mod.SAT _ ->
-       let result_string = Nunchaku.nunchaku_result_printer (result) in
-       let toolbox_msg = {
-           id       = obligation.id;
-           location = obligation.location;   
-           status   = Failed;        
-           prover   = Some Nunchaku;
-           meth     = None;  
-           already_processed = Some false;
-           obligation_string = Some result_string;
-         }
-       in
-       print_string "\n\n";
-       fmt_toolbox_msg err_formatter toolbox_msg
-    | _ -> ()
+    try
+      let result = Nunchaku.nunchaku settings obligation in
+      match result with
+      | Nun_mod.SAT _ ->
+         let result_string = Nunchaku.nunchaku_result_printer (result) in
+         let toolbox_msg = {
+             id       = obligation.id;
+             location = obligation.location;
+             status   = Failed;
+             prover   = Some Nunchaku;
+             meth     = None;
+             already_processed = Some false;
+             obligation_string = Some result_string;
+           }
+         in
+         print_string "\n\n";
+         fmt_toolbox_msg err_formatter toolbox_msg
+      | _ -> ()
+    with
+    | UnhandledLanguageElement (_, _) ->
+       () (* fail gracefully for unhandled constructs *)
   in
   ignore (List.map f obligations)
 
@@ -277,10 +282,10 @@ let init () =
         end;
       let sany_context = load_sany settings in
       let obligations = compute_obligations settings sany_context in
-      (* announce_obligations settings err_formatter obligations; *)
+      announce_obligations settings err_formatter obligations;
       (* here goes the calling of backends *)
       nunchaku_backend obligations settings;
-      
+
       Exit_status 0
     end
   with
