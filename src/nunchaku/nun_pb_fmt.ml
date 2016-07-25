@@ -6,6 +6,7 @@ open Simple_expr_dereference
 open Format
 open Nun_pb
 open Tla_simple_pb
+open Backend_exceptions
        
 type fc = statement list * simple_term_db * term * bool
 	    
@@ -177,7 +178,8 @@ object(self)
        let op = dereference_user_defined_op (tdb acc) x
        in
        match op.recursive with
-       | true  -> failwith "Cannot deal with recursive user defined ops" 
+       | true  ->
+          raise (UnhandledLanguageElement  (Nunchaku, "Cannot deal with recursive user defined ops" ))
        | false -> let rec print_type n = match n with
 				     | 0 -> "u"
 				     | _ -> "u -> "^(print_type (n-1))
@@ -186,7 +188,8 @@ object(self)
 		  let acc2 = self#expr acc1 op.body in
 		  let acc3 = add_axiom [App (Builtin `Eq,[var op.name;(ter acc2)])] acc2 in
 		    (* TODO add rec if parameters *)
-		  if op.arity = 0 then set_term (var op.name) acc3 else failwith "Cannot handle user defined ops with arguments"
+		  if op.arity = 0 then set_term (var op.name) acc3 else
+                    raise (UnhandledLanguageElement (Nunchaku, "Cannot handle user defined ops with arguments"))
 	   
   method assume_prove acc { location; level; new_symbols; assumes;
                              prove; } =
@@ -223,7 +226,7 @@ object(self)
     acc2
 
   method let_in acc0 {location; level; body; op_defs } =
-    failwith "remove -let_in- during preprocessing"
+    raise (UnhandledLanguageElement (Nunchaku, "let in"))
 
   method label acc0 ({location; level; name; arity; body; params } : simple_label) =
     add_comm "LABEL" acc0
