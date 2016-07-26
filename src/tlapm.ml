@@ -13,111 +13,6 @@ open Result
 open Backend_exceptions
 
 
-(*
-module Clocks = struct
-  include Timing
-
-  let parsing = new_clock "parsing"
-  let print   = new_clock "formatting"
-  let elab    = new_clock "analysis"
-  let gen     = new_clock "generation"
-  let prep    = new_clock "simplification"
-  let backend = new_clock "interaction"
-  let check   = new_clock "checking"
-  let fp_loading = new_clock "fp_loading"
-  let fp_saving = new_clock "fp_saving"
-  let fp_compute = new_clock "fp_compute"
-
-  let pad_left md str = Printf.sprintf "%*s" md str
-
-  let report () =
-    let clocks =
-      [ total "total"; parsing; elab; gen; prep; print; backend; check;
-        fp_loading; fp_saving; fp_compute; ambient ]
-    in
-    let max_desc_width =
-      List.fold_left (fun mx cl -> max mx (String.length cl.desc)) 0 clocks
-    in
-    let clocks =
-      List.map (fun cl -> {cl with desc = pad_left max_desc_width cl.desc})
-               clocks
-    in
-    Util.printf "(* %s | time (seconds) *)"
-                (pad_left max_desc_width "operation");
-    Util.printf "(* %s-+--------------- *)" (String.make max_desc_width '-');
-    List.iter begin
-      fun cl -> Util.printf "(* %s  *)%!" (string_of_clock cl)
-    end (List.tl clocks);
-    Util.printf "(* %s-+--------------- *)" (String.make max_desc_width '-');
-    Util.printf "(* %s  *)" (string_of_clock (List.hd clocks));
-
-end
-
-let handle_abort _ =
-  if !Params.verbose then
-    Util.eprintf ~prefix:"FATAL: " ">>> Interrupted -- aborting <<<" ;
-  if !Params.stats then
-    Clocks.report () ;
-  Pervasives.exit 255
- *)
-
-
-(* let obl_to_nun obligations dir = *)
-(*   (\* Directory in which the .nun files will be created. One file per obligation. *\) *)
-(*   (\* The directory needs to exist, otherwise it won't work. *\) *)
-(*   (\* TODO Add a command to create the directory if it doesn't exist. *\) *)
-(*   print_nunchaku obligations dir *)
-
-(* let nun_to_sexp nun_file sexp_file = *)
-(*   let nunk = "nunchaku -o sexp "^nun_file^" > "^sexp_file in *)
-(*   ignore(Sys.command nunk) *)
-
-(* let print_nun k = *)
-(*   let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in *)
-(*   ignore(Sys.command sk) ; *)
-(*   let nunk = "nunchaku nun/nun/"^(string_of_int k)^".nun" in *)
-(*   ignore(Sys.command nunk) *)
-
-(* let rec call_nun k = match k with *)
-(*   | 0 -> (); *)
-(*   | _ -> call_nun (k-1) ; *)
-(*          nun_to_sexp ("nun/nun/"^(string_of_int k)^".nun") ("nun/sexp/"^(string_of_int k)^".sexp") *)
-
-(* let sexp_to_mod sexp_file mod_file = *)
-(*   Mod.print_mod_tree mod_file (Mod.sexp_to_mod_tree (Sexp.sexp_parser sexp_file)) *)
-
-(* let rec convert_to_mod k = match k with *)
-(*   | 0 -> (); *)
-(*   | _ -> convert_to_mod (k-1); *)
-(*          sexp_to_mod ("nun/sexp/"^(string_of_int k)^".sexp") ("nun/mod/"^(string_of_int k)^".mod") *)
-
-(* let print_all obligations n = *)
-(*   let f obl k = *)
-(*     let sk = "echo \"\n----- OBLIGATION "^(string_of_int k)^": -----\n\"" in *)
-(*     ignore(Sys.command sk) ; *)
-(*     fprintf std_formatter "%a" Obligation_formatter.fmt_obligation obl ; *)
-(*     print_newline (); *)
-(*     let sk = "echo \"\n----- NUNCHAKU "^(string_of_int k)^": -----\n\"" in *)
-(*     ignore(Sys.command sk) ; *)
-(*     let nunk = "cat nun/nun/"^(string_of_int k)^".nun" in *)
-(*     ignore(Sys.command nunk); *)
-(*     let sk = "echo \"\n----- SEXP "^(string_of_int k)^": -----\n\"" in *)
-(*     ignore(Sys.command sk) ; *)
-(*     let nunk = "cat nun/sexp/"^(string_of_int k)^".sexp" in *)
-(*     ignore(Sys.command nunk); *)
-(*     let sk = "echo \"\n----- MOD "^(string_of_int k)^": -----\n\"" in *)
-(*     ignore(Sys.command sk) ; *)
-(*     let nunk = "cat nun/mod/"^(string_of_int k)^".mod" in *)
-(*     ignore(Sys.command nunk); *)
-(*   in *)
-(*   let rec map_bis f l n = match l with *)
-(*     | [] -> [] *)
-(*     | hd::tl -> let t = (f hd n) in t::(map_bis f tl (n+1)) *)
-(*   in *)
-(*   ignore (map_bis f obligations 1) *)
-
-
-
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd { check_schema; java_path; include_paths; input_file; pm_path; _ } =
   let fmt_path = fmt_option ~none:"java" ~some:"" ~some_back:"" fmt_string in
@@ -245,9 +140,9 @@ let announce_all_failed settings formatter obligations =
 type exit_status = Exit_status of int
 
 let nunchaku_backend obligations settings =
-  let f obligation =
+  let f obligation no =
     try
-      let result = Nunchaku.nunchaku settings obligation in
+      let result = Nunchaku.nunchaku settings obligation no in
       match result with
       | Nun_mod.SAT _ ->
          let result_string = Nunchaku.nunchaku_result_printer (result) in
@@ -262,13 +157,14 @@ let nunchaku_backend obligations settings =
            }
          in
          print_string "\n\n";
-         fmt_toolbox_msg err_formatter toolbox_msg
-      | _ -> ()
+         fmt_toolbox_msg err_formatter toolbox_msg;
+         no+1
+      | _ -> no+1
     with
     | UnhandledLanguageElement (_, _) ->
-       () (* fail gracefully for unhandled constructs *)
+       no+1 (* fail gracefully for unhandled constructs *)
   in
-  ignore (List.map f obligations)
+  ignore (List.fold_right f obligations 1)
 
 let init () =
   Printexc.record_backtrace true;
