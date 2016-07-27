@@ -4,6 +4,7 @@ open Nun_pb
 open Nun_pb_fmt
 open Nun_sexp
 open Nun_mod
+open Tla_mod
 open Settings
        
 type nunchaku_result = nun_mod
@@ -47,6 +48,10 @@ let nunchaku settings obligation id =
   if (settings.overlord)
   then
     print_nun_mod (path^"tmp_nun_mod_"^(string_of_int id)^".txt") nun_mod ;
+  let tla_mod = nun_mod_to_tla_mod nun_mod in
+  if (settings.overlord)
+  then
+    print_tla_mod (path^"tmp_tla_mod_"^(string_of_int id)^".txt") tla_mod ;
   nun_mod
 
     
