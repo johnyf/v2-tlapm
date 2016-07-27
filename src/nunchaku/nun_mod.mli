@@ -19,7 +19,7 @@ type model_entry =
 
 type model = model_entry list
 
-type nun_mod = UNSAT | UNKNOWN | SAT of model
+type nun_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
 
                                           
 (** Translation **)
