@@ -165,7 +165,7 @@ let nunchaku_backend obligations settings =
   in
   let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
   ignore(Sys.command clear_tmp);
-  ignore (List.map f obligations)
+  ignore (List.map f (List.rev obligations))
 
 let init () =
   Printexc.record_backtrace true;
