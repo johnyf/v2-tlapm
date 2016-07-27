@@ -140,9 +140,9 @@ let announce_all_failed settings formatter obligations =
 type exit_status = Exit_status of int
 
 let nunchaku_backend obligations settings =
-  let f obligation no =
+  let f obligation =
     try
-      let result = Nunchaku.nunchaku settings obligation no in
+      let result = Nunchaku.nunchaku settings obligation obligation.id in
       match result with
       | Nun_mod.SAT _ ->
          let result_string = Nunchaku.nunchaku_result_printer (result) in
@@ -157,25 +157,20 @@ let nunchaku_backend obligations settings =
            }
          in
          print_string "\n\n";
-         fmt_toolbox_msg err_formatter toolbox_msg;
-         no+1
-      | _ -> no+1
+         fmt_toolbox_msg err_formatter toolbox_msg
+      | _ -> ()
     with
     | UnhandledLanguageElement (_, _) ->
-       no+1 (* fail gracefully for unhandled constructs *)
+       () (* fail gracefully for unhandled constructs *)
   in
-  ignore (List.fold_right f obligations 1)
+  let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
+  ignore(Sys.command clear_tmp);
+  ignore (List.map f obligations)
 
 let init () =
   Printexc.record_backtrace true;
   try begin
       let settings = handle_arguments Sys.argv in
-      if settings.verbose then
-        begin
-          Format.fprintf Format.std_formatter "%a@." fmt_settings settings;
-          Format.fprintf Format.std_formatter "call command: %s@."
-                         (java_cmd settings);
-        end;
       let sany_context = load_sany settings in
       let obligations = compute_obligations settings sany_context in
       announce_obligations settings err_formatter obligations;

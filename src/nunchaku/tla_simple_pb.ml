@@ -28,3 +28,10 @@ let fmt_tla_simple_pb pp { goal; term_db; } =
   ignore(Simple_expr_formatter.expr_formatter#assume_prove acc goal);
   Format.print_flush ()
 
+let print_tla_simple_pb file obl =
+  let oc = open_out file in
+  let fft = Format.formatter_of_out_channel oc in
+  Format.fprintf fft "%a" fmt_tla_simple_pb obl;
+  Format.fprintf fft "@.%!";
+  close_out oc
+                     

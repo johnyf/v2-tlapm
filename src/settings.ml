@@ -12,6 +12,7 @@ type settings = {
 
     (* pm settings *)
     verbose      : bool;
+    overlord     : bool;
     toolbox      : int_range;
     fingerprints : bool;
     input_file   : string;
@@ -32,6 +33,7 @@ let default_settings =
     (* pm settings *)
     toolbox      = { rbegin = 0; rend = 0};
     verbose      = false;
+    overlord     = true;       (* TODO change back to false *)
     fingerprints = false;
     input_file   = "";
     pm_path      = autodetect_executable_path ;
@@ -41,12 +43,13 @@ let default_settings =
   }
 
 let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
-                             verbose; toolbox; fingerprints; input_file;
+                             verbose; overlord; toolbox; fingerprints; input_file;
                              pm_path; models_in_tla } =
   fprintf formatter "@[<v 2>{@,";
   fprintf formatter "java path     = %a@,"
           (fmt_option ~some:"\"" ~some_back:"\"" fmt_string) java_path;
   fprintf formatter "verbose       = %b@," verbose;
+  fprintf formatter "overlord      = %b@," overlord;
   fprintf formatter "check schema  = %b@," check_schema;
   fprintf formatter "xml input     = %b@," xml_input;
   map (fprintf formatter "include directory: %s@,") include_paths;
