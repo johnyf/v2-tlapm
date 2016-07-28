@@ -68,11 +68,9 @@ let set_mem f = let (_,_,{cases;_}) = f in set_mem_ cases []
 let nun_to_tla_fun name fvar fdt = (name, List.map fst fvar, nun_to_tla_dt fdt)
 
 let add_fun name fvar fdt {u; var; mem; funs} = match name with
-  (* | "mem" -> {u; var; mem; funs} *)
-  (* | "trans_mem" -> {u; var; mem; funs} *)
+  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> {u; var; mem; funs}
   | "mem_raw" -> let mem' = nun_to_tla_fun name fvar fdt in
-                 {u=u; var=var; mem=set_mem mem'; funs=(mem')::funs}
-  (* TODO : unique_unsafe__??? *)
+                 {u=u; var=var; mem=set_mem mem'; funs=funs}
   | _ -> {u = u; var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs}    
   
 let add_to_mod nun_model_entry tla_model = match nun_model_entry with
@@ -143,13 +141,37 @@ let fmt_mem pp mem =
   let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
   fmt_list fmt_one "; " pp mem
 
-let tla_model_to_string pp {u; var; mem; funs} =
+let tla_model_to_string_verbose pp {u; var; mem; funs} =
   fprintf pp "@.";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "U = {" fmt_u u "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var var "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "FUNCTIONS = {" fmt_funs funs "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem mem "}"
 
+let rec get_set x mem = match mem with
+  | [] -> []
+  | (v,l)::q when v=x -> l
+  | t::q -> (get_set x q)
+
+let rec fmt_tla_set pp set_mem =
+  let (set,mem) = set_mem in
+  match set with
+  | [] -> ()
+  | [x] -> fprintf pp "{%a}" fmt_tla_set (get_set x mem, mem)
+  | t::q -> fprintf pp "{%a}, " fmt_tla_set (get_set t mem, mem);
+            fmt_tla_set pp (q,mem)
+              
+let rec fmt_var_with_mem pp var_mem =
+  let (var,mem) = var_mem in
+  match var with
+  | [] -> ()
+  | (n,v)::q -> fprintf pp "@.%s = {%a}" n fmt_tla_set ((get_set v mem), mem);
+                fmt_var_with_mem pp (q, mem)
+          
+let tla_model_to_string pp {u; var; mem; funs} =
+  fprintf pp "@[%a@]@." fmt_var_with_mem (var, mem);
+  fprintf pp "@[%a@]"fmt_funs funs
+          
 let fmt_tla_mod pp tla_mod =
   match tla_mod with
   | UNSAT -> fprintf pp "%s" "UNSAT"
