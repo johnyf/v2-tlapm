@@ -1,24 +1,19 @@
 open Nun_mod
        
-type term =
-  | Var of string
-  | App of string * term list
-  | Fun of (string*string) list * decision_tree			 
-
-and decision_tree =
-  {
-    cases: ((string * term) list * term) list;
-    else_ : term;
-  }
-
 type model = 
   {
     u    : string list ;
     var  : (string * string) list ;
     mem  : (string * (string list)) list ;
-    funs : (string * term) list
+    funs : (string * string list * decision_tree) list
   }
-    
+
+ and decision_tree =
+  {
+    cases: ((string * string) list * string) list;
+    else_ : string;
+  }
+
 type tla_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
 
                                           

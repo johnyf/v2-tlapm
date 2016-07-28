@@ -24,6 +24,10 @@ type nun_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
                                           
 (** Translation **)
 
+val term_to_string : term -> string
+
+val fun_conditions_to_string : (string*term) list -> string
+                               
 val nun_sexp_to_nun_mod : nun_sexp -> nun_mod
 
                                                  
