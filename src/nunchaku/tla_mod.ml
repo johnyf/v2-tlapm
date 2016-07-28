@@ -164,3 +164,9 @@ let print_tla_mod output_file tla_mod =
   Format.fprintf fft "@.%!";
   print_flush ();
   close_out oc
+
+let tla_mod_to_string tla_mod =  
+  let fft = str_formatter in
+  Format.fprintf fft "%a" fmt_tla_mod tla_mod;
+  flush_str_formatter ()
+                      

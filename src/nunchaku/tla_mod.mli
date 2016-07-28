@@ -27,3 +27,5 @@ val nun_mod_to_tla_mod : nun_mod -> tla_mod
 val fmt_tla_mod : Format.formatter -> tla_mod -> unit
                                      
 val print_tla_mod : string -> tla_mod -> unit
+
+val tla_mod_to_string : tla_mod -> string

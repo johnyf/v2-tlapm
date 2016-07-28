@@ -144,7 +144,7 @@ let nunchaku_backend obligations settings =
     try
       let result = Nunchaku.nunchaku settings obligation obligation.id in
       match result with
-      | Nun_mod.SAT _ ->
+      | Tla_mod.SAT _ ->
          let result_string = Nunchaku.nunchaku_result_printer (result) in
          let toolbox_msg = {
              id       = obligation.id;

@@ -7,8 +7,8 @@ open Nun_mod
 open Tla_mod
 open Settings
        
-type nunchaku_result = nun_mod
-let nunchaku_result_printer = nun_mod_to_string
+type nunchaku_result = tla_mod
+let nunchaku_result_printer = tla_mod_to_string
 
 let call_nunchaku nun_pb_ast settings id =
   let path = settings.pm_path ^ "/nunchaku/" in
@@ -52,7 +52,7 @@ let nunchaku settings obligation id =
   if (settings.overlord)
   then
     print_tla_mod (path^"tmp_tla_mod_"^(string_of_int id)^".txt") tla_mod ;
-  nun_mod
+  tla_mod
 
     
 
