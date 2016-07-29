@@ -8,7 +8,7 @@ open Tla_mod
        
 type nunchaku_result = tla_mod
                       
-val nunchaku_result_printer : nunchaku_result -> string
+val nunchaku_result_printer : nunchaku_result -> string option
        
 val call_nunchaku : statement list -> Settings.settings -> int -> nun_sexp
 

@@ -8,7 +8,10 @@ open Tla_mod
 open Settings
        
 type nunchaku_result = tla_mod
-let nunchaku_result_printer = tla_mod_to_string
+                         
+let nunchaku_result_printer result = match result with
+  | REFUTED _ -> Some (tla_mod_to_string result)
+  | _         -> None
 
 let call_nunchaku nun_pb_ast settings id =
   let path = settings.pm_path ^ "/nunchaku/" in
@@ -53,6 +56,3 @@ let nunchaku settings obligation id =
   then
     print_tla_mod (path^"tmp_tla_mod_"^(string_of_int id)^".txt") tla_mod ;
   tla_mod
-
-    
-

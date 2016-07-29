@@ -142,10 +142,9 @@ type exit_status = Exit_status of int
 let nunchaku_backend obligations settings =
   let f obligation =
     try
-      let result = Nunchaku.nunchaku settings obligation obligation.id in
+      let result = nunchaku_result_printer (nunchaku settings obligation obligation.id) in
       match result with
-      | Tla_mod.REFUTED _ ->
-         let result_string = Nunchaku.nunchaku_result_printer (result) in
+      | Some message ->
          let toolbox_msg = {
              id       = obligation.id;
              location = obligation.location;
@@ -153,12 +152,12 @@ let nunchaku_backend obligations settings =
              prover   = Some Nunchaku;
              meth     = None;
              already_processed = Some false;
-             obligation_string = Some result_string;
+             obligation_string = Some message;
            }
          in
          print_string "\n\n";
          fmt_toolbox_msg err_formatter toolbox_msg
-      | _ -> ()
+      | None -> ()
     with
     | UnhandledLanguageElement (_, _) ->
        () (* fail gracefully for unhandled constructs *)
