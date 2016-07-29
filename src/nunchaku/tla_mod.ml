@@ -45,8 +45,13 @@ let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
   {cases = List.map one_case cases; else_ = Nun_mod.term_to_string else_}
                                     
 let add_var name (value:Nun_mod.term) {u; var; mem; funs} =
+  let new_name =
+    if Str.string_match (Str.regexp "witness_of[.]*") name 0
+    then "witness"
+    else name
+  in
   let new_var = match value with
-  | Var v -> (name, v)
+  | Var v -> (new_name, v)
   |   _   -> (name, "ERROR add_var failed")  
   in
   {u = u; var = new_var::var; mem = mem; funs = funs}
