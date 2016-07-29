@@ -4,7 +4,6 @@ open Nun_mod
        
 type model = 
   {
-    u    : string list ;
     var  : (string * string) list ;
     mem  : (string * (string list)) list ;
     funs : (string * string list * decision_tree) list

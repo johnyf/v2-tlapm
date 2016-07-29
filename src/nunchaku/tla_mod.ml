@@ -5,7 +5,6 @@ open Format
        
 type model = 
   {
-    u    : string list ;
     var  : (string * string) list ;
     mem  : (string * (string list)) list ;
     funs : (string * string list * decision_tree) list
@@ -27,13 +26,10 @@ type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
                                                     
 let empty_model =
   {
-    u    = [] ;
     var  = [] ;
     mem  = [] ;
     funs = []
   }
-
-let set_u l {u; var; mem; funs} = {u = l; var = var; mem = mem; funs = funs}
 
 let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
   let one_case case =
@@ -44,7 +40,7 @@ let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
   in
   {cases = List.map one_case cases; else_ = Nun_mod.term_to_string else_}
                                     
-let add_var name (value:Nun_mod.term) {u; var; mem; funs} =
+let add_var name (value:Nun_mod.term) {var; mem; funs} =
   let new_name =
     if Str.string_match (Str.regexp "witness_of[.]*") name 0
     then "witness"
@@ -54,7 +50,7 @@ let add_var name (value:Nun_mod.term) {u; var; mem; funs} =
   | Var v -> (new_name, v)
   |   _   -> (name, "ERROR add_var failed")  
   in
-  {u = u; var = new_var::var; mem = mem; funs = funs}
+  {var = new_var::var; mem = mem; funs = funs}
 
 let rec add_mem v0 v1 acc = match acc with
   | [] -> [(v0,[v1])]
@@ -72,14 +68,14 @@ let set_mem f = let (_,_,{cases;_}) = f in set_mem_ cases []
                   
 let nun_to_tla_fun name fvar fdt = (name, List.map fst fvar, nun_to_tla_dt fdt)
 
-let add_fun name fvar fdt {u; var; mem; funs} = match name with
-  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> {u; var; mem; funs}
+let add_fun name fvar fdt {var; mem; funs} = match name with
+  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> {var; mem; funs}
   | "mem_raw" -> let mem' = nun_to_tla_fun name fvar fdt in
-                 {u=u; var=var; mem=set_mem mem'; funs=funs}
-  | _ -> {u = u; var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs}    
+                 {var=var; mem=set_mem mem'; funs=funs}
+  | _ -> {var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs}    
   
 let add_to_mod nun_model_entry tla_model = match nun_model_entry with
-  | Type ("alpha_u",l) -> set_u l tla_model
+  | Type ("alpha_u",l) -> tla_model
   | Const (name,Fun (var,dt)) -> add_fun name var dt tla_model
   | Const (n,v) -> add_var n v tla_model
   | _ -> failwith "ERROR add_to_mod"
@@ -146,9 +142,8 @@ let fmt_mem pp mem =
   let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
   fmt_list fmt_one "; " pp mem
 
-let tla_model_to_string_verbose pp {u; var; mem; funs} =
+let tla_model_to_string_verbose pp {var; mem; funs} =
   fprintf pp "@.";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "U = {" fmt_u u "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var var "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "FUNCTIONS = {" fmt_funs funs "}";
   fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem mem "}"
@@ -173,7 +168,7 @@ let rec fmt_var_with_mem pp var_mem =
   | (n,v)::q -> fprintf pp "@.%s = {%a}" n fmt_tla_set ((get_set v mem), mem);
                 fmt_var_with_mem pp (q, mem)
           
-let tla_model_to_string pp {u; var; mem; funs} =
+let tla_model_to_string pp {var; mem; funs} =
   fprintf pp "@[%a@]@." fmt_var_with_mem (var, mem);
   fprintf pp "@[%a@]"fmt_funs funs
           
@@ -196,4 +191,3 @@ let tla_mod_to_string tla_mod =
   let fft = str_formatter in
   Format.fprintf fft "%a" fmt_tla_mod tla_mod;
   flush_str_formatter ()
-                      
