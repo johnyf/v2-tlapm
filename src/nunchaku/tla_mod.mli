@@ -4,9 +4,10 @@ open Nun_mod
        
 type model = 
   {
-    var  : (string * string) list ;
-    mem  : (string * (string list)) list ;
-    funs : (string * string list * decision_tree) list
+    var : (string * string) list ;
+    mem : (string * (string list)) list ;
+    app : (string * string list * decision_tree) option;
+    dom : (string * string list * decision_tree) option
   }
 
  and decision_tree =
@@ -14,7 +15,7 @@ type model =
     cases: ((string * string) list * string) list;
     else_ : string;
   }
-
+    
 type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
 
                                           

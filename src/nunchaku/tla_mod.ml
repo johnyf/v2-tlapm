@@ -5,9 +5,10 @@ open Format
        
 type model = 
   {
-    var  : (string * string) list ;
-    mem  : (string * (string list)) list ;
-    funs : (string * string list * decision_tree) list
+    var : (string * string) list ;
+    mem : (string * (string list)) list ;
+    app : (string * string list * decision_tree) option;
+    dom : (string * string list * decision_tree) option
   }
 
  and decision_tree =
@@ -23,14 +24,25 @@ type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
 
                                                     
 (** Translation **)
-                                                    
+
+let empty_decision_tree = {cases = []; else_ = ""}
+                            
 let empty_model =
   {
-    var  = [] ;
-    mem  = [] ;
-    funs = []
+    var = [] ;
+    mem = [] ;
+    app = None ;
+    dom = None
   }
 
+let set_var {var; mem; app; dom} var' = {var=var'; mem; app; dom}
+
+let set_mem {var; mem; app; dom} mem' = {var; mem=mem'; app; dom}
+    
+let set_app {var; mem; app; dom} app' = {var; mem; app=app'; dom}
+    
+let set_dom {var; mem; app; dom} dom' = {var; mem; app; dom=dom'}
+                                          
 let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
   let one_case case =
     let (cond_l, then_) = case
@@ -40,7 +52,7 @@ let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
   in
   {cases = List.map one_case cases; else_ = Nun_mod.term_to_string else_}
                                     
-let add_var name (value:Nun_mod.term) {var; mem; funs} =
+let add_var name (value:Nun_mod.term) model =
   let new_name =
     if Str.string_match (Str.regexp "witness_of[.]*") name 0
     then "witness"
@@ -50,8 +62,8 @@ let add_var name (value:Nun_mod.term) {var; mem; funs} =
   | Var v -> (new_name, v)
   |   _   -> (name, "ERROR add_var failed")  
   in
-  {var = new_var::var; mem = mem; funs = funs}
-
+  set_var model (new_var::model.var)
+          
 let rec add_mem v0 v1 acc = match acc with
   | [] -> [(v0,[v1])]
   | (v,l)::q when v=v0 -> (v0,v1::l)::q
@@ -64,15 +76,18 @@ let rec set_mem_ cases acc = match cases with
   | ([("v_1",v1);("v_0",v0)], "true")::q -> set_mem_ q (add_mem v0 v1 acc)
   | _ -> failwith "mem_raw parsing failed"                         
 
-let set_mem f = let (_,_,{cases;_}) = f in set_mem_ cases []
+let set_mem_ f = let (_,_,{cases;_}) = f in set_mem_ cases []
                   
 let nun_to_tla_fun name fvar fdt = (name, List.map fst fvar, nun_to_tla_dt fdt)
 
-let add_fun name fvar fdt {var; mem; funs} = match name with
-  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> {var; mem; funs}
+let add_fun name fvar fdt model = match name with
+  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> model
   | "mem_raw" -> let mem' = nun_to_tla_fun name fvar fdt in
-                 {var=var; mem=set_mem mem'; funs=funs}
-  | _ -> {var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs}    
+                 set_mem model (set_mem_ mem')
+  | "app" -> model                    (* TODO *)
+  | "dom" -> model                   (* TODO *)
+  | _ -> failwith "Add_fun failed due to unmatched function"
+     (* | _ -> {var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs} (\* FAIL if not matched *\) *)
   
 let add_to_mod nun_model_entry tla_model = match nun_model_entry with
   | Type ("alpha_u",l) -> tla_model
@@ -132,8 +147,16 @@ let fmt_fun pp f =
   let (name, vars, dt) = f in
   fprintf pp "@.fun %s (%a) : %a@." name fmt_vars vars fmt_dt dt
 
-let fmt_funs pp fs = ignore(List.map (fmt_fun pp) fs)
+(* let fmt_funs pp fs = ignore(List.map (fmt_fun pp) fs) *)
           
+let fmt_app pp app = match app with
+  | Some f -> fmt_fun pp f
+  | None   -> ()
+
+let fmt_dom pp dom = match dom with
+  | Some f -> fmt_fun pp f
+  | None   -> ()
+                
 let fmt_set pp set = 
   let fmt_one pp v = fprintf pp "%s" v in
   fmt_list fmt_one "; " pp set
@@ -142,11 +165,11 @@ let fmt_mem pp mem =
   let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
   fmt_list fmt_one "; " pp mem
 
-let tla_model_to_string_verbose pp {var; mem; funs} =
+let tla_model_to_string_verbose pp model =
   fprintf pp "@.";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var var "}";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "FUNCTIONS = {" fmt_funs funs "}";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem mem "}"
+  fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var model.var "}";
+  fprintf pp "%s@[<2>%a@.@.%a@]@.%s@.@." "FUNCTIONS = {" fmt_app model.app fmt_dom model.dom "}";
+  fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem model.mem "}"
 
 let rec get_set x mem = match mem with
   | [] -> []
@@ -168,9 +191,10 @@ let rec fmt_var_with_mem pp var_mem =
   | (n,v)::q -> fprintf pp "@.%s = {%a}" n fmt_tla_set ((get_set v mem), mem);
                 fmt_var_with_mem pp (q, mem)
           
-let tla_model_to_string pp {var; mem; funs} =
-  fprintf pp "@[%a@]@." fmt_var_with_mem (var, mem);
-  fprintf pp "@[%a@]"fmt_funs funs
+let tla_model_to_string pp model =
+  fprintf pp "@[%a@]@." fmt_var_with_mem (model.var, model.mem);
+  fprintf pp "@[%a@]" fmt_app model.app;
+  fprintf pp "@[%a@]" fmt_dom model.dom
           
 let fmt_tla_mod pp tla_mod =
   match tla_mod with
