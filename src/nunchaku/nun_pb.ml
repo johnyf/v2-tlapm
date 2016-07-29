@@ -424,23 +424,3 @@ let print_statement out st = match st.stmt_value with
 let print_statement_list out l =
   Format.fprintf out "@[<v>%a@]"
     (CCFormat.list ~start:"" ~stop:"" ~sep:"" print_statement) l
-
-module TPTP = struct
-  (* additional statements for any TPTP problem *)
-  let prelude =
-    let (==>) = ty_arrow in
-    let ty_term = var "$i" in
-    [ decl ~attrs:[] "$i" ty_type
-    ; decl ~attrs:[] "!!" ((ty_term ==> ty_prop) ==> ty_prop)
-    ; decl ~attrs:[] "??" ((ty_term ==> ty_prop) ==> ty_prop)
-    ]
-
-  (* meta-data used in TPTP `additional_info` *)
-  type general_data =
-    | Var of string
-    | Int of int
-    | String of string
-    | App of string * general_data list
-    | List of general_data list
-    | Column of general_data * general_data
-end
