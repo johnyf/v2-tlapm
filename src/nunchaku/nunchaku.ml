@@ -45,7 +45,7 @@ let nunchaku settings obligation id =
   if (settings.overlord)
   then
     print_tla_simple_pb (path^"tmp_tla_simple_pb_"^(string_of_int id)^".txt") tla_simple_pb ;
-  let nun_pb = simple_obl_to_nun_ast tla_simple_pb in
+  let nun_pb = tla_simple_pb_to_nun_ast tla_simple_pb in
   let nun_sexp = call_nunchaku nun_pb settings id in
   let nun_mod = nun_sexp_to_nun_mod nun_sexp in
   if (settings.overlord)

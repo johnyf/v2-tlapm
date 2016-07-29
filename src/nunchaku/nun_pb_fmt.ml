@@ -326,4 +326,4 @@ let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
   
-let simple_obl_to_nun_ast { goal; term_db; } = List.rev (fmt_assume_prove term_db goal)
+let tla_simple_pb_to_nun_ast { goal; term_db; } = List.rev (fmt_assume_prove term_db goal)
