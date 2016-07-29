@@ -1,4 +1,6 @@
 open Nun_mod
+
+(** Definition **)
        
 type model = 
   {
@@ -14,7 +16,7 @@ type model =
     else_ : string;
   }
 
-type tla_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
+type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
 
                                           
 (** Translation **)

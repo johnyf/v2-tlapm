@@ -17,7 +17,7 @@ type model =
     else_ : string;
   }
     
-type tla_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
+type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
 
 
 
@@ -89,10 +89,10 @@ let nun_model_to_tla_model nun_model =
   List.fold_right add_to_mod nun_model model
     
 let nun_mod_to_tla_mod (nun_mod:nun_mod) = match nun_mod with
-  | UNSAT     -> UNSAT
+  | UNSAT     -> VALID
   | UNKNOWN   -> UNKNOWN
   | TIMEOUT   -> TIMEOUT
-  | SAT model -> SAT (nun_model_to_tla_model model)
+  | SAT model -> REFUTED (nun_model_to_tla_model model)
 
                      
 
@@ -179,10 +179,10 @@ let tla_model_to_string pp {u; var; mem; funs} =
           
 let fmt_tla_mod pp tla_mod =
   match tla_mod with
-  | UNSAT -> fprintf pp "%s" "UNSAT"
+  | VALID -> fprintf pp "%s" "VALID"
   | UNKNOWN -> fprintf pp "%s" "UNKNOWN"
   | TIMEOUT -> fprintf pp "%s" "TIMEOUT"
-  | SAT model -> fprintf pp "%s(@.@[<2>%a@]@.)" "SAT" tla_model_to_string model
+  | REFUTED model -> fprintf pp "%s@.@[<2>%a@]" "Countermodel:" tla_model_to_string model
                                   
 let print_tla_mod output_file tla_mod =
   let oc = open_out output_file in
