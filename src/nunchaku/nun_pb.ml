@@ -1,8 +1,8 @@
 open CCFormat
+       
+(* This file is a modified version of the file "UntypedAST" of Nunchaku. *)
 
-(* This file is free software, part of nunchaku. See file "license" for more details. *)
-
-(** {1 Input AST} *)
+(** Definition *)
 
 exception ParseError
 exception SyntaxError of string
@@ -175,6 +175,23 @@ type statement = {
   stmt_value: statement_node;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(** Tools **)
+
+                   
 let wildcard () = (Var `Wildcard)
 let builtin s = (Builtin s)
 let var  v = (Var (`Var v))
@@ -251,6 +268,21 @@ let rec head t = match t with
   | Forall (_,_,_) | Mu _ | Exists (_,_,_) | TyForall (_,_) ->
       invalid_arg "untypedAST.head"
 
+
+
+
+
+
+(** Translation **)
+
+(********* See Nun_pb_fmt *********)
+                  
+
+
+                  
+
+(** Printer **)
+                  
 let fpf = Format.fprintf
 
 let pp_var_or_wildcard out = function
