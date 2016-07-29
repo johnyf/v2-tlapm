@@ -6,8 +6,8 @@ type model =
   {
     var : (string * string) list ;
     mem : (string * (string list)) list ;
-    app : (string * string list * decision_tree) option;
-    dom : (string * string list * decision_tree) option
+    app : (string list * decision_tree) option;
+    dom : (string list * decision_tree) option
   }
 
  and decision_tree =

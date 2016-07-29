@@ -7,8 +7,8 @@ type model =
   {
     var : (string * string) list ;
     mem : (string * (string list)) list ;
-    app : (string * string list * decision_tree) option;
-    dom : (string * string list * decision_tree) option
+    app : (string list * decision_tree) option;
+    dom : (string list * decision_tree) option
   }
 
  and decision_tree =
@@ -54,8 +54,8 @@ let nun_to_tla_dt ({cases; else_}:Nun_mod.decision_tree) =
                                     
 let add_var name (value:Nun_mod.term) model =
   let new_name =
-    if Str.string_match (Str.regexp "witness_of[.]*") name 0
-    then "witness"
+    if Str.string_match (Str.regexp "witness_of [.]*") name 0
+    then "Skolem "^(Str.string_after name 11)
     else name
   in
   let new_var = match value with
@@ -69,23 +69,23 @@ let rec add_mem v0 v1 acc = match acc with
   | (v,l)::q when v=v0 -> (v0,v1::l)::q
   | t::q -> t::(add_mem v0 v1 q)
     
-let rec set_mem_ cases acc = match cases with
+let rec set_mem_aux cases acc = match cases with
   | [] -> acc
-  | (_, "false")::q -> set_mem_ q acc
-  | ([("v_0",v0);("v_1",v1)], "true")::q -> set_mem_ q (add_mem v0 v1 acc)
-  | ([("v_1",v1);("v_0",v0)], "true")::q -> set_mem_ q (add_mem v0 v1 acc)
+  | (_, "false")::q -> set_mem_aux q acc
+  | ([("v_0",v0);("v_1",v1)], "true")::q -> set_mem_aux q (add_mem v0 v1 acc)
+  | ([("v_1",v1);("v_0",v0)], "true")::q -> set_mem_aux q (add_mem v0 v1 acc)
   | _ -> failwith "mem_raw parsing failed"                         
 
-let set_mem_ f = let (_,_,{cases;_}) = f in set_mem_ cases []
+let set_mem_main f = let (_,{cases;_}) = f in set_mem_aux cases []
                   
-let nun_to_tla_fun name fvar fdt = (name, List.map fst fvar, nun_to_tla_dt fdt)
+let nun_to_tla_fun fvar fdt = (List.map fst fvar, nun_to_tla_dt fdt)
 
 let add_fun name fvar fdt model = match name with
   | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> model
-  | "mem_raw" -> let mem' = nun_to_tla_fun name fvar fdt in
-                 set_mem model (set_mem_ mem')
-  | "app" -> model                    (* TODO *)
-  | "dom" -> model                   (* TODO *)
+  | "mem_raw" -> let mem' = nun_to_tla_fun fvar fdt in
+                 set_mem model (set_mem_main mem')
+  | "app" -> let app' = nun_to_tla_fun fvar fdt in set_app model (Some app')
+  | "dom" -> let dom' = nun_to_tla_fun fvar fdt in set_dom model (Some dom')
   | _ -> failwith "Add_fun failed due to unmatched function"
      (* | _ -> {var = var; mem = mem; funs = (nun_to_tla_fun name fvar fdt)::funs} (\* FAIL if not matched *\) *)
   
@@ -130,47 +130,20 @@ let rec fmt_vars pp vars =
 
 let rec fmt_conds pp var =
   let fmt_one pp v = let (name,value) = v in fprintf pp "%s = %s" name value in
-  fmt_list fmt_one " && " pp var
+  fmt_list fmt_one " and " pp var
 
 let fmt_case pp case =
   let (conds,then_) = case
-  in fprintf pp "if (%a): %s" fmt_conds conds then_
+  in fprintf pp "if %a then %s" fmt_conds conds then_
                     
 let rec fmt_cases pp cases =
   let fmt_one pp v = fprintf pp "@.%a" fmt_case v in
-  fmt_list fmt_one "; " pp cases
+  fmt_list fmt_one "" pp cases
 
-let fmt_dt pp {cases; else_} =
-  fprintf pp "%a@.else:%s" fmt_cases cases else_
-  
-let fmt_fun pp f =
-  let (name, vars, dt) = f in
-  fprintf pp "@.fun %s (%a) : %a@." name fmt_vars vars fmt_dt dt
-
-(* let fmt_funs pp fs = ignore(List.map (fmt_fun pp) fs) *)
-          
-let fmt_app pp app = match app with
-  | Some f -> fmt_fun pp f
-  | None   -> ()
-
-let fmt_dom pp dom = match dom with
-  | Some f -> fmt_fun pp f
-  | None   -> ()
-                
-let fmt_set pp set = 
-  let fmt_one pp v = fprintf pp "%s" v in
-  fmt_list fmt_one "; " pp set
-
-let fmt_mem pp mem = 
-  let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
-  fmt_list fmt_one "; " pp mem
-
-let tla_model_to_string_verbose pp model =
-  fprintf pp "@.";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var model.var "}";
-  fprintf pp "%s@[<2>%a@.@.%a@]@.%s@.@." "FUNCTIONS = {" fmt_app model.app fmt_dom model.dom "}";
-  fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem model.mem "}"
-
+let fmt_dt pp {cases; else_} = match cases with
+  | [] -> fprintf pp "%s" else_
+  | _  -> fprintf pp "%a@.else %s" fmt_cases cases else_
+        
 let rec get_set x mem = match mem with
   | [] -> []
   | (v,l)::q when v=x -> l
@@ -184,6 +157,54 @@ let rec fmt_tla_set pp set_mem =
   | t::q -> fprintf pp "{%a}, " fmt_tla_set (get_set t mem, mem);
             fmt_tla_set pp (q,mem)
               
+let transpose_dt var_names var mem vars dt =
+  let replace_name var_names name = match name with
+  | "v_0" -> List.hd var_names
+  | "v_1" -> List.hd (List.tl var_names)
+  |  _    -> "Unparsed argument name" (* TODO write in the general case *)
+  in
+  let replace_value (value:string) =
+    (* fprintf value_fft "{%a}" fmt_tla_set ((get_set value mem), mem); *)
+    CCFormat.sprintf "{%a}@?" fmt_tla_set ((get_set value mem), mem)
+  in
+  let replace_condition var_names condition =
+    let (name, value) = condition in
+    (replace_name var_names name, replace_value value)
+  in
+  let replace_case var_name case =
+    let (conditions,then_) = case in
+    (List.map (replace_condition var_name) conditions, replace_value then_)
+  in
+  let replace_else_ else_ = replace_value else_ in
+  {cases = List.map (replace_case var_names) dt.cases; else_ = replace_else_ dt.else_}       
+
+let fmt_fun pp f =
+  let (name, var_names,var,mem,vars,dt) = f in
+  let dt2 = transpose_dt var_names var mem vars dt in
+  fprintf pp "@.%s = (%a@.)@." name fmt_dt dt2
+
+let fmt_app pp model = match model.app with
+  | Some (vars, dt) -> fprintf pp "%a" fmt_fun ("f[x]", ["f";"x"],model.var,model.mem,vars,dt)
+  | None   -> ()
+
+let fmt_dom pp model = match model.dom with
+  | Some (vars, dt) -> fprintf pp "%a" fmt_fun ("DOMAIN f", ["f"],model.var,model.mem,vars,dt)
+  | None   -> ()
+                
+let fmt_set pp set = 
+  let fmt_one pp v = fprintf pp "%s" v in
+  fmt_list fmt_one "; " pp set
+
+let fmt_mem pp mem = 
+  let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
+  fmt_list fmt_one "; " pp mem
+
+let tla_model_to_string_verbose pp model =
+  fprintf pp "@.";
+  fprintf pp "%s@[<2>%a@]@.%s@.@." "VARS = {" fmt_var model.var "}";
+  fprintf pp "%s@[<2>%a@.@.%a@]@.%s@.@." "FUNCTIONS = {" fmt_app model fmt_dom model "}";
+  fprintf pp "%s@[<2>%a@]@.%s@.@." "MEM = {" fmt_mem model.mem "}"
+
 let rec fmt_var_with_mem pp var_mem =
   let (var,mem) = var_mem in
   match var with
@@ -193,8 +214,8 @@ let rec fmt_var_with_mem pp var_mem =
           
 let tla_model_to_string pp model =
   fprintf pp "@[%a@]@." fmt_var_with_mem (model.var, model.mem);
-  fprintf pp "@[%a@]" fmt_app model.app;
-  fprintf pp "@[%a@]" fmt_dom model.dom
+  fprintf pp "@[%a@]" fmt_app model;
+  fprintf pp "@[%a@]" fmt_dom model
           
 let fmt_tla_mod pp tla_mod =
   match tla_mod with
@@ -212,6 +233,4 @@ let print_tla_mod output_file tla_mod =
   close_out oc
 
 let tla_mod_to_string tla_mod =  
-  let fft = str_formatter in
-  Format.fprintf fft "%a" fmt_tla_mod tla_mod;
-  flush_str_formatter ()
+  CCFormat.sprintf "%a" fmt_tla_mod tla_mod

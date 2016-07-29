@@ -67,7 +67,7 @@ let sexp_to_type_model_entry t = match t with
 let sexp_to_name t = match t with
   | Atom name -> name
   | List [Atom n1;Atom n2] -> n1^"__"^n2 (* polymorphic case *)
-  | List [(Atom "_witness_of");(prop)] -> "witness_of "^(sexp_to_string prop)
+  | List [(Atom "_witness_of");List [_;List [List [name;_]];_]] -> "witness_of "^(sexp_to_string name) (* skolems *)
   | _ -> failwith "sexp_to_name failed"
 	      
 let sexp_to_val_model_entry t = match t with
