@@ -18,7 +18,7 @@ let call_nunchaku nun_pb_ast settings id =
   let fft = Format.formatter_of_out_channel oc in
   Format.fprintf fft "%a@." print_statement_list nun_pb_ast;
   close_out oc;
-  let call = Printf.sprintf "nunchaku -s cvc4 -o sexp '%s' > '%s' " nun_file sexp_file in (* TODO: add timeout *)
+  let call = Printf.sprintf "nunchaku -s cvc4 -o sexp --timeout 10 '%s' > '%s' " nun_file sexp_file in
   ignore(Sys.command call);
   let nun_sexp_ast = sexp_parser sexp_file in
   if (not(settings.overlord))
