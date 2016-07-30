@@ -62,4 +62,4 @@ val mk_fmt           : (fc -> 'a -> fc) ->
 
 val fmt_expr         : simple_term_db -> simple_expr -> statement list
 val fmt_assume_prove : simple_term_db -> simple_assume_prove -> statement list
-val simple_obl_to_nun_ast : tla_simple_pb -> statement list
+val tla_simple_pb_to_nun_ast : tla_simple_pb -> statement list

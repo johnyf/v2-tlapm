@@ -12,6 +12,7 @@ type settings = {
 
     (* pm settings *)
     verbose      : bool;
+    overlord     : bool;
     toolbox      : int_range;
     fingerprints : bool;
     input_file   : string;

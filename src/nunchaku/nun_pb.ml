@@ -1,8 +1,8 @@
 open CCFormat
+       
+(* This file is a modified version of the file "UntypedAST" of Nunchaku. *)
 
-(* This file is free software, part of nunchaku. See file "license" for more details. *)
-
-(** {1 Input AST} *)
+(** Definition *)
 
 exception ParseError
 exception SyntaxError of string
@@ -175,6 +175,23 @@ type statement = {
   stmt_value: statement_node;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(** Tools **)
+
+                   
 let wildcard () = (Var `Wildcard)
 let builtin s = (Builtin s)
 let var  v = (Var (`Var v))
@@ -251,6 +268,21 @@ let rec head t = match t with
   | Forall (_,_,_) | Mu _ | Exists (_,_,_) | TyForall (_,_) ->
       invalid_arg "untypedAST.head"
 
+
+
+
+
+
+(** Translation **)
+
+(********* See Nun_pb_fmt *********)
+                  
+
+
+                  
+
+(** Printer **)
+                  
 let fpf = Format.fprintf
 
 let pp_var_or_wildcard out = function
@@ -424,23 +456,3 @@ let print_statement out st = match st.stmt_value with
 let print_statement_list out l =
   Format.fprintf out "@[<v>%a@]"
     (CCFormat.list ~start:"" ~stop:"" ~sep:"" print_statement) l
-
-module TPTP = struct
-  (* additional statements for any TPTP problem *)
-  let prelude =
-    let (==>) = ty_arrow in
-    let ty_term = var "$i" in
-    [ decl ~attrs:[] "$i" ty_type
-    ; decl ~attrs:[] "!!" ((ty_term ==> ty_prop) ==> ty_prop)
-    ; decl ~attrs:[] "??" ((ty_term ==> ty_prop) ==> ty_prop)
-    ]
-
-  (* meta-data used in TPTP `additional_info` *)
-  type general_data =
-    | Var of string
-    | Int of int
-    | String of string
-    | App of string * general_data list
-    | List of general_data list
-    | Column of general_data * general_data
-end

@@ -22,6 +22,10 @@ let handle_verbose state () =
   state.settings <- { state.settings with verbose = true };
   ()
 
+let handle_overlord state () =
+  state.settings <- { state.settings with overlord = true };
+  ()
+    
 let handle_java_path state str =
   state.settings <- { state.settings with java_path = Some str };
   ()
@@ -63,6 +67,8 @@ let handlers s =
      "Output in toolbox mode from first argument to second argument");
     ("-v", Unit (handle_verbose s),
      "Enable verbose mode.");
+    ("--overlord", Unit (handle_overlord s),
+     "Enable overlord mode.");
   ]
 
 let use_string =
