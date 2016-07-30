@@ -5,6 +5,7 @@ open Simple_expr
 open Util
 open Test_common
 open Format
+open Backend_exceptions
 
 let test_simple_expr record () =
   ignore (
@@ -22,9 +23,11 @@ let test_simple_expr record () =
 	   let s2' = flush_str_formatter () in
 	   (s1'^s1,s2'^s2)
       in
-
-      let (s1,s2) = obligations_to_string record.obligations 0 in
-      Assert.equal ~msg:"Comparing expr and simple expr." s1 s2;
+      try
+        let (s1,s2) = obligations_to_string record.obligations 0 in
+        Assert.equal ~msg:"Comparing expr and simple expr." s1 s2;
+      with
+      | UnhandledLanguageElement (_, _)-> ()
     )
 
 let create_test record =

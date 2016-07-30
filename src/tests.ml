@@ -32,6 +32,7 @@ let files flt =
            "Choose";
            "at" ;
            "expr" ;
+           "functions";
            "instanceA" ;
            "Euclid";
            "Quantifiers";

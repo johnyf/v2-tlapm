@@ -174,7 +174,7 @@ object(self)
            fprintf (ppf acc2) "(";
            let op1, op2, op3 = match operands with
              | [o1;o2;o3] -> o1,o2,o3
-             | _ -> failwith "Binary operator does not have 2 arguments!"
+             | _ -> failwith "Ternary operator does not have 3 arguments!"
            in
            fprintf (ppf acc2) "(%s " str_begin;
            let acc3 = self#expr_or_op_arg acc2 op1 in
