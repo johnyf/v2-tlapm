@@ -1,8 +1,0 @@
-# Initial commands.
-include "prelude.nun".
-# End of initial commands.
-val b : u.
-val a : u.
-# some set.
-val c : u.
-goal ~ (((c ) = (a )) || ((c ) = (b ))).

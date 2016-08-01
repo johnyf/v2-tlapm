@@ -1,7 +1,15 @@
-open Obligation
+open Tla_pb
+open Tla_simple_pb
+open Nun_pb
+open Nun_pb_fmt
+open Nun_sexp
+open Nun_mod
+open Tla_mod
        
-val print_simple : obligation list -> string -> unit
+type nunchaku_result = tla_mod
+                      
+val nunchaku_result_printer : nunchaku_result -> string option
+       
+val call_nunchaku : statement list -> Settings.settings -> int -> nun_sexp
 
-val print_complex : obligation list -> string -> unit
-
-val print_nunchaku : obligation list -> string -> int
+val nunchaku : Settings.settings -> tla_pb -> int -> nunchaku_result

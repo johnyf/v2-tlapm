@@ -1,4 +1,0 @@
-# Initial commands.
-include "prelude.nun".
-# End of initial commands.
-goal ~ ((false ) => (false )).

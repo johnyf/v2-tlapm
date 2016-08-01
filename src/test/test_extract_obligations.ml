@@ -9,14 +9,6 @@ open Obligation
 open Obligation_formatter
 
 
-let fmt_prover = function
-  | Isabelle -> "Isabelle"
-  | Zenon -> "Zenon"
-  | SMT -> "SMT"
-  | LS4 -> "LS4"
-  | Tlaps -> "TLAPS"
-  | Default -> "Default provers"
-
 let test_extract_obligations record () =
       let context = match record.explicit_steps_context with
         | Some c -> c
@@ -36,17 +28,17 @@ let test_extract_obligations record () =
         | _  ->
            begin
              let total = List.length obs in
+             let fmt_ps = fmt_list fmt_prover in
              let print_obl i o =
-               let pstr = mkString fmt_prover (o.provers) in
-               Printf.printf "Obligation #%d of %d\n" i total;
-               Printf.printf "%s obligation provers : %s\n" record.filename pstr;
+               Format.printf "Obligation #%d of %d@." i total;
+               Format.printf "%s obligation provers : %a@." record.filename fmt_ps o.provers;
                (* Printf.printf "%d assumptions\n" (List.length o.goal.assumes); *)
                fmt_obligation std_formatter o;
-               Printf.printf "\n(end of obligation)\n";
+               Format.printf "@.(end of obligation)@.";
                i+1
              in
              ignore (
-                 Printf.printf "%s : no of obligations: %d\n" record.filename total;
+                 Format.printf "%s : no of obligations: %d@." record.filename total;
                  List.fold_left print_obl 1 obs
                )
            end

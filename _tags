@@ -37,6 +37,7 @@ true: annot, bin_annot
 <src/core>: include
 <src/expr>: include
 <src/nunchaku>: include
+<src/nunchaku/simple_expr>: include
 <src/test>: include
 <src/sany>: include
 <src/test/*.ml{,i,y}>: pkg_kaputt
