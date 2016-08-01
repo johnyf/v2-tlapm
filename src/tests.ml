@@ -17,7 +17,7 @@ let check_xmloutput =
   with Not_found -> false
 
 
-let addpath = (fun (str : string) -> "test/resources/xml/" ^ str ^ ".xml")
+let addpath = (fun (str : string) -> "test/xml/" ^ str ^ ".xml")
 
 let id x = true
 
@@ -48,7 +48,9 @@ let files flt =
            "OneBit";
            (* contains duplicates of multiple modules, takes long to load *)
            (*"pharos";  *)
-           "obligation_bug1" (* TODO: fix this bug! *)
+           "obligation_bug1"; (* TODO: fix this bug! *)
+           "bug02";
+           "nunchaku_tests";
            ])
 
 let () =

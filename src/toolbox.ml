@@ -62,10 +62,11 @@ let prover_string = function
 let fmt_prover f x =
   fprintf f "%s"(prover_string x)
 
-let fmt_toolbox_msg_d formatter id location status ?prover:prover
+let fmt_toolbox_msg_d ?prover:prover
                       ?meth:meth ?already_processed:already_processed
-                      ?obligation_string:obligation_string =
-  fprintf formatter "@.@[<v>%s%s@," head front;
+                      ?obligation_string:obligation_string formatter id
+                      location status =
+  fprintf formatter "@[<v>%s%s@," head front;
   fprintf formatter "%stype:obligation@," head;
   fprintf formatter "%sid:%d@," head id;
   fprintf formatter "%sloc:%d:%d:%d:%d@," head
