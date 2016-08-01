@@ -2,6 +2,7 @@ open Printf
 open Test_common
 open Kaputt.Abbreviations
 open Kaputt.Test
+open List
 
 let t1 =
   Test.make_simple_test
@@ -56,9 +57,17 @@ let () =
      reference for I!T, but in reality is in an AP substitution. Remove the
      test case till this is fixed.
   *)
-  let fmt_filter r = r.filename <> (addpath "withsubmodule")
+  let fmt_filter r = r.filename <> (addpath "withsubmodule") in
+  let fmt_nun_filter r =
+    not (mem r.filename
+             (map addpath  ["withsubmodule";
+                            (* this test has an obligation <1>1 => a=b which
+                             translates (correctly) to a=b => a=b *)
+                            "case_take_use_hide"
+        ]))
   in
   let without_broken = List.filter fmt_filter results in
+  let without_nunchaku_broken = List.filter fmt_nun_filter results in
   let tests =
     List.concat [
         Test_util.get_tests;
@@ -68,7 +77,7 @@ let () =
         Test_parse_theorems.get_tests without_broken;
         Test_extract_obligations.get_tests without_broken;
         Test_formatter.get_tests without_broken (* *);
-	Test_simple_expr.get_tests without_broken;
+        Test_simple_expr.get_tests without_nunchaku_broken;
         Test_issue2.get_tests without_broken;
       ] in
 
