@@ -63,7 +63,7 @@ let format_anysimple = function
   | Any_op_decl _ -> "op_decl"
   | Any_op_decl_ _ -> "op_decl_"
   | Any_expr_or_module_or_module_instance _ ->
-     "expr_or_module_or_module_instance"
+    "expr_or_module_or_module_instance"
   | Any_defined_expr _ -> "defined_expr"
   | Any_at _ -> "at"
   | Any_decimal _ -> "decimal"

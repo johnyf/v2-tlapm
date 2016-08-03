@@ -9,9 +9,9 @@
 
 (** A location represents a col in a source file *)
 type pt_ = { line : int ;
-              bol : int ;
-              col : int ;
-            }
+             bol : int ;
+             col : int ;
+           }
 
 type pt = Actual of pt_ | Dummy
 

@@ -1,10 +1,10 @@
 type test_result = {
-    filename : string;
-    mutable sany_context : Sany_ds.context option;
-    mutable expr_context : Expr_ds.context option;
-    mutable explicit_lambda_context : Expr_ds.context option;
-    mutable explicit_steps_context : Expr_ds.context option;
-    mutable obligations  : Obligation.obligation list;
+  filename : string;
+  mutable sany_context : Sany_ds.context option;
+  mutable expr_context : Expr_ds.context option;
+  mutable explicit_lambda_context : Expr_ds.context option;
+  mutable explicit_steps_context : Expr_ds.context option;
+  mutable obligations  : Obligation.obligation list;
 }
 
 let mkTestResult ?sc ?ec ?lc ?esc ?ob:(ob=[]) name =

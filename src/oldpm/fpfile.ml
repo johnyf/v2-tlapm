@@ -17,12 +17,12 @@ module V1 = struct
   (* NOTE: Cooper's results are buggy in this version *)
 
   type meth =
-  | Isabelle of string
-  | Zenon of zenon
-  | Smt
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of string
+    | Zenon of zenon
+    | Smt
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -31,12 +31,12 @@ module V1 = struct
   ;;
 
   type status_type =
-  | Trivial
-  | BeingProved
-  | Success of meth
-  | RFail of meth
-  | Checked
-  | Interrupted of meth
+    | Trivial
+    | BeingProved
+    | Success of meth
+    | RFail of meth
+    | Checked
+    | Interrupted of meth
   ;;
 
   type tbl = (string, status_type list) Hashtbl.t;;
@@ -59,12 +59,12 @@ module V2 = struct
   (* NOTE: Cooper's results are buggy in this version *)
 
   type meth =
-  | Isabelle of string
-  | Zenon of zenon
-  | Smt
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of string
+    | Zenon of zenon
+    | Smt
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -73,19 +73,19 @@ module V2 = struct
   ;;
 
   type status_type =
-  | Trivial
-  | BeingProved
-  | Success of meth
-  | RFail of meth
-  | Checked
-  | Interrupted of meth
+    | Trivial
+    | BeingProved
+    | Success of meth
+    | RFail of meth
+    | Checked
+    | Interrupted of meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type tbl = (string, sti list) Hashtbl.t;;
   (* The key is the MD5 converted to hex. *)
@@ -104,12 +104,12 @@ module V3 = struct
   (* Same as V2, but Cooper's results are OK. *)
 
   type meth =
-  | Isabelle of string
-  | Zenon of zenon
-  | Smt
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of string
+    | Zenon of zenon
+    | Smt
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -118,19 +118,19 @@ module V3 = struct
   ;;
 
   type status_type =
-  | Trivial
-  | BeingProved
-  | Success of meth
-  | RFail of meth
-  | Checked
-  | Interrupted of meth
+    | Trivial
+    | BeingProved
+    | Success of meth
+    | RFail of meth
+    | Checked
+    | Interrupted of meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type tbl = (string, sti list) Hashtbl.t;;
   (* The key is the MD5 converted to hex. *)
@@ -151,12 +151,12 @@ module V4 = struct
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -170,19 +170,19 @@ module V4 = struct
   ;;
 
   type status_type =
-  | Trivial
-  | BeingProved
-  | Success of meth
-  | RFail of meth
-  | Checked
-  | Interrupted of meth
+    | Trivial
+    | BeingProved
+    | Success of meth
+    | RFail of meth
+    | Checked
+    | Interrupted of meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type tbl = (string, sti list) Hashtbl.t;;
   (* The key is the MD5 converted to hex. *)
@@ -204,12 +204,12 @@ module V5 = struct
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -223,25 +223,25 @@ module V5 = struct
   ;;
 
   type status_type =
-  | Trivial
-  | BeingProved
-  | Success of meth
-  | RFail of meth
-  | Checked
-  | Interrupted of meth
+    | Trivial
+    | BeingProved
+    | Success of meth
+    | RFail of meth
+    | Checked
+    | Interrupted of meth
   ;;
 
   type reason =
-  | False
-  | Timeout
+    | False
+    | Timeout
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * reason option * date * string * string * string
-             (* status, reason for failure, date,
-                pm version, zenon version, isabelle version *)
+  (* status, reason for failure, date,
+     pm version, zenon version, isabelle version *)
 
   type tbl = (string, sti list) Hashtbl.t;;
   (* The key is the MD5 converted to hex. *)
@@ -263,17 +263,17 @@ module V6 = struct
     (* Breaks status_type in two types and pushes reason into the
        RFail case of status_type_aux.
        Also adds type str to replace sti list.
-     *)
+    *)
 
     type floatomega = F of float | Omega;;
 
     type meth =
-    | Isabelle of isabelle
-    | Zenon of zenon
-    | Smt
-    | Cooper
-    | Sorry
-    | Fail
+      | Isabelle of isabelle
+      | Zenon of zenon
+      | Smt
+      | Cooper
+      | Sorry
+      | Fail
 
     and zenon = {
       zenon_timeout : float;
@@ -287,26 +287,26 @@ module V6 = struct
     ;;
 
     type reason =
-    | False
-    | Timeout
+      | False
+      | Timeout
     ;;
 
     type status_type_aux =
-    | RSucc
-    | RFail of reason option
-    | RInt
+      | RSucc
+      | RFail of reason option
+      | RInt
     ;;
 
     type status_type =
-    | Triv
-    | NTriv of status_type_aux * meth
+      | Triv
+      | NTriv of status_type_aux * meth
     ;;
 
     type date = int * int * int * int * int * int;;
     (* year, month-1, day, hour, minute, second *)
 
     type sti = status_type * date * string * string * string;;
-               (* status, date, pm version, zenon version, isabelle version *)
+    (* status, date, pm version, zenon version, isabelle version *)
 
     type str = {
       tres : sti option;
@@ -333,18 +333,18 @@ module V6 = struct
     (* Adds Yices method. *)
     (* NOTE: adding Yices made the types incompatible, but the version
        number was not changed.
-     *)
+    *)
 
     type floatomega = F of float | Omega;;
 
     type meth =
-    | Isabelle of isabelle
-    | Zenon of zenon
-    | Smt
-    | Yices
-    | Cooper
-    | Sorry
-    | Fail
+      | Isabelle of isabelle
+      | Zenon of zenon
+      | Smt
+      | Yices
+      | Cooper
+      | Sorry
+      | Fail
 
     and zenon = {
       zenon_timeout : float;
@@ -358,26 +358,26 @@ module V6 = struct
     ;;
 
     type reason =
-    | False
-    | Timeout
+      | False
+      | Timeout
     ;;
 
     type status_type_aux =
-    | RSucc
-    | RFail of reason option
-    | RInt
+      | RSucc
+      | RFail of reason option
+      | RInt
     ;;
 
     type status_type =
-    | Triv
-    | NTriv of status_type_aux * meth
+      | Triv
+      | NTriv of status_type_aux * meth
     ;;
 
     type date = int * int * int * int * int * int;;
     (* year, month-1, day, hour, minute, second *)
 
     type sti = status_type * date * string * string * string;;
-               (* status, date, pm version, zenon version, isabelle version *)
+    (* status, date, pm version, zenon version, isabelle version *)
 
     type str = {
       tres : sti option;
@@ -403,13 +403,13 @@ module V6 = struct
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | Unusable1
-  | Unusable2
-  | Unusable3
-  | Fail
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | Unusable1
+    | Unusable2
+    | Unusable3
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -423,26 +423,26 @@ module V6 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
+    | False
+    | Timeout
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -468,18 +468,18 @@ module V7 = struct
   (* introduced on 2011-05-09 in r21621 *)
   (* Adds case "Cantwork" to type reason.
      Also adds "yres" field to type str.
-   *)
+  *)
 
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | Yices
-  | Cooper
-  | Sorry
-  | Fail
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | Yices
+    | Cooper
+    | Sorry
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -493,27 +493,27 @@ module V7 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -545,15 +545,15 @@ module V8 = struct
     type floatomega = F of float | Omega;;
 
     type meth =
-    | Isabelle of isabelle
-    | Zenon of zenon
-    | Smt
-    | SmtT of floatomega
-    | Yices
-    | YicesT of floatomega
-    | Cooper
-    | Sorry
-    | Fail
+      | Isabelle of isabelle
+      | Zenon of zenon
+      | Smt
+      | SmtT of floatomega
+      | Yices
+      | YicesT of floatomega
+      | Cooper
+      | Sorry
+      | Fail
 
     and zenon = {
       zenon_timeout : float;
@@ -567,27 +567,27 @@ module V8 = struct
     ;;
 
     type reason =
-    | False
-    | Timeout
-    | Cantwork of string
+      | False
+      | Timeout
+      | Cantwork of string
     ;;
 
     type status_type_aux =
-    | RSucc
-    | RFail of reason option
-    | RInt
+      | RSucc
+      | RFail of reason option
+      | RInt
     ;;
 
     type status_type =
-    | Triv
-    | NTriv of status_type_aux * meth
+      | Triv
+      | NTriv of status_type_aux * meth
     ;;
 
     type date = int * int * int * int * int * int;;
     (* year, month-1, day, hour, minute, second *)
 
     type sti = status_type * date * string * string * string;;
-               (* status, date, pm version, zenon version, isabelle version *)
+    (* status, date, pm version, zenon version, isabelle version *)
 
     type str = {
       tres : sti option;
@@ -616,22 +616,22 @@ module V8 = struct
        Also adds field "z3res" to type str.
        NOTE: adding Z3 and Z3T made the types incompatible, but the version
        number was not changed.
-     *)
+    *)
 
     type floatomega = F of float | Omega;;
 
     type meth =
-    | Isabelle of isabelle
-    | Zenon of zenon
-    | Smt
-    | SmtT of floatomega
-    | Yices
-    | YicesT of floatomega
-    | Z3
-    | Z3T of floatomega
-    | Cooper
-    | Sorry
-    | Fail
+      | Isabelle of isabelle
+      | Zenon of zenon
+      | Smt
+      | SmtT of floatomega
+      | Yices
+      | YicesT of floatomega
+      | Z3
+      | Z3T of floatomega
+      | Cooper
+      | Sorry
+      | Fail
 
     and zenon = {
       zenon_timeout : float;
@@ -645,27 +645,27 @@ module V8 = struct
     ;;
 
     type reason =
-    | False
-    | Timeout
-    | Cantwork of string
+      | False
+      | Timeout
+      | Cantwork of string
     ;;
 
     type status_type_aux =
-    | RSucc
-    | RFail of reason option
-    | RInt
+      | RSucc
+      | RFail of reason option
+      | RInt
     ;;
 
     type status_type =
-    | Triv
-    | NTriv of status_type_aux * meth
+      | Triv
+      | NTriv of status_type_aux * meth
     ;;
 
     type date = int * int * int * int * int * int;;
     (* year, month-1, day, hour, minute, second *)
 
     type sti = status_type * date * string * string * string;;
-               (* status, date, pm version, zenon version, isabelle version *)
+    (* status, date, pm version, zenon version, isabelle version *)
 
     type str = {
       tres : sti option;
@@ -693,17 +693,17 @@ module V8 = struct
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | SmtT of floatomega
-  | Yices
-  | YicesT of floatomega
-  | Unusable1
-  | Z3T of floatomega
-  | Unusable2
-  | Unusable3
-  | Fail
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | SmtT of floatomega
+    | Yices
+    | YicesT of floatomega
+    | Unusable1
+    | Z3T of floatomega
+    | Unusable2
+    | Unusable3
+    | Fail
 
   and zenon = {
     zenon_timeout : float;
@@ -717,27 +717,27 @@ module V8 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -764,23 +764,23 @@ module V9 = struct
   (* introduced on 2011-10-15 in r24180 *)
   (* Adds case "Ccv3T" to type meth.
      Also adds field "cvc3res" to type str.
-   *)
+  *)
 
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | SmtT of floatomega
-  | Yices
-  | YicesT of floatomega
-  | Z3
-  | Z3T of floatomega
-  | Cooper
-  | Sorry
-  | Fail
-  | Cvc3T of floatomega
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | SmtT of floatomega
+    | Yices
+    | YicesT of floatomega
+    | Z3
+    | Z3T of floatomega
+    | Cooper
+    | Sorry
+    | Fail
+    | Cvc3T of floatomega
 
   and zenon = {
     zenon_timeout : float;
@@ -794,27 +794,27 @@ module V9 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -843,25 +843,25 @@ module V10 = struct
   (* introduced on 2011-11-30 in r24863 *)
   (* Adds cases "Smt2lib" and "Smt2z3" to type meth.
      Also adds fields "smt2libres" and "smt2z3res" to type str.
-   *)
+  *)
 
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | SmtT of floatomega
-  | Yices
-  | YicesT of floatomega
-  | Z3
-  | Z3T of floatomega
-  | Cooper
-  | Sorry
-  | Fail
-  | Cvc3T of floatomega
-  | Smt2lib of floatomega
-  | Smt2z3 of floatomega
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | SmtT of floatomega
+    | Yices
+    | YicesT of floatomega
+    | Z3
+    | Z3T of floatomega
+    | Cooper
+    | Sorry
+    | Fail
+    | Cvc3T of floatomega
+    | Smt2lib of floatomega
+    | Smt2z3 of floatomega
 
   and zenon = {
     zenon_timeout : float;
@@ -875,27 +875,27 @@ module V10 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -930,32 +930,32 @@ module V11 = struct
      to type meth.
      Previous SMT methods (Smt, Yices, Z3, Cvc3, SmtSmt2lib, Smt2z3) should
      be deprecated.
-   *)
+  *)
 
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | SmtT of floatomega
-  | Yices
-  | YicesT of floatomega
-  | Z3
-  | Z3T of floatomega
-  | Cooper
-  | Sorry
-  | Fail
-  | Cvc3T of floatomega
-  | Smt2lib of floatomega
-  | Smt2z3 of floatomega
-  | Smt3 of floatomega
-  | Z33 of floatomega
-  | Cvc33 of floatomega
-  | Yices3 of floatomega
-  | Verit of floatomega
-  | Spass of floatomega
-  | Tptp of floatomega
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | SmtT of floatomega
+    | Yices
+    | YicesT of floatomega
+    | Z3
+    | Z3T of floatomega
+    | Cooper
+    | Sorry
+    | Fail
+    | Cvc3T of floatomega
+    | Smt2lib of floatomega
+    | Smt2z3 of floatomega
+    | Smt3 of floatomega
+    | Z33 of floatomega
+    | Cvc33 of floatomega
+    | Yices3 of floatomega
+    | Verit of floatomega
+    | Spass of floatomega
+    | Tptp of floatomega
 
   and zenon = {
     zenon_timeout : float;
@@ -969,27 +969,27 @@ module V11 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -1029,33 +1029,33 @@ module V12 = struct
   (* introduced on 2013-08-26 in r32535 *)
   (* Adds case "LS4"
      to type meth.
-   *)
+  *)
 
   type floatomega = F of float | Omega;;
 
   type meth =
-  | Isabelle of isabelle
-  | Zenon of zenon
-  | Smt
-  | SmtT of floatomega
-  | Yices
-  | YicesT of floatomega
-  | Z3
-  | Z3T of floatomega
-  | Cooper
-  | Sorry
-  | Fail
-  | Cvc3T of floatomega
-  | Smt2lib of floatomega
-  | Smt2z3 of floatomega
-  | Smt3 of floatomega
-  | Z33 of floatomega
-  | Cvc33 of floatomega
-  | Yices3 of floatomega
-  | Verit of floatomega
-  | Spass of floatomega
-  | Tptp of floatomega
-  | LS4 of floatomega
+    | Isabelle of isabelle
+    | Zenon of zenon
+    | Smt
+    | SmtT of floatomega
+    | Yices
+    | YicesT of floatomega
+    | Z3
+    | Z3T of floatomega
+    | Cooper
+    | Sorry
+    | Fail
+    | Cvc3T of floatomega
+    | Smt2lib of floatomega
+    | Smt2z3 of floatomega
+    | Smt3 of floatomega
+    | Z33 of floatomega
+    | Cvc33 of floatomega
+    | Yices3 of floatomega
+    | Verit of floatomega
+    | Spass of floatomega
+    | Tptp of floatomega
+    | LS4 of floatomega
 
   and zenon = {
     zenon_timeout : float;
@@ -1069,27 +1069,27 @@ module V12 = struct
   ;;
 
   type reason =
-  | False
-  | Timeout
-  | Cantwork of string
+    | False
+    | Timeout
+    | Cantwork of string
   ;;
 
   type status_type_aux =
-  | RSucc
-  | RFail of reason option
-  | RInt
+    | RSucc
+    | RFail of reason option
+    | RInt
   ;;
 
   type status_type =
-  | Triv
-  | NTriv of status_type_aux * meth
+    | Triv
+    | NTriv of status_type_aux * meth
   ;;
 
   type date = int * int * int * int * int * int;;
   (* year, month-1, day, hour, minute, second *)
 
   type sti = status_type * date * string * string * string;;
-             (* status, date, pm version, zenon version, isabelle version *)
+  (* status, date, pm version, zenon version, isabelle version *)
 
   type str = {
     tres : sti option;
@@ -1145,7 +1145,7 @@ type fp =
 (* Note: the above modules and types are strictly private to this
    file and their contents must not escape from this module.
    Likewise, external types must not get into the above modules.
- *)
+*)
 
 (* ===================================================================== *)
 
@@ -1223,7 +1223,7 @@ and reason_to_Vx r =
 and meth_to_Vx m =
   match m with
   | M.Isabelle (tmo, tac) ->
-     Isabelle {isabelle_timeout = floatomega_to_Vx tmo; isabelle_tactic = tac}
+    Isabelle {isabelle_timeout = floatomega_to_Vx tmo; isabelle_tactic = tac}
   | M.Zenon tmo -> Zenon {zenon_timeout = tmo; zenon_fallback = Fail}
   | M.SmtT tmo -> SmtT (floatomega_to_Vx tmo)
   | M.YicesT tmo -> YicesT (floatomega_to_Vx tmo)
@@ -1302,9 +1302,9 @@ let prover_of_method m =
 let normalize m =
   match m with
   | Isabelle {isabelle_timeout = Omega; isabelle_tactic = t} ->
-     Isabelle {isabelle_timeout = F infinity; isabelle_tactic = t}
+    Isabelle {isabelle_timeout = F infinity; isabelle_tactic = t}
   | Zenon {zenon_timeout = tmo; zenon_fallback = _} ->
-     Zenon {zenon_timeout = tmo; zenon_fallback = Fail}
+    Zenon {zenon_timeout = tmo; zenon_fallback = Fail}
   | Smt | SmtT (Omega) -> SmtT (F infinity)
   | Yices | YicesT (Omega) -> YicesT (F infinity)
   | Z3 | Z3T (Omega) -> Z3T (F infinity)
@@ -1340,7 +1340,7 @@ let get_timeout m =
   | Spass (F t)
   | Tptp (F t)
   | LS4 (F t)
-  -> t
+    -> t
   | _ -> infinity
 ;;
 
@@ -1350,7 +1350,7 @@ let get_timeout m =
    isabelle results are compared without regard for the tactic field.
    It will become easy to fix when we change to a list of results instead
    of a record.
- *)
+*)
 let order st1 st2 =
   let (r1, _, _, _, _) = st1 in
   let (r2, _, _, _, _) = st2 in
@@ -1360,14 +1360,14 @@ let order st1 st2 =
   | _, Triv -> -1
   | NTriv (r1, m1), NTriv (r2, m2)
     when prover_of_method m1 = prover_of_method m2 ->
-     begin match r1, r2 with
-     | RSucc, RFail _ -> 1
-     | RFail _, RSucc -> -1
-     | RInt, _ -> -1
-     | _, RInt -> 1
-     | RSucc, RSucc -> compare (get_timeout m2) (get_timeout m1)
-     | RFail _, RFail _ -> compare (get_timeout m1) (get_timeout m2)
-     end
+    begin match r1, r2 with
+      | RSucc, RFail _ -> 1
+      | RFail _, RSucc -> -1
+      | RInt, _ -> -1
+      | _, RInt -> 1
+      | RSucc, RSucc -> compare (get_timeout m2) (get_timeout m1)
+      | RFail _, RFail _ -> compare (get_timeout m1) (get_timeout m2)
+    end
   | NTriv (_, m1), NTriv (_, m2) -> compare (normalize m1) (normalize m2)
 ;;
 
@@ -1496,9 +1496,9 @@ let add_v1 zv iv fp stl =
   let rec tr_method m =
     match m with
     | V1.Isabelle tac ->
-       Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
     | V1.Zenon {V1.zenon_timeout = t; V1.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V1.Smt -> SmtT (F infinity)
     | V1.Cooper -> failwith "buggy cooper"
     | V1.Sorry -> Sorry
@@ -1506,11 +1506,11 @@ let add_v1 zv iv fp stl =
   in
   let tr_st st =
     try match st with
-    | V1.Trivial -> [Triv]
-    | V1.Success m -> [NTriv (RSucc, tr_method m)]
-    | V1.RFail m -> [NTriv (RFail None, tr_method m)]
-    | V1.Interrupted m -> [NTriv (RInt, tr_method m)]
-    | _ -> []
+      | V1.Trivial -> [Triv]
+      | V1.Success m -> [NTriv (RSucc, tr_method m)]
+      | V1.RFail m -> [NTriv (RFail None, tr_method m)]
+      | V1.Interrupted m -> [NTriv (RInt, tr_method m)]
+      | _ -> []
     with Failure _ -> []
   in
   let to_sti x = (x, (0, 0, 0, 0, 0, 0), "", zv, iv) in
@@ -1522,9 +1522,9 @@ let add_v2 fp stil =
   let rec tr_method m =
     match m with
     | V2.Isabelle tac ->
-       Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
     | V2.Zenon {V2.zenon_timeout = t; V2.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V2.Smt -> SmtT (F infinity)
     | V2.Cooper -> failwith "buggy cooper"
     | V2.Sorry -> Sorry
@@ -1550,9 +1550,9 @@ let add_v3 fp stil =
   let rec tr_method m =
     match m with
     | V3.Isabelle tac ->
-       Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = F infinity; isabelle_tactic = tac}
     | V3.Zenon {V3.zenon_timeout = t; V3.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V3.Smt -> SmtT (F infinity);
     | V3.Cooper -> Cooper
     | V3.Sorry -> Sorry
@@ -1583,9 +1583,9 @@ let add_v4 fp stil =
   let rec tr_method m =
     match m with
     | V4.Isabelle {V4.isabelle_timeout = tmo; V4.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V4.Zenon {V4.zenon_timeout = t; V4.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V4.Smt -> SmtT (F infinity)
     | V4.Cooper -> Cooper
     | V4.Sorry -> Sorry
@@ -1616,9 +1616,9 @@ let add_v5 fp stil =
   let rec tr_method m =
     match m with
     | V5.Isabelle {V5.isabelle_timeout = tmo; V5.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V5.Zenon {V5.zenon_timeout = t; V5.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V5.Smt -> SmtT (F infinity);
     | V5.Cooper -> Cooper
     | V5.Sorry -> Sorry
@@ -1655,12 +1655,12 @@ let add_v6l fp stil =
   let rec tr_method m =
     match m with
     | V6.Isabelle {V6.isabelle_timeout = tmo; V6.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V6.Zenon {V6.zenon_timeout = t; V6.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V6.Smt -> SmtT (F infinity)
     | V6.Unusable1 | V6.Unusable2 | V6.Unusable3 ->
-       failwith "ambiguous method value"
+      failwith "ambiguous method value"
     | V6.Fail -> Fail
   in
   let tr_reason_option x =
@@ -1674,7 +1674,7 @@ let add_v6l fp stil =
     | V6.Triv -> Triv
     | V6.NTriv (V6.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V6.NTriv (V6.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V6.NTriv (V6.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -1713,9 +1713,9 @@ let add_v7l fp stil =
   let rec tr_method m =
     match m with
     | V7.Isabelle {V7.isabelle_timeout = tmo; V7.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V7.Zenon {V7.zenon_timeout = t; V7.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V7.Smt -> SmtT (F infinity)
     | V7.Yices -> YicesT (F infinity)
     | V7.Cooper -> Cooper
@@ -1734,7 +1734,7 @@ let add_v7l fp stil =
     | V7.Triv -> Triv
     | V7.NTriv (V7.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V7.NTriv (V7.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V7.NTriv (V7.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -1774,16 +1774,16 @@ let add_v8l fp stil =
   let rec tr_method m =
     match m with
     | V8.Isabelle {V8.isabelle_timeout = tmo; V8.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V8.Zenon {V8.zenon_timeout = t; V8.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V8.Smt -> SmtT (F infinity)
     | V8.SmtT tmo -> SmtT (tr_floatomega tmo)
     | V8.Yices -> YicesT (F infinity)
     | V8.YicesT tmo -> YicesT (tr_floatomega tmo)
     | V8.Z3T tmo -> Z3T (tr_floatomega tmo)
     | V8.Unusable1 | V8.Unusable2 | V8.Unusable3 ->
-       failwith "ambiguous method value"
+      failwith "ambiguous method value"
     | V8.Fail -> Fail
   in
   let tr_reason_option x =
@@ -1798,7 +1798,7 @@ let add_v8l fp stil =
     | V8.Triv -> Triv
     | V8.NTriv (V8.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V8.NTriv (V8.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V8.NTriv (V8.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -1838,9 +1838,9 @@ let add_v9l fp stil =
   let rec tr_method m =
     match m with
     | V9.Isabelle {V9.isabelle_timeout = tmo; V9.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V9.Zenon {V9.zenon_timeout = t; V9.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V9.Smt -> SmtT (F infinity)
     | V9.SmtT tmo -> SmtT (tr_floatomega tmo)
     | V9.Yices -> YicesT (F infinity)
@@ -1864,7 +1864,7 @@ let add_v9l fp stil =
     | V9.Triv -> Triv
     | V9.NTriv (V9.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V9.NTriv (V9.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V9.NTriv (V9.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -1906,9 +1906,9 @@ let add_v10l fp stil =
   let rec tr_method m =
     match m with
     | V10.Isabelle {V10.isabelle_timeout = tmo; V10.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V10.Zenon {V10.zenon_timeout = t; V10.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V10.Smt -> SmtT (F infinity)
     | V10.SmtT tmo -> SmtT (tr_floatomega tmo)
     | V10.Yices -> YicesT (F infinity)
@@ -1934,7 +1934,7 @@ let add_v10l fp stil =
     | V10.Triv -> Triv
     | V10.NTriv (V10.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V10.NTriv (V10.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V10.NTriv (V10.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -1978,9 +1978,9 @@ let add_v11l fp stil =
   let rec tr_method m =
     match m with
     | V11.Isabelle {V11.isabelle_timeout = tmo; V11.isabelle_tactic = tac} ->
-       Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
+      Isabelle {isabelle_timeout = tr_floatomega tmo; isabelle_tactic = tac}
     | V11.Zenon {V11.zenon_timeout = t; V11.zenon_fallback = mm} ->
-       Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
+      Zenon {zenon_timeout = t; zenon_fallback = tr_method mm}
     | V11.Smt -> SmtT (F infinity)
     | V11.SmtT tmo -> SmtT (tr_floatomega tmo)
     | V11.Yices -> YicesT (F infinity)
@@ -2013,7 +2013,7 @@ let add_v11l fp stil =
     | V11.Triv -> Triv
     | V11.NTriv (V11.RSucc, m) -> NTriv (RSucc, tr_method m)
     | V11.NTriv (V11.RFail r, m) ->
-       NTriv (RFail (tr_reason_option r), tr_method m)
+      NTriv (RFail (tr_reason_option r), tr_method m)
     | V11.NTriv (V11.RInt, m) -> NTriv (RInt, tr_method m)
   in
   let tr_sti (st, dt, pmv, zv, iv) =
@@ -2058,15 +2058,15 @@ let add_v12l fp stl = add_to_table fp stl;;
 
 let iter_tbl vnum f fps =
   Errors.err "Translating fingerprints from version %d to version %d"
-             vnum version;
+    vnum version;
   Hashtbl.iter f fps;
 ;;
 
 let iter_file f ic =
   try while true do
-    let v = Marshal.from_channel ic in
-    f v;
-  done with
+      let v = Marshal.from_channel ic in
+      f v;
+    done with
   | End_of_file -> ()
   | Failure _ -> ()  (* truncated object *)
 ;;
@@ -2095,7 +2095,7 @@ let load_fingerprints_aux file =
     if magic <> magic_number then failwith "corrupted fingerprint file";
     let v = Marshal.from_channel ic in
     if v >= FPunknown ()
-      then Errors.fatal "fingerprint file is from a newer version of tlapm";
+    then Errors.fatal "fingerprint file is from a newer version of tlapm";
     translate v ic;
     close_in ic;
     if !Params.safefp then begin
@@ -2132,16 +2132,16 @@ let load_fingerprints file =
   try
     load_fingerprints_aux file
   with e1 ->
-    try
-      Sys.rename file (file ^ ".corrupted");
-      let prev = previous_fp_file file in
-      load_fingerprints_aux prev;
-      Errors.err "Cannot load fingerprints file: %s\n\
-                  previous file (%s) loaded\n" (Printexc.to_string e1) prev;
-   with e2 ->
-     Errors.err "Cannot load fingerprints file: %s\n\
-                 Cannot load older file: %s\n" (Printexc.to_string e1)
-                (Printexc.to_string e2);
+  try
+    Sys.rename file (file ^ ".corrupted");
+    let prev = previous_fp_file file in
+    load_fingerprints_aux prev;
+    Errors.err "Cannot load fingerprints file: %s\n\
+                previous file (%s) loaded\n" (Printexc.to_string e1) prev;
+  with e2 ->
+    Errors.err "Cannot load fingerprints file: %s\n\
+                Cannot load older file: %s\n" (Printexc.to_string e1)
+      (Printexc.to_string e2);
 ;;
 
 let print_fp_line_1 fp stl =
@@ -2149,9 +2149,9 @@ let print_fp_line_1 fp stl =
     match m with
     | V1.Isabelle s -> printf "Isabelle (%s)" s;
     | V1.Zenon {V1.zenon_timeout = t; V1.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V1.Smt -> printf "Smt";
     | V1.Cooper -> printf "Cooper";
     | V1.Sorry -> printf "Sorry";
@@ -2162,18 +2162,18 @@ let print_fp_line_1 fp stl =
     | V1.Trivial -> printf "Trivial";
     | V1.BeingProved -> printf "BeingProved";
     | V1.Success m ->
-       printf "Success (";
-       print_meth m;
-       printf ")";
+      printf "Success (";
+      print_meth m;
+      printf ")";
     | V1.RFail m ->
-       printf "Fail (";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_meth m;
+      printf ")";
     | V1.Checked -> printf "Checked";
     | V1.Interrupted m ->
-       printf "Interrupted (";
-       print_meth m;
-       printf ")";
+      printf "Interrupted (";
+      print_meth m;
+      printf ")";
   in
   let f x =
     printf "  ";
@@ -2189,9 +2189,9 @@ let print_fp_line_2 fp stil =
     match m with
     | V2.Isabelle s -> printf "Isabelle (%S)" s;
     | V2.Zenon {V2.zenon_timeout = t; V2.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V2.Smt -> printf "Smt";
     | V2.Cooper -> printf "Cooper";
     | V2.Sorry -> printf "Sorry";
@@ -2202,18 +2202,18 @@ let print_fp_line_2 fp stil =
     | V2.Trivial -> printf "Trivial";
     | V2.BeingProved -> printf "BeingProved";
     | V2.Success m ->
-       printf "Success (";
-       print_meth m;
-       printf ")";
+      printf "Success (";
+      print_meth m;
+      printf ")";
     | V2.RFail m ->
-       printf "Fail (";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_meth m;
+      printf ")";
     | V2.Checked -> printf "Checked";
     | V2.Interrupted m ->
-       printf "Interrupted (";
-       print_meth m;
-       printf ")";
+      printf "Interrupted (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2234,9 +2234,9 @@ let print_fp_line_3 fp stil =
     match m with
     | V3.Isabelle s -> printf "Isabelle (%S)" s;
     | V3.Zenon {V3.zenon_timeout = t; V3.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V3.Smt -> printf "Smt";
     | V3.Cooper -> printf "Cooper";
     | V3.Sorry -> printf "Sorry";
@@ -2247,18 +2247,18 @@ let print_fp_line_3 fp stil =
     | V3.Trivial -> printf "Trivial";
     | V3.BeingProved -> printf "BeingProved";
     | V3.Success m ->
-       printf "Success (";
-       print_meth m;
-       printf ")";
+      printf "Success (";
+      print_meth m;
+      printf ")";
     | V3.RFail m ->
-       printf "Fail (";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_meth m;
+      printf ")";
     | V3.Checked -> printf "Checked";
     | V3.Interrupted m ->
-       printf "Interrupted (";
-       print_meth m;
-       printf ")";
+      printf "Interrupted (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2283,13 +2283,13 @@ let print_fp_line_4 fp stil =
   let rec print_meth m =
     match m with
     | V4.Isabelle {V4.isabelle_timeout = tmo; V4.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V4.Zenon {V4.zenon_timeout = t; V4.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V4.Smt -> printf "Smt";
     | V4.Cooper -> printf "Cooper";
     | V4.Sorry -> printf "Sorry";
@@ -2300,18 +2300,18 @@ let print_fp_line_4 fp stil =
     | V4.Trivial -> printf "Trivial";
     | V4.BeingProved -> printf "BeingProved";
     | V4.Success m ->
-       printf "Success (";
-       print_meth m;
-       printf ")";
+      printf "Success (";
+      print_meth m;
+      printf ")";
     | V4.RFail m ->
-       printf "Fail (";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_meth m;
+      printf ")";
     | V4.Checked -> printf "Checked";
     | V4.Interrupted m ->
-       printf "Interrupted (";
-       print_meth m;
-       printf ")";
+      printf "Interrupted (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2336,13 +2336,13 @@ let print_fp_line_5 fp stil =
   let rec print_meth m =
     match m with
     | V5.Isabelle {V5.isabelle_timeout = tmo; V5.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V5.Zenon {V5.zenon_timeout = t; V5.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V5.Smt -> printf "Smt";
     | V5.Cooper -> printf "Cooper";
     | V5.Sorry -> printf "Sorry";
@@ -2353,18 +2353,18 @@ let print_fp_line_5 fp stil =
     | V5.Trivial -> printf "Trivial";
     | V5.BeingProved -> printf "BeingProved";
     | V5.Success m ->
-       printf "Success (";
-       print_meth m;
-       printf ")";
+      printf "Success (";
+      print_meth m;
+      printf ")";
     | V5.RFail m ->
-       printf "Fail (";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_meth m;
+      printf ")";
     | V5.Checked -> printf "Checked";
     | V5.Interrupted m ->
-       printf "Interrupted (";
-       print_meth m;
-       printf ")";
+      printf "Interrupted (";
+      print_meth m;
+      printf ")";
   in
   let print_reason r =
     match r with
@@ -2396,13 +2396,13 @@ let print_sti_6 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V6.Isabelle {V6.isabelle_timeout = tmo; V6.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V6.Zenon {V6.zenon_timeout = t; V6.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V6.Smt -> printf "Smt";
     | V6.Unusable1 -> printf "Ambiguous method (Cooper or Yices)";
     | V6.Unusable2 -> printf "Ambiguous method (Sorry or Cooper)";
@@ -2419,19 +2419,19 @@ let print_sti_6 (st, d, pv, zv, iv) =
     match s with
     | V6.Triv -> printf "Trivial";
     | V6.NTriv (V6.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V6.NTriv (V6.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V6.NTriv (V6.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2448,8 +2448,8 @@ let print_fp_line_6r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_6 sti;
+      printf "    %s:\n" lbl;
+      print_sti_6 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V6.tres;
@@ -2473,13 +2473,13 @@ let print_sti_7 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V7.Isabelle {V7.isabelle_timeout = tmo; V7.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V7.Zenon {V7.zenon_timeout = t; V7.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V7.Smt -> printf "Smt";
     | V7.Yices -> printf "Yices";
     | V7.Cooper -> printf "Cooper";
@@ -2497,19 +2497,19 @@ let print_sti_7 (st, d, pv, zv, iv) =
     match s with
     | V7.Triv -> printf "Trivial";
     | V7.NTriv (V7.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V7.NTriv (V7.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V7.NTriv (V7.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2526,8 +2526,8 @@ let print_fp_line_7r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_7 sti;
+      printf "    %s:\n" lbl;
+      print_sti_7 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V7.tres;
@@ -2552,28 +2552,28 @@ let print_sti_8 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V8.Isabelle {V8.isabelle_timeout = tmo; V8.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V8.Zenon {V8.zenon_timeout = t; V8.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V8.Smt -> printf "Smt";
     | V8.SmtT tmo ->
-       printf "SmtT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "SmtT (";
+      print_floatomega tmo;
+      printf ")";
     | V8.Yices -> printf "Yices";
     | V8.YicesT tmo ->
-       printf "YicesT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "YicesT (";
+      print_floatomega tmo;
+      printf ")";
     | V8.Unusable1 -> printf "ambiguous method (Cooper or Z3)"
     | V8.Z3T tmo ->
-       printf "Z3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z3T (";
+      print_floatomega tmo;
+      printf ")";
     | V8.Unusable2 -> printf "ambiguous method (Sorry or Cooper)";
     | V8.Unusable3 -> printf "ambiguous method (Cooper or Fail)";
     | V8.Fail -> printf "Fail";
@@ -2589,19 +2589,19 @@ let print_sti_8 (st, d, pv, zv, iv) =
     match s with
     | V8.Triv -> printf "Trivial";
     | V8.NTriv (V8.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V8.NTriv (V8.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V8.NTriv (V8.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2618,8 +2618,8 @@ let print_fp_line_8r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_8 sti;
+      printf "    %s:\n" lbl;
+      print_sti_8 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V8.tres;
@@ -2644,35 +2644,35 @@ let print_sti_9 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V9.Isabelle {V9.isabelle_timeout = tmo; V9.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V9.Zenon {V9.zenon_timeout = t; V9.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V9.Smt -> printf "Smt";
     | V9.SmtT tmo ->
-       printf "SmtT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "SmtT (";
+      print_floatomega tmo;
+      printf ")";
     | V9.Yices -> printf "Yices";
     | V9.YicesT tmo ->
-       printf "YicesT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "YicesT (";
+      print_floatomega tmo;
+      printf ")";
     | V9.Z3 -> printf "Z3";
     | V9.Z3T tmo ->
-       printf "Z3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z3T (";
+      print_floatomega tmo;
+      printf ")";
     | V9.Cooper -> printf "Cooper";
     | V9.Sorry -> printf "Sorry";
     | V9.Fail -> printf "Fail";
     | V9.Cvc3T tmo ->
-       printf "Cvc3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc3T (";
+      print_floatomega tmo;
+      printf ")";
   in
   let print_reason r =
     match r with
@@ -2685,19 +2685,19 @@ let print_sti_9 (st, d, pv, zv, iv) =
     match s with
     | V9.Triv -> printf "Trivial";
     | V9.NTriv (V9.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V9.NTriv (V9.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V9.NTriv (V9.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2714,8 +2714,8 @@ let print_fp_line_9r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_9 sti;
+      printf "    %s:\n" lbl;
+      print_sti_9 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V9.tres;
@@ -2742,43 +2742,43 @@ let print_sti_10 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V10.Isabelle {V10.isabelle_timeout = tmo; V10.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V10.Zenon {V10.zenon_timeout = t; V10.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V10.Smt -> printf "Smt";
     | V10.SmtT tmo ->
-       printf "SmtT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "SmtT (";
+      print_floatomega tmo;
+      printf ")";
     | V10.Yices -> printf "Yices";
     | V10.YicesT tmo ->
-       printf "YicesT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "YicesT (";
+      print_floatomega tmo;
+      printf ")";
     | V10.Z3 -> printf "Z3";
     | V10.Z3T tmo ->
-       printf "Z3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z3T (";
+      print_floatomega tmo;
+      printf ")";
     | V10.Cooper -> printf "Cooper";
     | V10.Sorry -> printf "Sorry";
     | V10.Fail -> printf "Fail";
     | V10.Cvc3T tmo ->
-       printf "Cvc3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc3T (";
+      print_floatomega tmo;
+      printf ")";
     | V10.Smt2lib tmo ->
-       printf "Smt2lib (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2lib (";
+      print_floatomega tmo;
+      printf ")";
     | V10.Smt2z3 tmo ->
-       printf "Smt2z3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2z3 (";
+      print_floatomega tmo;
+      printf ")";
   in
   let print_reason r =
     match r with
@@ -2791,19 +2791,19 @@ let print_sti_10 (st, d, pv, zv, iv) =
     match s with
     | V10.Triv -> printf "Trivial";
     | V10.NTriv (V10.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V10.NTriv (V10.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V10.NTriv (V10.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2820,8 +2820,8 @@ let print_fp_line_10r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_10 sti;
+      printf "    %s:\n" lbl;
+      print_sti_10 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V10.tres;
@@ -2850,71 +2850,71 @@ let print_sti_11 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V11.Isabelle {V11.isabelle_timeout = tmo; V11.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V11.Zenon {V11.zenon_timeout = t; V11.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V11.Smt -> printf "Smt";
     | V11.SmtT tmo ->
-       printf "SmtT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "SmtT (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Yices -> printf "Yices";
     | V11.YicesT tmo ->
-       printf "YicesT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "YicesT (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Z3 -> printf "Z3";
     | V11.Z3T tmo ->
-       printf "Z3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z3T (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Cooper -> printf "Cooper";
     | V11.Sorry -> printf "Sorry";
     | V11.Fail -> printf "Fail";
     | V11.Cvc3T tmo ->
-       printf "Cvc3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc3T (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Smt2lib tmo ->
-       printf "Smt2lib (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2lib (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Smt2z3 tmo ->
-       printf "Smt2z3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2z3 (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Smt3 tmo ->
-       printf "Smt3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt3 (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Z33 tmo ->
-       printf "Z33 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z33 (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Cvc33 tmo ->
-       printf "Cvc33 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc33 (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Yices3 tmo ->
-       printf "Yices3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Yices3 (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Verit tmo ->
-       printf "Verit (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Verit (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Spass tmo ->
-       printf "Spass (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Spass (";
+      print_floatomega tmo;
+      printf ")";
     | V11.Tptp tmo ->
-       printf "Tptp (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Tptp (";
+      print_floatomega tmo;
+      printf ")";
   in
   let print_reason r =
     match r with
@@ -2927,19 +2927,19 @@ let print_sti_11 (st, d, pv, zv, iv) =
     match s with
     | V11.Triv -> printf "Trivial";
     | V11.NTriv (V11.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V11.NTriv (V11.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V11.NTriv (V11.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -2956,8 +2956,8 @@ let print_fp_line_11r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_11 sti;
+      printf "    %s:\n" lbl;
+      print_sti_11 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V11.tres;
@@ -2993,75 +2993,75 @@ let print_sti_12 (st, d, pv, zv, iv) =
   let rec print_meth m =
     match m with
     | V12.Isabelle {V12.isabelle_timeout = tmo; V12.isabelle_tactic = s} ->
-       printf "Isabelle {timeout = ";
-       print_floatomega tmo;
-       printf "; tactic = %S}" s;
+      printf "Isabelle {timeout = ";
+      print_floatomega tmo;
+      printf "; tactic = %S}" s;
     | V12.Zenon {V12.zenon_timeout = t; V12.zenon_fallback = m2} ->
-       printf "Zenon{timeout = %g; fallback = " t;
-       print_meth m2;
-       printf "}";
+      printf "Zenon{timeout = %g; fallback = " t;
+      print_meth m2;
+      printf "}";
     | V12.Smt -> printf "Smt";
     | V12.SmtT tmo ->
-       printf "SmtT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "SmtT (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Yices -> printf "Yices";
     | V12.YicesT tmo ->
-       printf "YicesT (";
-       print_floatomega tmo;
-       printf ")";
+      printf "YicesT (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Z3 -> printf "Z3";
     | V12.Z3T tmo ->
-       printf "Z3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z3T (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Cooper -> printf "Cooper";
     | V12.Sorry -> printf "Sorry";
     | V12.Fail -> printf "Fail";
     | V12.Cvc3T tmo ->
-       printf "Cvc3T (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc3T (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Smt2lib tmo ->
-       printf "Smt2lib (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2lib (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Smt2z3 tmo ->
-       printf "Smt2z3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt2z3 (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Smt3 tmo ->
-       printf "Smt3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Smt3 (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Z33 tmo ->
-       printf "Z33 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Z33 (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Cvc33 tmo ->
-       printf "Cvc33 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Cvc33 (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Yices3 tmo ->
-       printf "Yices3 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Yices3 (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Verit tmo ->
-       printf "Verit (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Verit (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Spass tmo ->
-       printf "Spass (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Spass (";
+      print_floatomega tmo;
+      printf ")";
     | V12.Tptp tmo ->
-       printf "Tptp (";
-       print_floatomega tmo;
-       printf ")";
+      printf "Tptp (";
+      print_floatomega tmo;
+      printf ")";
     | V12.LS4 tmo ->
-       printf "LS4 (";
-       print_floatomega tmo;
-       printf ")";
+      printf "LS4 (";
+      print_floatomega tmo;
+      printf ")";
   in
   let print_reason r =
     match r with
@@ -3074,19 +3074,19 @@ let print_sti_12 (st, d, pv, zv, iv) =
     match s with
     | V12.Triv -> printf "Trivial";
     | V12.NTriv (V12.RSucc, m) ->
-       printf "RSucc (";
-       print_meth m;
-       printf ")";
+      printf "RSucc (";
+      print_meth m;
+      printf ")";
     | V12.NTriv (V12.RFail r, m) ->
-       printf "Fail (";
-       print_reason r;
-       printf ", ";
-       print_meth m;
-       printf ")";
+      printf "Fail (";
+      print_reason r;
+      printf ", ";
+      print_meth m;
+      printf ")";
     | V12.NTriv (V12.RInt, m) ->
-       printf "RInt (";
-       print_meth m;
-       printf ")";
+      printf "RInt (";
+      print_meth m;
+      printf ")";
   in
   let print_date (y, m, d, hr, mn, sc) =
     printf "%04d-%02d-%02dT%02d:%02d:%02d" y (m+1) d hr mn sc
@@ -3103,8 +3103,8 @@ let print_fp_line_12r fp str =
     match o with
     | None -> ()
     | Some sti ->
-       printf "    %s:\n" lbl;
-       print_sti_12 sti;
+      printf "    %s:\n" lbl;
+      print_sti_12 sti;
   in
   printf "  %s :\n" fp;
   print_sti_opt "Trivial" str.V12.tres;
@@ -3134,9 +3134,9 @@ let print_fp_line_12l fp stil =
 
 let iter_file f ic =
   try while true do
-    let (fp, stil) = Marshal.from_channel ic in
-    f fp stil;
-  done with End_of_file -> ()
+      let (fp, stil) = Marshal.from_channel ic in
+      f fp stil;
+    done with End_of_file -> ()
 ;;
 
 let print file =
@@ -3158,69 +3158,69 @@ let print file =
       stop ();
     end;
     begin match v with
-    | FP1 (zv, iv, tbl) ->
-       printf "Fingerprints version = 1\n";
-       printf "Isabelle version = %S\n" iv;
-       printf "Zenon version = %S\n" zv;
-       Hashtbl.iter print_fp_line_1 tbl;
-    | FP2 tbl ->
-       printf "Fingerprints version = 2\n";
-       Hashtbl.iter print_fp_line_2 tbl;
-    | FP3 tbl ->
-       printf "Fingerprints version = 3\n";
-       Hashtbl.iter print_fp_line_3 tbl;
-    | FP4 tbl ->
-       printf "Fingerprints version = 4\n";
-       Hashtbl.iter print_fp_line_4 tbl;
-    | FP5 tbl ->
-       printf "Fingerprints version = 5\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_5 tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_5 ic;
-    | FP6 tbl ->
-       printf "Fingerprints version = 6\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_6r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_6l ic;
-    | FP7 tbl ->
-       printf "Fingerprints version = 7\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_7r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_7l ic;
-    | FP8 tbl ->
-       printf "Fingerprints version = 8\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_8r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_8l ic;
-    | FP9 tbl ->
-       printf "Fingerprints version = 9\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_9r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_9l ic;
-    | FP10 tbl ->
-       printf "Fingerprints version = 10\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_10r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_10l ic;
-    | FP11 tbl ->
-       printf "Fingerprints version = 11\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_11r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_11l ic;
-    | FP12 tbl ->
-       printf "Fingerprints version = 12\n";
-       printf "=========== Hashtable\n";
-       Hashtbl.iter print_fp_line_12r tbl;
-       printf "=========== Incremental lines\n";
-       iter_file print_fp_line_12l ic;
-    | _ -> assert false
+      | FP1 (zv, iv, tbl) ->
+        printf "Fingerprints version = 1\n";
+        printf "Isabelle version = %S\n" iv;
+        printf "Zenon version = %S\n" zv;
+        Hashtbl.iter print_fp_line_1 tbl;
+      | FP2 tbl ->
+        printf "Fingerprints version = 2\n";
+        Hashtbl.iter print_fp_line_2 tbl;
+      | FP3 tbl ->
+        printf "Fingerprints version = 3\n";
+        Hashtbl.iter print_fp_line_3 tbl;
+      | FP4 tbl ->
+        printf "Fingerprints version = 4\n";
+        Hashtbl.iter print_fp_line_4 tbl;
+      | FP5 tbl ->
+        printf "Fingerprints version = 5\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_5 tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_5 ic;
+      | FP6 tbl ->
+        printf "Fingerprints version = 6\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_6r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_6l ic;
+      | FP7 tbl ->
+        printf "Fingerprints version = 7\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_7r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_7l ic;
+      | FP8 tbl ->
+        printf "Fingerprints version = 8\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_8r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_8l ic;
+      | FP9 tbl ->
+        printf "Fingerprints version = 9\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_9r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_9l ic;
+      | FP10 tbl ->
+        printf "Fingerprints version = 10\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_10r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_10l ic;
+      | FP11 tbl ->
+        printf "Fingerprints version = 11\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_11r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_11l ic;
+      | FP12 tbl ->
+        printf "Fingerprints version = 12\n";
+        printf "=========== Hashtable\n";
+        Hashtbl.iter print_fp_line_12r tbl;
+        printf "=========== Incremental lines\n";
+        iter_file print_fp_line_12l ic;
+      | _ -> assert false
     end;
     stop ();
   with Exit -> ()
@@ -3254,7 +3254,7 @@ let rec vx_to_st6 st =
   match st with
   | Triv -> Some T.Triv
   | NTriv (sta, meth) ->
-     Option.map (fun m -> T.NTriv (vx_to_sta6 sta, m)) (vx_to_meth meth)
+    Option.map (fun m -> T.NTriv (vx_to_sta6 sta, m)) (vx_to_meth meth)
 
 and vx_to_sta6 sta =
   match sta with
@@ -3272,7 +3272,7 @@ and vx_to_reason r =
 and vx_to_meth m =
   match m with
   | Isabelle {isabelle_timeout = tmo; isabelle_tactic = tac} ->
-     Some (M.Isabelle (vx_to_floatomega tmo, tac))
+    Some (M.Isabelle (vx_to_floatomega tmo, tac))
   | Zenon {zenon_timeout = tmo; zenon_fallback = m} -> Some (M.Zenon tmo)
   | Smt -> Some (M.SmtT infinity)
   | SmtT tmo -> Some (M.SmtT (vx_to_floatomega tmo))
@@ -3312,13 +3312,13 @@ let query fp meth =
       match st with
       | Triv -> (dom, others)
       | NTriv (_, m2) when prover_of_method m2 <> prover_of_method m ->
-         (dom, st :: others)
+        (dom, st :: others)
       | NTriv (RSucc, m2) -> (* FIXME success dominates shorter timeout *)
-         (st :: dom, others)
+        (st :: dom, others)
       | NTriv (RFail _, m2) ->
-         if get_timeout m2 >= get_timeout m
-         then (st :: dom, others)
-         else (dom, others)
+        if get_timeout m2 >= get_timeout m
+        then (st :: dom, others)
+        else (dom, others)
       | NTriv (RInt, _) -> (dom, others)
     in
     let (dominators, others) = List.fold_left f ([], []) l in

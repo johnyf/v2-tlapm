@@ -43,10 +43,10 @@ let start cl =
 let stop () = start ambient
 
 let total desc = {
-    desc = desc;
-    time = Unix.gettimeofday () -. beginning_of_the_world;
-    count = 0;
-  }
+  desc = desc;
+  time = Unix.gettimeofday () -. beginning_of_the_world;
+  count = 0;
+}
 
 let string_of_clock cl =
   if (fst !last_start).desc == cl.desc then start cl ;

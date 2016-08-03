@@ -1,8 +1,8 @@
 open Obligation
 open Obligation_formatter
-       
+
 (** Definition **)
-       
+
 type tla_pb = obligation
 
 (** Printer **)
@@ -15,4 +15,4 @@ let print_tla_pb file obl =
   Format.fprintf fft "%a" fmt_tla_pb obl;
   Format.fprintf fft "@.%!";
   close_out oc
-                   
+

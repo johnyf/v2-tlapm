@@ -14,7 +14,7 @@ open Any_expr
     are replaced by the actual lambda language construct. The first one is not
     of type expr, but the second one is.). The default implementation just
     duplicates the given tree.
- *)
+*)
 
 type 'a macc =  anyExpr * 'a
 
@@ -34,7 +34,7 @@ val set_anyexpr : 'a macc -> anyExpr -> 'a macc
 val update_anyexpr : 'a macc -> 'a macc -> 'a macc
 
 val unpack_fold : (anyExpr -> 'a) -> ('b macc -> 'c -> 'b macc) -> 'b macc ->
-                  'c list -> ('a list * 'b macc)
+  'c list -> ('a list * 'b macc)
 
 (** This is an any_extractor which extracts the anyExpr from the macc first. *)
 class ['b] macc_extractor : object
@@ -49,8 +49,8 @@ class id_extractor : object
 end
 
 class ['a] expr_map : object
-(*  val id_extract   :  id_extractor
-  val macc_extract : 'a macc_extractor *)
+  (*  val id_extract   :  id_extractor
+      val macc_extract : 'a macc_extractor *)
   method get_id_extractor   : id_extractor
   method get_macc_extractor : 'a macc_extractor
   method expr            : 'a macc -> expr -> 'a macc
@@ -101,9 +101,9 @@ class ['a] expr_map : object
 
   method op_appl_or_binder : 'a macc -> op_appl_or_binder -> 'a macc
   method expr_or_module_or_module_instance :
-           'a macc -> expr_or_module_or_module_instance -> 'a macc
+    'a macc -> expr_or_module_or_module_instance -> 'a macc
   method defined_expr : 'a macc -> defined_expr -> 'a macc
   method op_def_or_theorem_or_assume       :
-           'a macc -> op_def_or_theorem_or_assume -> 'a macc
+    'a macc -> op_def_or_theorem_or_assume -> 'a macc
 
 end

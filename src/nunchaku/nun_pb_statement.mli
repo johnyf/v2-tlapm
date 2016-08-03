@@ -13,7 +13,7 @@ and nun_expr =
   | Atom of string
 type nun_axiom = Axiom of nun_expr
 type nun_goal = Goal of nun_expr
-				
+
 type nun_statement = nun_goal * nun_declaration list * nun_axiom list * nun_comment list * nun_include list
 
 val print_statement : formatter -> nun_statement -> unit

@@ -11,7 +11,7 @@ Revision.f "$Rev: 34291 $";;
 (* stubs, the code below should be fixed *)
 
 let toolbox_print ob ?(temp=false) status prover meth timeout already print_ob reason
-                  warnings time_used = ()
+    warnings time_used = ()
 
 let print_new_res ob st warns time_used = ()
 let print_old_res ob st really_print = ()

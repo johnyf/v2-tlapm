@@ -13,14 +13,14 @@ type toolbox_status = | ToBeProved | Proved | Failed | Trivial
 type toolbox_method = | Auto | Blast | Force | Fail | Sorry
 
 type toolbox_msg = {
-    id       : int;                      (* obligation id *)
-    location : location;                 (* location of statement to prove *)
-    status   : toolbox_status;           (* proving status of the obligation *)
-    prover   : prover option;            (* which prover was used *)
-    meth     : toolbox_method option;    (* which method was passed *)
-    already_processed : bool option;     (* fingerprint used *)
-    obligation_string  : string option;
-  }
+  id       : int;                      (* obligation id *)
+  location : location;                 (* location of statement to prove *)
+  status   : toolbox_status;           (* proving status of the obligation *)
+  prover   : prover option;            (* which prover was used *)
+  meth     : toolbox_method option;    (* which method was passed *)
+  already_processed : bool option;     (* fingerprint used *)
+  obligation_string  : string option;
+}
 
 let toolbox_status_string = function
   | ToBeProved -> "to be proved"
@@ -63,15 +63,15 @@ let fmt_prover f x =
   fprintf f "%s"(prover_string x)
 
 let fmt_toolbox_msg_d ?prover:prover
-                      ?meth:meth ?already_processed:already_processed
-                      ?obligation_string:obligation_string formatter id
-                      location status =
+    ?meth:meth ?already_processed:already_processed
+    ?obligation_string:obligation_string formatter id
+    location status =
   fprintf formatter "@[<v>%s%s@," head front;
   fprintf formatter "%stype:obligation@," head;
   fprintf formatter "%sid:%d@," head id;
   fprintf formatter "%sloc:%d:%d:%d:%d@," head
-          location.line.rbegin location.column.rbegin
-          location.line.rend location.column.rend;
+    location.line.rbegin location.column.rbegin
+    location.line.rend location.column.rend;
   fprintf formatter "%sstatus:%a@," head fmt_toolbox_status status;
   begin
     match prover with
@@ -99,7 +99,7 @@ let fmt_toolbox_msg_d ?prover:prover
 let fmt_toolbox_msg formatter { id; location; status; prover;
                                 meth; already_processed; obligation_string } =
   fmt_toolbox_msg_d formatter id location status ?prover
-                    ?meth ?already_processed ?obligation_string
+    ?meth ?already_processed ?obligation_string
 
 let fmt_toolbox_msg_count formatter no =
   fprintf formatter "@[<v>%s%s@," head front;

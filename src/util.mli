@@ -44,7 +44,7 @@ val rm_temp_file : string -> unit
 (** Remove the given temporary file unless debugging "tempfiles" *)
 
 *)
-                           
+
 val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
 (** [add_hook cleanup fn argument]
     Adds to [cleanup] the action of calling [fn argument] before doing
@@ -56,9 +56,9 @@ val add_hook : (unit -> unit) ref -> ('a -> unit) -> 'a -> unit;;
 
 val ( @$ ) : ('a -> 'b) -> 'a -> 'b
 (**
-  Right-associative function application. You can write
-  'hd @$ tl @$ tl @$ [1;2;3;4;5]' instead of 'hd ( tl ( tl ( [1;2;3;4;5] )))'.
-  @see <http://blog.0branch.com/posts/2012-04-17-haskell-application-ocaml.html>
+   Right-associative function application. You can write
+   'hd @$ tl @$ tl @$ [1;2;3;4;5]' instead of 'hd ( tl ( tl ( [1;2;3;4;5] )))'.
+   @see <http://blog.0branch.com/posts/2012-04-17-haskell-application-ocaml.html>
       Original Source
 *)
 
@@ -86,15 +86,15 @@ val multiset_equal_lists : 'a list -> 'a list -> bool
 (** {3 String utils} *)
 (** [mkString ~front ~middle ~back fmt list ] *)
 val mkString : ?front:string -> ?middle:string -> ?back:string  ->
-               ( 'a -> string) -> 'a list -> string
+  ( 'a -> string) -> 'a list -> string
 (** Creates a string from the given
     list by mapping fmt on each element, using ~middle as a seperator. The
     string ~front is prepended, while ~back is appended.
- *)
+*)
 
 (** [mkString ~front ~middle ~back fmt list ] *)
 val fmt_pair : ?front:string -> ?middle:string -> ?back:string  ->
-              ('a  fmt) -> ('b fmt) -> formatter -> ('a * 'b) -> unit
+  ('a  fmt) -> ('b fmt) -> formatter -> ('a * 'b) -> unit
 
 (** fmt_pair ~front ~middle ~back fmt_a fmt_b formatter (a,b) prints
     the pair (a,b) with the formatters fmt_a and fmt_b. They optional
@@ -103,7 +103,7 @@ val fmt_pair : ?front:string -> ?middle:string -> ?back:string  ->
 
 
 val fmt_option : ?none:string -> ?some:string -> ?some_back:string -> ('a  fmt)
-                 -> formatter -> 'a option -> unit
+  -> formatter -> 'a option -> unit
 
 (** fmt_option ~none ~somefmt_a fmt_b formatter (a,b) prints
     the option with the formatter fmt_a. The optional
@@ -114,17 +114,17 @@ val fmt_option : ?none:string -> ?some:string -> ?some_back:string -> ('a  fmt)
 
 val fmt_string : formatter -> string -> unit
 (** fmt_string formatter string prints the given string to the formatter.
- *)
+*)
 
 val fmt_list : ?front:string -> ?middle:string -> ?back:string  ->
-               ( 'a fmt) -> formatter -> 'a list -> unit
+  ( 'a fmt) -> formatter -> 'a list -> unit
 (** fmt_list ~front ~middle ~back fmt_elem f l prints each
     element of the list l to the given formatter using the element formatter
     fmt_elem. First the string ~front is printed, elements are seperated by
     ~middle and ~back closes the list.
- *)
+*)
 
 val autodetect_executable_path : string
 (**
    Parses argv and extracts the path of the current executable.
- *)
+*)

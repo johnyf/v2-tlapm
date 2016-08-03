@@ -26,6 +26,6 @@ val print_obligation :
   reason : string option ->
   already : bool option ->
   obl : string option ->
-    unit
+  unit
 ;;
 (* Send a "type:obligation" message to the toolbox. *)

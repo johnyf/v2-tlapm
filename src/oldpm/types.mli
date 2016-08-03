@@ -21,7 +21,7 @@ type status_type6 =
 
 type package = {
   final_form   : obligation;
-(*  print_form   : Proof.T.obligation; *)
+  (*  print_form   : Proof.T.obligation; *)
   log          : string list;
   proof        : string;
   results      : status_type6 list;

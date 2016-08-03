@@ -9,12 +9,12 @@ exception Fatal;;
 val info : ?at:('a wrapped) -> ('b, unit, string, unit) format4 -> 'b;;
 (* Informational message: print on console, but do not display in a
    toolbox window.
- *)
+*)
 
 val warn : ?at:('a wrapped) -> ('b, unit, string, unit) format4 -> 'b;;
 (* Warning: print on console, and store for printing with the obligation
    in the toolbox message, but do not pop up a window.
- *)
+*)
 
 val get_warnings : unit -> string;;
 (* Get the stored warnings so far and empty the store. *)
@@ -28,12 +28,12 @@ val err : ?at:('a wrapped) -> ('b, unit, string, unit) format4 -> 'b;;
 val fatal : ?at:('a wrapped) -> ('b, unit, string, 'c) format4 -> 'b;;
 (* Fatal error: print on console, pop up a window if toolbox mode,
    raise Fatal.
- *)
+*)
 
 val bug : ?at:('a wrapped) -> string -> 'b;;
 (* Bug: this is equivalent to assert false but prints the given information
    before raising Assert_failure.
- *)
+*)
 
 
 (********** old stuff ********* FIXME remove **********)

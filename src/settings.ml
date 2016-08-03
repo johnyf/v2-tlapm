@@ -4,23 +4,23 @@ open Util
 open List
 
 type settings = {
-    (* SANY/XML related *)
-    java_path    : string option;
-    check_schema : bool;
-    xml_input    : bool;
-    include_paths : string list;
+  (* SANY/XML related *)
+  java_path    : string option;
+  check_schema : bool;
+  xml_input    : bool;
+  include_paths : string list;
 
-    (* pm settings *)
-    verbose      : bool;
-    overlord     : bool;
-    toolbox      : int_range;
-    fingerprints : bool;
-    input_file   : string;
-    pm_path      : string;
+  (* pm settings *)
+  verbose      : bool;
+  overlord     : bool;
+  toolbox      : int_range;
+  fingerprints : bool;
+  input_file   : string;
+  pm_path      : string;
 
-    (* unchaku backend settings *)
-    models_in_tla : bool;
-  }
+  (* unchaku backend settings *)
+  models_in_tla : bool;
+}
 
 let default_settings =
   {
@@ -47,7 +47,7 @@ let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
                              pm_path; models_in_tla } =
   fprintf formatter "@[<v 2>{@,";
   fprintf formatter "java path     = %a@,"
-          (fmt_option ~some:"\"" ~some_back:"\"" fmt_string) java_path;
+    (fmt_option ~some:"\"" ~some_back:"\"" fmt_string) java_path;
   fprintf formatter "verbose       = %b@," verbose;
   fprintf formatter "overlord      = %b@," overlord;
   fprintf formatter "check schema  = %b@," check_schema;

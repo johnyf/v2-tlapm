@@ -9,7 +9,7 @@ val expr_to_prover : simple_term_db -> simple_expr -> prover option
 
 (* val match_prefix_op : simple_term_db -> operator ->
                      (string * formal_param * formal_param) option
- *)
+*)
 val match_infix_op : simple_term_db -> simple_operator -> bool
 
 val match_ternary_op : simple_term_db -> simple_operator -> string option

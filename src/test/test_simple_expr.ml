@@ -14,15 +14,15 @@ let test_simple_expr record () =
     match obligations with
     | [] -> ("","")
     | obl::tl ->
-       let (s1,s2) = obligations_to_string tl (n+1) in
-       let fft = str_formatter in
-       fprintf fft "Obligation %d:\n%a\n\n" n
-               fmt_obligation obl;
-       let s1' = flush_str_formatter () in
-       fprintf fft "Obligation %d:\n%a\n\n" n
-               fmt_tla_simple_pb (tla_pb_to_tla_simple_pb obl);
-       let s2' = flush_str_formatter () in
-       (s1'^s1,s2'^s2)
+      let (s1,s2) = obligations_to_string tl (n+1) in
+      let fft = str_formatter in
+      fprintf fft "Obligation %d:\n%a\n\n" n
+        fmt_obligation obl;
+      let s1' = flush_str_formatter () in
+      fprintf fft "Obligation %d:\n%a\n\n" n
+        fmt_tla_simple_pb (tla_pb_to_tla_simple_pb obl);
+      let s2' = flush_str_formatter () in
+      (s1'^s1,s2'^s2)
   in
   try
     let (s1,s2) = obligations_to_string record.obligations 0 in
@@ -40,7 +40,7 @@ let create_test record =
     ~title: ("Comparing simple_expression to expression in " ^ record.filename)
     (fun () -> ())
     (fun () ->
-     ( test_simple_expr record () )
+       ( test_simple_expr record () )
     )
     (fun () -> ()  )
 
