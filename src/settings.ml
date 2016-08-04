@@ -5,10 +5,10 @@ open List
 
 type settings = {
   (* SANY/XML related *)
-  java_path    : string option;
-  check_schema : bool;
-  xml_input    : bool;
-  include_paths : string list;
+  java_executable : string;
+  check_schema    : bool;
+  xml_input       : bool;
+  include_paths   : string list;
 
   (* pm settings *)
   verbose      : bool;
@@ -20,15 +20,16 @@ type settings = {
 
   (* unchaku backend settings *)
   models_in_tla : bool;
+  nunchaku_executable : string;
 }
 
 let default_settings =
   {
     (* SANY/XML related *)
-    java_path     = None;
-    check_schema  = false;
-    xml_input     = false;
-    include_paths = [];
+    java_executable = "java";
+    check_schema    = false;
+    xml_input       = false;
+    include_paths   = [];
 
     (* pm settings *)
     toolbox      = { rbegin = 0; rend = 0};
@@ -40,14 +41,14 @@ let default_settings =
 
     (* unchaku backend settings *)
     models_in_tla = true;
+    nunchaku_executable = "nunchaku";
   }
 
-let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
+let fmt_settings formatter { java_executable; check_schema; xml_input; include_paths;
                              verbose; overlord; toolbox; fingerprints; input_file;
-                             pm_path; models_in_tla } =
+                             pm_path; models_in_tla; nunchaku_executable } =
   fprintf formatter "@[<v 2>{@,";
-  fprintf formatter "java path     = %a@,"
-    (fmt_option ~some:"\"" ~some_back:"\"" fmt_string) java_path;
+  fprintf formatter "java exec     = %s@," java_executable;
   fprintf formatter "verbose       = %b@," verbose;
   fprintf formatter "overlord      = %b@," overlord;
   fprintf formatter "check schema  = %b@," check_schema;
@@ -58,5 +59,6 @@ let fmt_settings formatter { java_path; check_schema; xml_input; include_paths;
   fprintf formatter "input file    = \"%s\"@," input_file;
   fprintf formatter "tlapm binary location  = \"%s\"@," pm_path;
   fprintf formatter "print nunchaku models in TLA syntax  = \"%b\"@," models_in_tla;
+  fprintf formatter "nunchaku exec = %s@," nunchaku_executable;
   fprintf formatter "@]}";
   ()

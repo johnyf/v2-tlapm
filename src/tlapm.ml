@@ -14,17 +14,14 @@ open Backend_exceptions
 
 
 (** Creates the command line string used to invoke the sany parser *)
-let java_cmd { check_schema; java_path; include_paths; input_file; pm_path; _ } =
-  let fmt_path = fmt_option ~none:"java" ~some:"" ~some_back:"" fmt_string in
+let java_cmd { check_schema; java_executable; include_paths;
+               input_file; pm_path; _  } =
   let fmt_include = fmt_list ~front:"" ~middle:""
       ~back:""
       (fun fmt s -> fprintf fmt "-I \"%s\" " s) in
   let fmt_offline = if check_schema then "" else "-o" in
-  let cmd = asprintf "%a -jar %s/lib/sany.jar %s %a \"%s\""
-      fmt_path java_path
-      pm_path
-      fmt_offline
-      fmt_include include_paths
+  let cmd = asprintf "%s -jar %s/lib/sany.jar %s %a \"%s\""
+      java_executable pm_path fmt_offline  fmt_include include_paths
       input_file
   in
   cmd
