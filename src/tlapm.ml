@@ -32,7 +32,7 @@ type xml_tla_channels =
 
 let rec dump_channel c =
   let line = input_line c in
-  Printf.printf "%s\n" line;
+   Printf.printf "%s\n" line;
   dump_channel c;
   ()
 

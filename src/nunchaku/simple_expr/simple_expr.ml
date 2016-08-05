@@ -86,7 +86,15 @@ class expr_to_simple_expr = object(self)
     }
     in set_any acc (Any_strng sx)
 
-  method op_arg acc x = self#operator acc x.argument
+  method op_arg acc { location; level; argument; } =
+    let acc0 = self#operator acc argument in
+    let argument = get_any acc0 |> unany#operator  in
+    let oa = {
+      location;
+      level;
+      argument;
+    }
+    in set_any acc0 (Any_op_arg oa)
 
 
   (** ----------------------------------------------**)
