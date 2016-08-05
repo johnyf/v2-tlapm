@@ -23,7 +23,8 @@ let set_any (term_db,simple_term_db,_) any = (term_db,simple_term_db,any)
 
 let print_tdb_ids ?msg:(m="") acc =
   let tdb = get_simple_term_db acc in
-  Format.printf "Tdb ids %s: %a@." m (fmt_list Format.pp_print_int) (List.map fst tdb);
+  Format.printf "Tdb ids %s: %a@." m
+    (fmt_list Format.pp_print_int) (List.map fst tdb);
   acc
 
 class extractor = object
@@ -611,9 +612,6 @@ class expr_to_simple_expr = object(self)
       raise (UnhandledLanguageElement (Nunchaku, "ap subst entry"))
 
 end
-
-
-
 
 
 (** ----------------------------------------------**)

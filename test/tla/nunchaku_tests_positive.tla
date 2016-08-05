@@ -1,4 +1,4 @@
-------------------------------- MODULE nunchaku_tests -------------------------------
+------------------------------- MODULE nunchaku_tests_positive -------------------------------
 
 THEOREM ASSUME NEW a, NEW b, a#b, NEW S, S = {a,b} PROVE S = b OBVIOUS
 

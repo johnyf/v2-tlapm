@@ -31,7 +31,8 @@ let test_extract_obligations record () =
         let fmt_ps = fmt_list fmt_prover in
         let print_obl i o =
           Format.printf "Obligation #%d of %d@." i total;
-          Format.printf "%s obligation provers : %a@." record.filename fmt_ps o.provers;
+          Format.printf "%s obligation provers : %a@."
+            record.filename fmt_ps o.provers;
           (* Printf.printf "%d assumptions\n" (List.length o.goal.assumes); *)
           fmt_obligation std_formatter o;
           Format.printf "@.(end of obligation)@.";

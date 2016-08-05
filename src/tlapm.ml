@@ -12,6 +12,7 @@ open Toolbox
 open Result
 open Backend_exceptions
 
+let  global_settings = ref default_settings
 
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd { check_schema; java_executable; include_paths;
@@ -167,6 +168,7 @@ let init () =
   Printexc.record_backtrace true;
   try begin
     let settings = handle_arguments Sys.argv in
+    global_settings := settings;
     let sany_context = load_sany settings in
     let obligations = compute_obligations settings sany_context in
     announce_obligations settings err_formatter obligations;

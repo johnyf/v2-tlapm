@@ -50,11 +50,13 @@ let files flt =
                  (*"pharos";  *)
                  "obligation_bug1"; (* TODO: fix this bug! *)
                  "bug02";
-                 "nunchaku_tests";
+                 "nunchaku";
+                 "nunchaku_tests_positive";
+                 "nunchaku_tests_negative";
                ])
 
 let () =
-  let results = List.map (fun fn -> mkTestResult fn) (files id) in
+  let results = List.map mkTestResult (files id) in
   (* In the XML format, the expression ASSUME I!T PROVE X uses a theorem
      reference for I!T, but in reality is in an AP substitution. Remove the
      test case till this is fixed.
@@ -69,7 +71,7 @@ let () =
                          ]))
   in
   let without_broken = List.filter fmt_filter results in
-  let without_nunchaku_broken = List.filter fmt_nun_filter results in
+  let without_nunchaku_broken = List.filter fmt_nun_filter without_broken in
   let tests =
     List.concat [
       Test_util.get_tests;
@@ -80,6 +82,7 @@ let () =
       Test_extract_obligations.get_tests without_broken;
       Test_formatter.get_tests without_broken (* *);
       Test_simple_expr.get_tests without_nunchaku_broken;
+      Test_nunchaku.get_tests without_nunchaku_broken;
       Test_issue2.get_tests without_broken;
     ] in
 

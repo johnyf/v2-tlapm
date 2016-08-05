@@ -3,7 +3,7 @@ open Format
 
 (** Definition **)
 
-type model = 
+type model =
   {
     var : (string * string) list ;
     mem : (string * (string list)) list ;
@@ -18,8 +18,6 @@ and decision_tree =
   }
 
 type tla_mod = VALID | UNKNOWN | TIMEOUT | REFUTED of model
-
-
 
 
 
@@ -60,7 +58,7 @@ let add_var name (value:Nun_mod.term) model =
   in
   let new_var = match value with
     | Var v -> (new_name, v)
-    |   _   -> (name, "ERROR add_var failed")  
+    |   _   -> (name, "ERROR add_var failed")
   in
   set_var model (new_var::model.var)
 
@@ -74,7 +72,7 @@ let rec set_mem_aux cases acc = match cases with
   | (_, "false")::q -> set_mem_aux q acc
   | ([("v_0",v0);("v_1",v1)], "true")::q -> set_mem_aux q (add_mem v0 v1 acc)
   | ([("v_1",v1);("v_0",v0)], "true")::q -> set_mem_aux q (add_mem v0 v1 acc)
-  | _ -> failwith "mem_raw parsing failed"                         
+  | _ -> failwith "mem_raw parsing failed"
 
 let set_mem_main f = let (_,{cases;_}) = f in set_mem_aux cases []
 
@@ -191,11 +189,11 @@ let fmt_dom pp model = match model.dom with
   | Some (vars, dt) -> fprintf pp "%a" fmt_fun ("DOMAIN f", ["f"],model.var,model.mem,vars,dt)
   | None   -> ()
 
-let fmt_set pp set = 
+let fmt_set pp set =
   let fmt_one pp v = fprintf pp "%s" v in
   fmt_list fmt_one "; " pp set
 
-let fmt_mem pp mem = 
+let fmt_mem pp mem =
   let fmt_one pp v = let (set,elements) = v in fprintf pp "@.%s = {%a}" set fmt_set elements in
   fmt_list fmt_one "; " pp mem
 
@@ -232,5 +230,5 @@ let print_tla_mod output_file tla_mod =
   print_flush ();
   close_out oc
 
-let tla_mod_to_string tla_mod =  
+let tla_mod_to_string tla_mod =
   CCFormat.sprintf "%a" fmt_tla_mod tla_mod

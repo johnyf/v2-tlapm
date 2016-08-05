@@ -27,19 +27,17 @@ type nun_mod = UNSAT | UNKNOWN | TIMEOUT | SAT of model
 
 
 
-
-
 (** Translation **)
 
 let rec sexp_to_term t = match t with
-  | Atom s -> Var s 	
+  | Atom s -> Var s
   | List ((Atom "?__")::l) -> App ("UNDEFINED",(List.map sexp_to_term l))
   | List ((Atom s)::l) -> App (s,(List.map sexp_to_term l))
   | List [List [Atom v; Atom t]] -> Var ("("^v^" : "^t^")")
   | _ -> failwith "unparsed term"
 
 let rec sexp_to_type t = match t with
-  | Atom s -> s 	
+  | Atom s -> s
   | List [(Atom "->");a;b] -> (sexp_to_type a)^" -> "^(sexp_to_type b)
   | _ -> failwith "unparsed type"
 
@@ -49,9 +47,9 @@ let rec sexp_to_string t =
     | [] -> ""
     | [x] -> sexp_to_string x
     | t::q -> (sexp_to_string t)^" "^(list_to_string q)
-  in 
+  in
   match t with
-  | Atom s -> s 	
+  | Atom s -> s
   | List l -> "("^(list_to_string l)^")"
 
 let sexp_to_type_model_entry t = match t with

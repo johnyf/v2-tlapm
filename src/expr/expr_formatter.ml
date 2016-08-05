@@ -8,7 +8,6 @@ open Expr_prover_parser
 open List
 open Format
 
-
 type nesting = Module | Expression | ProofStep of int | By
 (* We need to pass on the formatter, the contect for unfolding references and a
    flag if to unfold *)
@@ -756,8 +755,7 @@ class formatter =
 
 let expr_formatter = new formatter
 
-let mk_fmt (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
-  let fmt = formatter_of_out_channel channel in
+let mk_fmt (f : fc -> 'a -> fc) term_db fmt (expr : 'a) =
   let acc = (fmt, term_db, true, Expression, 0) in
   ignore (f acc expr; fprintf fmt "@." )
 

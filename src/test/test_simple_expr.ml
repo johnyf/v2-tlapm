@@ -35,10 +35,9 @@ let test_simple_expr record () =
        term are replaced by the definition. Therefore this assertion doesn't
        hold in general. *)
     Assert.equal ~msg s1 s2;
-    record.simple_obligations <- simple_obs;
-    ()
+    simple_obs
   with
-  | UnhandledLanguageElement (_, _)-> ()
+  | UnhandledLanguageElement (_, _)-> []
 
 let create_test record =
   Test.make_assert_test
@@ -47,7 +46,9 @@ let create_test record =
     (fun () ->
        (exhandler ( test_simple_expr record ))
     )
-    (fun () -> ()  )
+    (fun sobs ->
+       ignore( record.simple_obligations <- sobs )
+    )
 
 
 let get_tests records = List.map create_test records

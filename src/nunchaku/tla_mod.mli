@@ -2,7 +2,7 @@ open Nun_mod
 
 (** Definition **)
 
-type model = 
+type model =
   {
     var : (string * string) list ;
     mem : (string * (string list)) list ;
