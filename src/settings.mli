@@ -21,6 +21,7 @@ type settings = {
   (* unchaku backend settings *)
   models_in_tla : bool;
   nunchaku_executable : string; (* the string to call nunchaku *)
+  nunchaku_temp_path : string;
 }
 
 val default_settings : settings

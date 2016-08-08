@@ -1,3 +1,4 @@
+open Commons
 open Tla_pb
 open Tla_simple_pb
 open Nun_pb
@@ -6,6 +7,7 @@ open Nun_sexp
 open Nun_mod
 open Tla_mod
 open Settings
+open Backend_exceptions
 
 type nunchaku_result = tla_mod
 
@@ -13,8 +15,21 @@ let nunchaku_result_printer result = match result with
   | REFUTED _ -> Some (tla_mod_to_string result)
   | _         -> None
 
+let buffer_input nunchaku_out =
+  let buffer = Buffer.create 16 in
+  begin
+    try
+      while true do
+        input_line nunchaku_out |> Buffer.add_string buffer;
+        Buffer.add_char buffer '\n';
+      done
+    with End_of_file ->
+      ()
+  end;
+  Buffer.contents buffer
+
 let call_nunchaku nun_pb_ast settings id =
-  let path = settings.pm_path ^ "/nunchaku" in
+  let path = settings.nunchaku_temp_path in
   let nun_file = Printf.sprintf "%s/tmp_nun_pb_%d.nun" path id in
   let sexp_file = Printf.sprintf "%s/tmp_nun_sexp_%d.txt" path id in
   let oc = open_out nun_file in
@@ -23,17 +38,30 @@ let call_nunchaku nun_pb_ast settings id =
   close_out oc;
   let call = Printf.sprintf "%s -s cvc4 -o sexp --timeout 10 '%s' > '%s' "
       settings.nunchaku_executable nun_file sexp_file in
-  ignore(Sys.command call);
-  let nun_sexp_ast = sexp_parser sexp_file in
-  if (not(settings.overlord))
-  then
-    begin
-      ignore(Sys.command ("rm "^nun_file));
-      ignore(Sys.command ("rm "^sexp_file));
-    end
-  else
-    ();
-  nun_sexp_ast
+  let env = Unix.environment () in
+  let (nout, nin, nerr) = Unix.open_process_full call env in
+  let model_buffer = buffer_input nout in
+  let err_buffer = buffer_input nerr in
+  let return_code = Unix.close_process_full (nout, nin, nerr) in
+  match return_code with
+  | Unix.WEXITED 0 ->
+    let nun_sexp_ast = sexp_parser sexp_file in
+    if (not(settings.overlord))
+    then
+      begin
+        ignore(Sys.command ("rm "^nun_file));
+        ignore(Sys.command ("rm "^sexp_file));
+      end;
+    nun_sexp_ast
+  | Unix.WEXITED n ->
+    let msg = Format.asprintf "Nunchaku failed with error code %d." n in
+    raise (ExternalToolFailed (Nunchaku, msg, err_buffer))
+  | Unix.WSTOPPED n ->
+    let msg = Format.asprintf "Sub-process was halted by signal number %d." n in
+    raise (ExternalToolFailed (Nunchaku, msg, err_buffer))
+  | Unix.WSIGNALED n ->
+    let msg = Format.asprintf "Sub-process was halted by signal number %d." n in
+    raise (ExternalToolFailed (Nunchaku, msg, err_buffer))
 
 
 let nunchaku settings obligation id =

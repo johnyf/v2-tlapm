@@ -34,6 +34,10 @@ let handle_nunchaku_exec state str =
   state.settings <- { state.settings with nunchaku_executable = str };
   ()
 
+let handle_nunchaku_temp_path state str =
+  state.settings <- { state.settings with nunchaku_temp_path = str };
+  ()
+
 let handle_include_path state str =
   state.settings <- { state.settings with
                       include_paths = str :: state.settings.include_paths };
@@ -74,7 +78,9 @@ let handlers s =
     ("--overlord", Unit (handle_overlord s),
      "Enable overlord mode.");
     ("--with-nunchaku", String (handle_nunchaku_exec s),
-     "The java executable to use.");
+     "The nunchaku executable to use.");
+    ("--nunchaku-temp", String (handle_nunchaku_exec s),
+     "The directory containing the nunchaku theories and temporary files.");
   ]
 
 let use_string =

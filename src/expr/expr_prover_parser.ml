@@ -75,6 +75,21 @@ let extract_ternary_args arity name params =
   if (arity = 3) && (mem name ternary_names)
   then Some name else None
 
+let extract_mixfix_args arity name params =
+  let rec gen_commas suffix = function
+    | 2 -> suffix
+    | n when n > 2 ->
+      let suffix_ = ", " :: suffix in
+      gen_commas suffix_ (n-1)
+    | _ ->
+      failwith "Error in extract mixfix implementation!"
+  in
+  match name, arity with
+  | "$FcnApply", n when n > 0 ->
+    
+    Some ("" :: "[" :: (gen_commas ["]"] n))
+  | _ -> None
+
 let match_infix_op term_db = function
   | FMOTA_formal_param fp -> false
   | FMOTA_module m -> false
@@ -97,6 +112,20 @@ let match_ternary_op term_db = function
     extract_ternary_args uopi.arity uopi.name uopi.params
   | FMOTA_op_def (O_builtin_op op) ->
     extract_ternary_args op.arity op.name op.params
+  | FMOTA_op_def _ -> None
+  | FMOTA_op_decl opdecl -> None
+  | FMOTA_theorem thm -> None
+  | FMOTA_assume assume -> None
+  | FMOTA_ap_subst_in _ -> None
+
+let match_mixfix_op term_db = function
+  | FMOTA_formal_param fp -> None
+  | FMOTA_module m -> None
+  | FMOTA_op_def (O_user_defined_op uop) ->
+    let uopi = dereference_user_defined_op term_db uop in
+    extract_mixfix_args uopi.arity uopi.name uopi.params
+  | FMOTA_op_def (O_builtin_op op) ->
+    extract_mixfix_args op.arity op.name op.params
   | FMOTA_op_def _ -> None
   | FMOTA_op_decl opdecl -> None
   | FMOTA_theorem thm -> None

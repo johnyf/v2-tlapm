@@ -21,6 +21,7 @@ type settings = {
   (* unchaku backend settings *)
   models_in_tla : bool;
   nunchaku_executable : string;
+  nunchaku_temp_path : string;
 }
 
 let default_settings =
@@ -42,11 +43,13 @@ let default_settings =
     (* unchaku backend settings *)
     models_in_tla = true;
     nunchaku_executable = "nunchaku";
+    nunchaku_temp_path = autodetect_executable_path ^ "/nunchaku";
   }
 
-let fmt_settings formatter { java_executable; check_schema; xml_input; include_paths;
-                             verbose; overlord; toolbox; fingerprints; input_file;
-                             pm_path; models_in_tla; nunchaku_executable } =
+let fmt_settings formatter { java_executable; check_schema; xml_input;
+                             include_paths; verbose; overlord; toolbox;
+                             fingerprints; input_file; pm_path; models_in_tla;
+                             nunchaku_executable; nunchaku_temp_path } =
   fprintf formatter "@[<v 2>{@,";
   fprintf formatter "java exec     = %s@," java_executable;
   fprintf formatter "verbose       = %b@," verbose;
@@ -60,5 +63,6 @@ let fmt_settings formatter { java_executable; check_schema; xml_input; include_p
   fprintf formatter "tlapm binary location  = \"%s\"@," pm_path;
   fprintf formatter "print nunchaku models in TLA syntax  = \"%b\"@," models_in_tla;
   fprintf formatter "nunchaku exec = %s@," nunchaku_executable;
+  fprintf formatter "nunchaku temp path = %s@," nunchaku_temp_path;
   fprintf formatter "@]}";
   ()
