@@ -27,13 +27,13 @@ let string_quoted fmt s = Format.fprintf fmt "\"%s\"" s
 
 let list ?(start="[") ?(stop="]") ?(sep=", ") pp fmt l =
   let rec pp_list l = match l with
-  | x::((_::_) as l) ->
-    pp fmt x;
-    Format.pp_print_string fmt sep;
-    Format.pp_print_cut fmt ();
-    pp_list l
-  | x::[] -> pp fmt x
-  | [] -> ()
+    | x::((_::_) as l) ->
+      pp fmt x;
+      Format.pp_print_string fmt sep;
+      Format.pp_print_cut fmt ();
+      pp_list l
+    | x::[] -> pp fmt x
+    | [] -> ()
   in
   Format.pp_print_string fmt start;
   pp_list l;
@@ -65,11 +65,11 @@ let seq ?(start="[") ?(stop="]") ?(sep=", ") pp fmt seq =
   Format.pp_print_string fmt start;
   let first = ref true in
   seq (fun x ->
-    (if !first then first := false else (
-      Format.pp_print_string fmt sep;
-      Format.pp_print_cut fmt ();
-    ));
-    pp fmt x);
+      (if !first then first := false else (
+          Format.pp_print_string fmt sep;
+          Format.pp_print_cut fmt ();
+        ));
+      pp fmt x);
   Format.pp_print_string fmt stop
 
 let opt pp fmt x = match x with
@@ -176,8 +176,8 @@ let ansi_l_to_str_ = function
   | [a] -> Format.sprintf "\x1b[%dm" (code_of_style a)
   | [a;b] -> Format.sprintf "\x1b[%d;%dm" (code_of_style a) (code_of_style b)
   | l ->
-      let pp_num out c = int out (code_of_style c) in
-      to_string (list ~start:"\x1b[" ~stop:"m" ~sep:";" pp_num) l
+    let pp_num out c = int out (code_of_style c) in
+    to_string (list ~start:"\x1b[" ~stop:"m" ~sep:";" pp_num) l
 
 (* parse a tag *)
 let style_of_tag_ s = match String.trim s with
@@ -230,9 +230,9 @@ let set_color_tag_handling ppf =
   let functions = pp_get_formatter_tag_functions ppf () in
   let st = Stack.create () in (* stack of styles *)
   let functions' = {functions with
-    mark_open_tag=(mark_open_tag st ~or_else:functions.mark_open_tag);
-    mark_close_tag=(mark_close_tag st ~or_else:functions.mark_close_tag);
-  } in
+                    mark_open_tag=(mark_open_tag st ~or_else:functions.mark_open_tag);
+                    mark_close_tag=(mark_close_tag st ~or_else:functions.mark_close_tag);
+                   } in
   pp_set_mark_tags ppf true; (* enable tags *)
   pp_set_formatter_tag_functions ppf functions'
 

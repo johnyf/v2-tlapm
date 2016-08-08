@@ -1,22 +1,22 @@
 open Xmlm
 
 (** this map represents the context, mapping UIDs to
- formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume *)
+    formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume *)
 module ContextMap : (Map.S with type key = int)
 
 val formatSignal  : Xmlm.signal -> string
 (**
-  con : context
-  i   : xml input stream
-  tgs_funs : list of pairs string * fun
+   con : context
+   i   : xml input stream
+   tgs_funs : list of pairs string * fun
 
-  processes children (left to right) of the current node. the list tgs_fun
-  contains pairs of functions (p, f), where the p acts as a guard to apply f,
-  i.e. if (p name) is true, we apply f to the child. processing stops when the
-  first unrecognized name is encountered.
+   processes children (left to right) of the current node. the list tgs_fun
+   contains pairs of functions (p, f), where the p acts as a guard to apply f,
+   i.e. if (p name) is true, we apply f to the child. processing stops when the
+   first unrecognized name is encountered.
 
-  Remark: get_children_choice itself only looks at the tags, they have to be
-  consumed by the functions applied.
+   Remark: get_children_choice itself only looks at the tags, they have to be
+   consumed by the functions applied.
 *)
 val get_children_choice : ?context:('b ContextMap.t)option -> input -> (((string -> bool) * (input -> 'a)) list) -> 'a list
 
@@ -41,7 +41,7 @@ val get_children_in : ?context:('b ContextMap.t)option -> input -> string -> str
 
 (** function composition of get_children_choice and get_data_in  *)
 val get_children_choice_in : ?context:('b ContextMap.t)option -> input -> string -> ((string-> bool) * (input -> 'a)) list -> 'a list
-  
+
 (** function composition of get_child and get_data_in  *)
 val get_child_in : ?context:('b ContextMap.t)option -> input -> string -> string -> (input -> 'a) -> 'a
 

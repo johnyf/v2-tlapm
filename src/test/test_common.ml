@@ -1,13 +1,14 @@
 type test_result = {
-    filename : string;
-    mutable sany_context : Sany_ds.context option;
-    mutable expr_context : Expr_ds.context option;
-    mutable explicit_lambda_context : Expr_ds.context option;
-    mutable explicit_steps_context : Expr_ds.context option;
-    mutable obligations  : Obligation.obligation list;
+  filename : string;
+  mutable sany_context : Sany_ds.context option;
+  mutable expr_context : Expr_ds.context option;
+  mutable explicit_lambda_context : Expr_ds.context option;
+  mutable explicit_steps_context : Expr_ds.context option;
+  mutable obligations  : Obligation.obligation list;
+  mutable simple_obligations : Tla_simple_pb.tla_simple_pb list;
 }
 
-let mkTestResult ?sc ?ec ?lc ?esc ?ob:(ob=[]) name =
+let mkTestResult ?sc ?ec ?lc ?esc ?ob:(ob=[]) ?sob:(sob=[]) name =
   {
     filename = name;
     sany_context = sc;
@@ -15,6 +16,7 @@ let mkTestResult ?sc ?ec ?lc ?esc ?ob:(ob=[]) name =
     explicit_lambda_context = lc;
     explicit_steps_context = esc;
     obligations  = ob;
+    simple_obligations = sob;
   }
 
 let exhandler f =

@@ -1,15 +1,15 @@
 open Simple_expr_ds
 open Simple_expr
 open Tla_pb
-       
-(** Definition **)
-       
-type tla_simple_pb = {
-    (* actual obligation, without expansion *)
-    goal : simple_assume_prove;
 
-    (* the term database *)
-    term_db : simple_term_db;
+(** Definition **)
+
+type tla_simple_pb = {
+  (* actual obligation, without expansion *)
+  goal : simple_assume_prove;
+
+  (* the term database *)
+  term_db : simple_term_db;
 }
 
 
@@ -20,7 +20,7 @@ let tla_pb_to_tla_simple_pb (tla_pb:tla_pb) =
   {goal = ap; term_db = stermdb;}
 
 
-    
+
 (** Printer **)
 
 let fmt_tla_simple_pb pp { goal; term_db; } =
@@ -34,4 +34,3 @@ let print_tla_simple_pb file obl =
   Format.fprintf fft "%a" fmt_tla_simple_pb obl;
   Format.fprintf fft "@.%!";
   close_out oc
-                     

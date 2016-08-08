@@ -9,26 +9,26 @@ open Expr_visitor
 
 
 class suffices_scanner =
-object
-inherit [int * int] visitor as super
+  object
+    inherit [int * int] visitor as super
 
-method statement (flags, constrs) = function
-  | ST_FORMULA f ->
-     let flags = if f.suffices then flags+1 else flags in
-     super#statement (flags, constrs) (ST_FORMULA f)
-  | ST_SUFFICES f ->
-     let flags = if f.suffices then flags+1 else flags in
-     super#statement (flags, constrs+1) (ST_SUFFICES f)
-  | _ as st ->
-     super#statement (flags, constrs) st
-end
+    method statement (flags, constrs) = function
+      | ST_FORMULA f ->
+        let flags = if f.suffices then flags+1 else flags in
+        super#statement (flags, constrs) (ST_FORMULA f)
+      | ST_SUFFICES f ->
+        let flags = if f.suffices then flags+1 else flags in
+        super#statement (flags, constrs+1) (ST_SUFFICES f)
+      | _ as st ->
+        super#statement (flags, constrs) st
+  end
 
 let test_parse_theorems record () =
   Printf.printf "%s\n" record.filename;
   let mapper = new expr_parse_theorems in
   let context = match record.explicit_lambda_context with
-  | Some x -> x
-  | None -> failwith ("No expression content for " ^ record.filename ^ "!")
+    | Some x -> x
+    | None -> failwith ("No expression content for " ^ record.filename ^ "!")
   in
   Printf.printf "Theorem correction conversion test of %s \n" record.filename;
   let me = mapper#get_macc_extractor in
@@ -47,8 +47,8 @@ let test_map record =
     ~title: ("making proof steps explicit " ^ record.filename)
     (fun () -> ())
     (fun () ->
-     Assert.no_raise ~msg:"Unexpected exception raised."
-                     (fun () -> exhandler ( test_parse_theorems record )  )
+       Assert.no_raise ~msg:"Unexpected exception raised."
+         (fun () -> exhandler ( test_parse_theorems record )  )
     )
     (fun () -> ()  )
 

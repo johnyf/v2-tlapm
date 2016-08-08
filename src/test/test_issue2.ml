@@ -20,15 +20,15 @@ let test_map record =
         { obligations; _ } ->
         Assert.is_false (obligations = []);
         let _ = List.map (function
-                   | { goal = { assumes = []; _}; _ } ->
-                      ()
-                   | obl ->
-                      let msg = asprintf
-                                  "Expected no assumptions in goal of obligation %a"
-                                  fmt_obligation obl
-                      in
-                      Assert.fail_msg msg
-                              ) obligations;
+            | { goal = { assumes = []; _}; _ } ->
+              ()
+            | obl ->
+              let msg = asprintf
+                  "Expected no assumptions in goal of obligation %a"
+                  fmt_obligation obl
+              in
+              Assert.fail_msg msg
+          ) obligations;
         in
         ()
     )

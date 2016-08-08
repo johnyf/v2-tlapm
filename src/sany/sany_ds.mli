@@ -4,19 +4,19 @@ open Commons
    These datastructures directly mirror the XML schema in lib/sany.xsd. There
    are two differences:
 
-  {ol
+   {ol
    {- The handling of references is realized such that each of the types
    allowing a reference are disjunctions of either a reference or a concrete
    record. }
    {- The handling of references is realized such that each of the types
    allowing a reference are disjunctions of either a reference or a concrete
    record. }
-  }
+   }
 
    Additional disjunction types (like expr_or_op_arg) are necessary, whenever
    the XML schema may contain child nodes of different types. The have the form
    type1_or_..._or_typeN.
- *)
+*)
 
 type node =
   | N_ap_subst_in of ap_subst_in
@@ -89,8 +89,8 @@ and subst = {
 }
 
 and assume =
-| ASSUME_ref of int
-| ASSUME of assume_
+  | ASSUME_ref of int
+  | ASSUME of assume_
 
 and assume_ = {
   location          : location option;
@@ -99,8 +99,8 @@ and assume_ = {
 }
 
 and theorem =
-| THM_ref of int
-| THM of theorem_
+  | THM_ref of int
+  | THM of theorem_
 
 and theorem_ = {
   location          : location option;
@@ -181,19 +181,19 @@ and op_arg = {
 }
 
 and formal_param =
-   | FP_ref of int
-   | FP of formal_param_
+  | FP_ref of int
+  | FP of formal_param_
 
 and formal_param_ = {
-     location          : location option;
-     level             : level option;
-     name              : string;
-     arity             : int
+  location          : location option;
+  level             : level option;
+  name              : string;
+  arity             : int
 }
 
 and op_decl =
-   | OPD_ref of int
-   | OPD of op_decl_
+  | OPD_ref of int
+  | OPD of op_decl_
 
 and op_decl_ = {
   location          : location option;
@@ -352,7 +352,7 @@ and mule_entry =
   | MODe_theorem of theorem
   | MODe_use_or_hide of use_or_hide
   | MODe_instance of instance
-                             
+
 (* modules *)
 and mule =
   | MOD_ref of int

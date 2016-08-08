@@ -23,38 +23,40 @@ let id x = true
 
 let files flt =
   List.map
-  addpath (List.filter flt
-           [
-           "empty";
-           "UserDefOp";
-           "lambda";
-           "minilambda";
-           "tuples";
-           "Choose";
-           "at" ;
-           "expr" ;
-           "functions";
-           "instanceA" ;
-           "Euclid";
-           "Quantifiers";
-           "case_take_use_hide";
-           "qed";
-           "qed2";
-           "extends_use_def_outer";
-           (*           "exec"; *)
-           "proofsteps";
-           "priming_stephan";
-           (* "withsubmodule"; has incorrect use of theorem *)
-           "OneBit";
-           (* contains duplicates of multiple modules, takes long to load *)
-           (*"pharos";  *)
-           "obligation_bug1"; (* TODO: fix this bug! *)
-           "bug02";
-           "nunchaku_tests";
-           ])
+    addpath (List.filter flt
+               [
+                 "empty";
+                 "UserDefOp";
+                 "lambda";
+                 "minilambda";
+                 "tuples";
+                 "Choose";
+                 "at" ;
+                 "expr" ;
+                 "functions";
+                 "instanceA" ;
+                 "Euclid";
+                 "Quantifiers";
+                 "case_take_use_hide";
+                 "qed";
+                 "qed2";
+                 "extends_use_def_outer";
+                 (*           "exec"; *)
+                 "proofsteps";
+                 "priming_stephan";
+                 (* "withsubmodule"; has incorrect use of theorem *)
+                 "OneBit";
+                 (* contains duplicates of multiple modules, takes long to load *)
+                 (*"pharos";  *)
+                 "obligation_bug1"; (* TODO: fix this bug! *)
+                 "bug02";
+                 "nunchaku";
+                 "nunchaku_tests_positive";
+                 "nunchaku_tests_negative";
+               ])
 
 let () =
-  let results = List.map (fun fn -> mkTestResult fn) (files id) in
+  let results = List.map mkTestResult (files id) in
   (* In the XML format, the expression ASSUME I!T PROVE X uses a theorem
      reference for I!T, but in reality is in an AP substitution. Remove the
      test case till this is fixed.
@@ -62,26 +64,27 @@ let () =
   let fmt_filter r = r.filename <> (addpath "withsubmodule") in
   let fmt_nun_filter r =
     not (mem r.filename
-             (map addpath  ["withsubmodule";
-                            (* this test has an obligation <1>1 => a=b which
+           (map addpath  ["withsubmodule";
+                          (* this test has an obligation <1>1 => a=b which
                              translates (correctly) to a=b => a=b *)
-                            "case_take_use_hide"
-        ]))
+                          "case_take_use_hide"
+                         ]))
   in
   let without_broken = List.filter fmt_filter results in
-  let without_nunchaku_broken = List.filter fmt_nun_filter results in
+  let without_nunchaku_broken = List.filter fmt_nun_filter without_broken in
   let tests =
     List.concat [
-        Test_util.get_tests;
-        Test_sany.get_tests results;
-        Test_map.get_tests results;
-        Test_correct_lambda.get_tests without_broken;
-        Test_parse_theorems.get_tests without_broken;
-        Test_extract_obligations.get_tests without_broken;
-        Test_formatter.get_tests without_broken (* *);
-        Test_simple_expr.get_tests without_nunchaku_broken;
-        Test_issue2.get_tests without_broken;
-      ] in
+      Test_util.get_tests;
+      Test_sany.get_tests results;
+      Test_map.get_tests results;
+      Test_correct_lambda.get_tests without_broken;
+      Test_parse_theorems.get_tests without_broken;
+      Test_extract_obligations.get_tests without_broken;
+      Test_formatter.get_tests without_broken (* *);
+      Test_simple_expr.get_tests without_nunchaku_broken;
+      Test_nunchaku.get_tests without_nunchaku_broken;
+      Test_issue2.get_tests without_broken;
+    ] in
 
   match check_xmloutput with
   | true  ->

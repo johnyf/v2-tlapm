@@ -102,7 +102,7 @@ let format_anyexpr = function
   | Any_omitted _ -> "omitted"
   | Any_obvious _ -> "obvious"
   | Any_expr_or_module_or_module_instance _ ->
-     "expr_or_module_or_module_instance"
+    "expr_or_module_or_module_instance"
   | Any_defined_expr _ -> "defined_expr"
   | Any_by _ -> "by"
   | Any_steps _ -> "steps"

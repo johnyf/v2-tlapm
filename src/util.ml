@@ -21,7 +21,7 @@ let bug ?at msg =
       "Please file a bug report, including as much information" ;
       "as you can. Mention the following in your report: " ;
       "" ]
-                  (* @ Params.configuration false false *)
+    (* @ Params.configuration false false *)
     in
     String.concat "\n" lines ^ "\n"
   in
@@ -82,37 +82,37 @@ let add_hook h f x =
   h := (fun () -> f x; old ());
 ;;
 
-  (* TODO: depends on Params, change dependency to new param handling
-let rm_temp_file fname =
-  if not (Params.debugging "tempfiles") then begin
-    try Sys.remove fname with _ -> ()
-  end;
-;;
+(* TODO: depends on Params, change dependency to new param handling
+   let rm_temp_file fname =
+   if not (Params.debugging "tempfiles") then begin
+   try Sys.remove fname with _ -> ()
+   end;
+   ;;
 
-let temp_file (clean_hook : (unit -> unit) ref) suffix =
-  let (fname, chan) =
-    Filename.open_temp_file ~temp_dir:!Params.output_dir ~mode:[Open_binary]
-                            "tlapm_" suffix
-  in
-  let f () =
-    close_out chan;
-    rm_temp_file fname;
-  in
-  add_hook clean_hook f ();
-  (fname, chan)
-;;
-   *)
+   let temp_file (clean_hook : (unit -> unit) ref) suffix =
+   let (fname, chan) =
+   Filename.open_temp_file ~temp_dir:!Params.output_dir ~mode:[Open_binary]
+                          "tlapm_" suffix
+   in
+   let f () =
+   close_out chan;
+   rm_temp_file fname;
+   in
+   add_hook clean_hook f ();
+   (fname, chan)
+   ;;
+*)
 
 (* some general formatting utils *)
 let fmt_string = pp_print_string
 
 let fmt_pair ?front:(f="(") ?middle:(m=", ") ?back:(b=")")
-            fmt_left fmt_right formatter (x,y) =
+    fmt_left fmt_right formatter (x,y) =
   fprintf formatter "%s%a%s%a%s" f fmt_left x m fmt_right y b;
   ()
 
 let fmt_option ?none:(none="None") ?some:(some="Some ") ?some_back:(back="")
-               fmt_arg formatter =
+    fmt_arg formatter =
   function
   | Some s -> fprintf formatter "%s%a%s" some fmt_arg s back
   | None -> fprintf formatter "%s" none
@@ -121,12 +121,12 @@ let fmt_option ?none:(none="None") ?some:(some="Some ") ?some_back:(back="")
 let fmt_list ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt formatter lst =
   let rec fmt_list_ ?middle:(m=";") formatter = function
     | [] ->
-       ()
+      ()
     | [x] ->
-       fprintf formatter "%a" fmt x
+      fprintf formatter "%a" fmt x
     | x::xs ->
-       fprintf formatter "%a%s%a" fmt x m (fmt_list_ ~middle:m) xs;
-       ()
+      fprintf formatter "%a%s%a" fmt x m (fmt_list_ ~middle:m) xs;
+      ()
   in
   fprintf formatter "%s%a%s" f (fmt_list_ ~middle:m) lst b;
   ()
@@ -144,20 +144,20 @@ let (  @$ ) f x = f x;;
    list, where all dependencies of a key is contained in the dependency list  *)
 let rec collect_dependencies  keys_dependencies = function
   | (x,y)::xs -> (
-    (* look at the first key-dependency pair, check if the key has already
-       dependencies and add the dependency to the list, if necessary *)
-    match List.partition (fun kd -> x = fst kd) keys_dependencies with
-    | ([], rest) ->
-       (* if key does not have a list associated, make a new entry *)
-      collect_dependencies  ((x,[y]) :: rest) xs
-    | ([(_, dependencies)], rest) when List.mem y dependencies ->
-      (* y is already in the dependencies, don't add it twice *)
-      collect_dependencies  keys_dependencies xs
-    | ([(_, dependencies)], rest) (* when not List.mem y dependencies *) ->
-      collect_dependencies  ((x, y::dependencies) :: rest) xs
-    | _ ->
-       failwith "Implementation error in finding an ordering!"
-  )
+      (* look at the first key-dependency pair, check if the key has already
+         dependencies and add the dependency to the list, if necessary *)
+      match List.partition (fun kd -> x = fst kd) keys_dependencies with
+      | ([], rest) ->
+        (* if key does not have a list associated, make a new entry *)
+        collect_dependencies  ((x,[y]) :: rest) xs
+      | ([(_, dependencies)], rest) when List.mem y dependencies ->
+        (* y is already in the dependencies, don't add it twice *)
+        collect_dependencies  keys_dependencies xs
+      | ([(_, dependencies)], rest) (* when not List.mem y dependencies *) ->
+        collect_dependencies  ((x, y::dependencies) :: rest) xs
+      | _ ->
+        failwith "Implementation error in finding an ordering!"
+    )
   | [] -> keys_dependencies
 
 (** appends list2 to list without creating duplicates. does not remove
@@ -175,12 +175,12 @@ let rec flat_map f l = List.flatten ( List.map f l)
     completion list *)
 let remove_from_completion elements completion =
   List.map (fun (key,deps) ->
-    (key, List.filter (fun x -> not (List.mem x elements)) deps)
-  ) completion
+      (key, List.filter (fun x -> not (List.mem x elements)) deps)
+    ) completion
 
 let rec find_ordering_from_completion  completion = (
   (* let collect_keys =
-    List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in *)
+     List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in *)
   let collect_deps =
     List.fold_left (fun list (key,deps) -> add_missing list deps) [] in
   let collect_all  =
@@ -190,18 +190,18 @@ let rec find_ordering_from_completion  completion = (
           (fun (key,_) -> not (List.mem key all_in_nodes) ) completion with
   | ([], []) -> []
   | ([], _) ->
-     failwith ("Could not find a least element to in the given list. "^
-                 "Could not create an ordering.")
+    failwith ("Could not find a least element to in the given list. "^
+              "Could not create an ordering.")
   | (least_elements, rest ) ->
-     let reduced_rest =
-       remove_from_completion (fst @$ List.split least_elements) rest in
-     let keys = List.map fst least_elements in
-     let all_rest = collect_all reduced_rest in
-     let all_least_dependencies = collect_deps least_elements in
-     let single_elements =
-       List.filter (fun x -> not (List.mem x all_rest)) all_least_dependencies in
-     let keys_single = add_missing keys single_elements in
-     List.append keys_single (find_ordering_from_completion reduced_rest)
+    let reduced_rest =
+      remove_from_completion (fst @$ List.split least_elements) rest in
+    let keys = List.map fst least_elements in
+    let all_rest = collect_all reduced_rest in
+    let all_least_dependencies = collect_deps least_elements in
+    let single_elements =
+      List.filter (fun x -> not (List.mem x all_rest)) all_least_dependencies in
+    let keys_single = add_missing keys single_elements in
+    List.append keys_single (find_ordering_from_completion reduced_rest)
 )
 
 let find_ordering  constraints =

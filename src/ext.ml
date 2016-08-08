@@ -20,17 +20,17 @@ module Option = struct
       | None -> x
   let is_none : 'a option -> bool =
     function
-      | None -> true
-      | _ -> false
+    | None -> true
+    | _ -> false
   let is_some : 'a option -> bool =
     function
-      | Some _ -> true
-      | _ -> false
+    | Some _ -> true
+    | _ -> false
   exception No_value
   let get : 'a option -> 'a =
     function
-      | Some x -> x
-      | _ -> raise No_value
+    | Some x -> x
+    | _ -> raise No_value
 end
 
 module List = struct
@@ -54,9 +54,9 @@ module List = struct
     match xs with
     | [] -> accu
     | x :: xs ->
-       match fn x with
-       | None -> rev_filter_map fn xs accu
-       | Some y -> rev_filter_map fn xs (y :: accu)
+      match fn x with
+      | None -> rev_filter_map fn xs accu
+      | Some y -> rev_filter_map fn xs (y :: accu)
   ;;
   let filter_map fn xs = rev (rev_filter_map fn xs []);;
 
@@ -65,8 +65,8 @@ module List = struct
       let rec loop n = function
         | [] -> ()
         | x :: xs ->
-            fn n x ;
-            loop (n + 1) xs
+          fn n x ;
+          loop (n + 1) xs
       in
       loop 0 xs
 
@@ -75,8 +75,8 @@ module List = struct
       let rec scan = function
         | [] -> raise ex
         | x :: xs ->
-            if sel x then x
-            else scan xs
+          if sel x then x
+          else scan xs
       in
       scan xs
 
@@ -89,9 +89,9 @@ module List = struct
     match xs with
     | [] -> accu
     | x :: xs ->
-       if exists (cmp x) accu
-       then rev_unique cmp xs accu
-       else rev_unique cmp xs (x :: accu)
+      if exists (cmp x) accu
+      then rev_unique cmp xs accu
+      else rev_unique cmp xs (x :: accu)
   ;;
   let unique ?(cmp = (=)) xs = rev (rev_unique cmp xs []);;
 
@@ -156,8 +156,8 @@ module Std = struct
   let input_list ch =
     let accu = ref [] in
     try while true do
-      accu := Pervasives.input_line ch :: !accu;
-    done; assert false
+        accu := Pervasives.input_line ch :: !accu;
+      done; assert false
     with End_of_file -> List.rev !accu
   ;;
 
@@ -166,10 +166,10 @@ module Std = struct
 
 end
 
-  let string_contains s1 s2 =
-    let re = Str.regexp_string s2 in
-    try ignore (Str.search_forward re s1 0); true
-    with Not_found -> false
+let string_contains s1 s2 =
+  let re = Str.regexp_string s2 in
+  try ignore (Str.search_forward re s1 0); true
+  with Not_found -> false
 
 let is_prefix pref txt =
   String.length txt >= String.length pref

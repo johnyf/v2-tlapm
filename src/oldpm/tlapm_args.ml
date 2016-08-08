@@ -81,16 +81,16 @@ let erase_fp backend =
     raise (Arg.Bad (Printf.sprintf "File %s does not exist." fic));
   end;
   begin match backend with
-  | "zenon" ->
-     let m = Method.Zenon 0. in
-     Fpfile.erase_results fic m;
-  | "isabelle" ->
-     let m = Method.Isabelle (0., "") in
-     Fpfile.erase_results fic m;
-  | "cooper" -> Fpfile.erase_results fic Method.Cooper;
-  | _ ->
-     let msg = "Valid arguments for --erasefp are {zenon,isabelle,cooper}" in
-     raise (Arg.Bad msg);
+    | "zenon" ->
+      let m = Method.Zenon 0. in
+      Fpfile.erase_results fic m;
+    | "isabelle" ->
+      let m = Method.Isabelle (0., "") in
+      Fpfile.erase_results fic m;
+    | "cooper" -> Fpfile.erase_results fic Method.Cooper;
+    | _ ->
+      let msg = "Valid arguments for --erasefp are {zenon,isabelle,cooper}" in
+      raise (Arg.Bad msg);
   end;
   exit 0;
 ;;
@@ -101,15 +101,15 @@ let deprecated flag nargs =
   | 0 -> flag, Arg.Unit f, ""
   | 1 -> flag, Arg.String f, ""
   | _ ->
-     let args = Array.to_list (Array.make nargs (Arg.String f)) in
-     flag, Arg.Tuple args, ""
+    let args = Array.to_list (Array.make nargs (Arg.String f)) in
+    flag, Arg.Tuple args, ""
 ;;
 
 let quote_if_needed s =
   let check c =
     match c with
     | '+' | ',' | '-' | '.' | '/' | '0'..'9' | ':' | '=' | '@' | 'A'..'Z'
-      | '_' | 'a'..'z' -> ()
+    | '_' | 'a'..'z' -> ()
     | _ -> raise Exit
   in
   if s = "" then Filename.quote s else begin
@@ -136,10 +136,10 @@ let init () =
     "-v", Arg.Set verbose, " (same as --verbose)" ;
     blank;
     "--where", Arg.Unit show_where,
-               " show location of standard library and exit" ;
+    " show location of standard library and exit" ;
     "--config", Arg.Set show_config, " show configuration and exit" ;
     "--summary", Arg.Set summary,
-                 " show summary of theorems (implies -N and not -C)" ;
+    " show summary of theorems (implies -N and not -C)" ;
     "--timing", Arg.Set stats, " show runtime statistics" ;
     blank;
     "-I", Arg.String add_search_dir, "<dir> add <dir> to search path" ;
@@ -152,53 +152,53 @@ let init () =
     "-o", Arg.Set offline_mode, " offline mode";
     blank;
     "--threads", Arg.Int set_max_threads,
-                 "<int> set number of worker threads to <int>" ;
+    "<int> set number of worker threads to <int>" ;
     "--method", Arg.String set_default_method,
-                "<meth> set default method to <meth> (try --method help)" ;
+    "<meth> set default method to <meth> (try --method help)" ;
     "--solver", Arg.String set_smt_solver,
-                "<solver> set SMT solver to <solver>";
+    "<solver> set SMT solver to <solver>";
     "--fast-isabelle", Arg.Unit Params.set_fast_isabelle,
-                       " (Windows-only) Launch Isabelle with fast shortcut";
+    " (Windows-only) Launch Isabelle with fast shortcut";
     "--stretch", Arg.Set_float Params.timeout_stretch,
-              "<f> multiply all timeouts by <f>";
+    "<f> multiply all timeouts by <f>";
     blank;
     title "(advanced options)" ;
     blank;
     "--noflatten", Arg.Clear ob_flatten, " do not flatten obligations" ;
     "--nonormal", Arg.Clear pr_normal,
-                  " do not normalize obligations before printing" ;
+    " do not normalize obligations before printing" ;
     "--debug", Arg.String set_debug_flags,
-               "{[-]<flag>} enable/disable debugging flags" ;
+    "{[-]<flag>} enable/disable debugging flags" ;
     deprecated "--paranoid" 0;
     deprecated "--isaprove" 0;
     blank;
     "--toolbox", (Arg.Tuple [Arg.Int set_target_start;Arg.Int set_target_end]),
-                 "<int><int> toolbox mode";
+    "<int><int> toolbox mode";
     "--wait", Arg.Set_int wait,
-              "<time> wait for <time> before printing obligations in progress";
+    "<time> wait for <time> before printing obligations in progress";
     "--noproving", Arg.Set noproving,
-                   " do not prove, report fingerprinted results only";
+    " do not prove, report fingerprinted results only";
     blank;
     "--printallobs", Arg.Set printallobs,
-                     " print obligations in all toolbox messages";
+    " print obligations in all toolbox messages";
     blank;
     deprecated "--fpdir" 1;
     "--safefp", Arg.Set Params.safefp,
-                " check tlapm, zenon, Isabelle versions for fingerprints";
+    " check tlapm, zenon, Isabelle versions for fingerprints";
     "--nofp", Arg.Set Params.no_fp, " disable fingerprint use";
     "--nofpl", (Arg.Tuple [Arg.Int set_nofp_start;Arg.Int set_nofp_end]),
-               "<int><int> disable fingerprint use between given lines";
+    "<int><int> disable fingerprint use between given lines";
     "--cleanfp", Arg.Set Params.cleanfp,
-                 " erase fingerprint file before starting";
+    " erase fingerprint file before starting";
     blank;
     "--erasefp", (Arg.Tuple [Arg.String set_erase_fp_file;Arg.String erase_fp]),
-                 "<f><back> erase from file <f> all results of backend <back>";
+    "<f><back> erase from file <f> all results of backend <back>";
     "--printfp", Arg.String print_fp,
-                 "<f> print the fingerprints stored in file <f> and quit";
+    "<f> print the fingerprints stored in file <f> and quit";
     "--usefp", Arg.String use_fp,
-               "<f> load fingerprints from file <f> (save as usual)";
+    "<f> load fingerprints from file <f> (save as usual)";
     "--fpp", Arg.Set fp_deb,
-             " print the fingerprints of obligations in toolbox messages";
+    " print the fingerprints of obligations in toolbox messages";
   ]
   in
   let opts = Arg.align opts in
@@ -231,11 +231,11 @@ let init () =
   check_zenon_ver () ;
   if !Params.toolbox then begin
     Printf.printf "\n\\* TLAPM version %d.%d.%d (commit %s)\n"
-                  Version.major Version.minor Version.micro (Revision.get ());
+      Version.major Version.minor Version.micro (Revision.get ());
     let tm = Unix.localtime (Unix.gettimeofday ()) in
     Printf.printf "\\* launched at %04d-%02d-%02d %02d:%02d:%02d"
-                  (tm.Unix.tm_year + 1900) (tm.Unix.tm_mon + 1) tm.Unix.tm_mday
-                  tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec;
+      (tm.Unix.tm_year + 1900) (tm.Unix.tm_mon + 1) tm.Unix.tm_mday
+      tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec;
     Printf.printf " with command line:\n\\*";
     Array.iter (fun s -> Printf.printf " %s" (quote_if_needed s)) Sys.argv;
     Printf.printf "\n\n%!"

@@ -57,8 +57,8 @@ let make ?uuid rep =
     if pid = qid then Obj.obj ob
     else invalid_arg "Property.get"
   in
-    { get = get ; set = set
-    ; pid = pid ; rep = rep }
+  { get = get ; set = set
+  ; pid = pid ; rep = rep }
 
 type 'a wrapped = {
   core : 'a ;
@@ -73,7 +73,7 @@ let get w pf =
 
 let query w pf =
   try Some (pf.get (List.find (fun p -> pf.pid = fst p) w.props)) with
-    | Not_found -> None
+  | Not_found -> None
 
 let assign w pf v =
   { w with props = pf.set v :: List.filter (fun p -> pf.pid <> fst p) w.props }
@@ -104,7 +104,7 @@ let ( %% ) a ps = { core = a ; props = ps }
 
 let unsafe_con e =
   let er = Obj.repr e.core in
-    Obj.tag er
+  Obj.tag er
 
 external props_of_value : 'a -> props = "%field0"
 
@@ -121,14 +121,14 @@ let unsafe_get a pf = (* should this be really unsafe ? *)
 
 let unsafe_query a pf =
   try Some (pf.get (List.find (fun p -> pf.pid = fst p) (props_of a))) with
-    | Not_found -> None
+  | Not_found -> None
 
 let unsafe_assign (a : 'a) pf v : 'a =
   let br = Obj.dup (Obj.repr a) in
-    Obj.set_field br 0 begin
-      Obj.repr (pf.set v :: List.filter (fun p -> pf.pid <> fst p) (props_of a))
-    end ;
-    Obj.obj br
+  Obj.set_field br 0 begin
+    Obj.repr (pf.set v :: List.filter (fun p -> pf.pid <> fst p) (props_of a))
+  end ;
+  Obj.obj br
 
 
 let print_prop = function

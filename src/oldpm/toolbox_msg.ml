@@ -53,7 +53,7 @@ let print_obligation ~id ~loc ~status ~fp ~prover ~meth ~reason ~already ~obl =
   let start = loc.Loc.start in
   let stop = loc.Loc.stop in
   eprintf "%sloc:%d:%d:%d:%d\n" delim
-          (line start) (col start) (line stop) (col stop);
+    (line start) (col start) (line stop) (col stop);
   print_string "status" status;
   Option.iter (print_string "fp") fp;
   Option.iter (print_string "prover") prover;

@@ -13,9 +13,9 @@ let loc_to_string at =
   match at with
   | None -> ""
   | Some w ->
-     match Util.query_locus w with
-     | None -> ""
-     | Some loc -> Loc.string_of_locus loc ^ " :\n"
+    match Util.query_locus w with
+    | None -> ""
+    | Some loc -> Loc.string_of_locus loc ^ " :\n"
 ;;
 
 let info ?at fmt =
@@ -83,16 +83,16 @@ let warning = ref false
 
 let sget v =
   match v with
-    | None -> ""
-    | Some v -> v
+  | None -> ""
+  | Some v -> v
 
 let set st mesg =
-loc :=
-  begin match (Util.query_locus st) with
-    | None ->
+  loc :=
+    begin match (Util.query_locus st) with
+      | None ->
         None
-    | Some loc ->
+      | Some loc ->
         Some (Loc.string_of_locus ~cap:true loc)
-  end;
-msg := Some (mesg^"\n\n"^(sget !msg))
+    end;
+  msg := Some (mesg^"\n\n"^(sget !msg))
 ;;

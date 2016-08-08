@@ -3,7 +3,7 @@
 
 (** {1 Helpers for Format}
 
-@since 0.8 *)
+    @since 0.8 *)
 
 type 'a sequence = ('a -> unit) -> unit
 
@@ -33,7 +33,7 @@ val string_quoted : string printer
 val list : ?start:string -> ?stop:string -> ?sep:string -> 'a printer -> 'a list printer
 val array : ?start:string -> ?stop:string -> ?sep:string -> 'a printer -> 'a array printer
 val arrayi : ?start:string -> ?stop:string -> ?sep:string ->
-            (int * 'a) printer -> 'a array printer
+  (int * 'a) printer -> 'a array printer
 val seq : ?start:string -> ?stop:string -> ?sep:string -> 'a printer -> 'a sequence printer
 
 val opt : 'a printer -> 'a option printer
@@ -47,7 +47,7 @@ val opt : 'a printer -> 'a option printer
 val pair : ?sep:string -> 'a printer -> 'b printer -> ('a * 'b) printer
 val triple : ?sep:string -> 'a printer -> 'b printer -> 'c printer -> ('a * 'b * 'c) printer
 val quad : ?sep:string -> 'a printer -> 'b printer ->
-            'c printer -> 'd printer -> ('a * 'b * 'c * 'd) printer
+  'c printer -> 'd printer -> ('a * 'b * 'c * 'd) printer
 
 val within : string -> string -> 'a printer -> 'a printer
 (** [within a b p] wraps [p] inside the strings [a] and [b]. Convenient,
@@ -77,13 +77,13 @@ val hbox : 'a printer -> 'a printer
 
 (** {2 ANSI codes}
 
-  Use ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code
-  to put some colors on the terminal.
+    Use ANSI escape codes https://en.wikipedia.org/wiki/ANSI_escape_code
+    to put some colors on the terminal.
 
-  This uses {b tags} in format strings to specify the style. Current styles
-  are the following:
+    This uses {b tags} in format strings to specify the style. Current styles
+    are the following:
 
-  {ul
+    {ul
     {- "reset" resets style}
     {- "black" }
     {- "red" }
@@ -102,19 +102,19 @@ val hbox : 'a printer -> 'a printer
     {- "Magenta" bold magenta }
     {- "Cyan" bold cyan }
     {- "White" bold white }
-  }
+    }
 
-  Example:
+    Example:
 
-  {[
-    set_color_default true;;
+    {[
+      set_color_default true;;
 
-    Format.printf
-      "what is your @{<White>favorite color@}? @{<blue>blue@}! No, @{<red>red@}! Ahhhhhhh@.";;
-   ]}
+      Format.printf
+        "what is your @{<White>favorite color@}? @{<blue>blue@}! No, @{<red>red@}! Ahhhhhhh@.";;
+    ]}
 
-  {b status: experimental}
-  @since 0.15 *)
+    {b status: experimental}
+    @since 0.15 *)
 
 val set_color_tag_handling : t -> unit
 (** adds functions to support color tags to the given formatter.

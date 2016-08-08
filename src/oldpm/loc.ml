@@ -8,9 +8,9 @@
 Revision.f "$Rev: 28687 $";;
 
 type pt_ = { line : int ;
-              bol : int ;
-              col : int ;
-            }
+             bol : int ;
+             col : int ;
+           }
 
 type pt = Actual of pt_ | Dummy
 
@@ -64,52 +64,52 @@ let merge r1 r2 =
 
 let string_of_locus ?(cap = true) r =
   let ftok = if cap then "File" else "file" in
-    match r.start, r.stop with
-      | Actual start, Actual stop ->
-          if start.line = stop.line && start.col >= stop.col - 1 then
-            Printf.sprintf "%s %S, line %d, character %d"
-              ftok r.file start.line start.col
-          else
-            (* || start.line <> stop.line
-             * || start.bol <> stop.bol
-             *)
-            if start.line = stop.line then
-              Printf.sprintf "%s %S, line %d, characters %d-%d"
-                ftok r.file start.line start.col (stop.col - 1)
-            else
-              (* start.line <> stop.line *)
-              Printf.sprintf "%s %S, line %d, character %d to line %d, character %d"
-                ftok r.file
-                start.line start.col
-                stop.line (stop.col - 1)
-      | _ ->
-          Printf.sprintf "%s %S" ftok r.file
+  match r.start, r.stop with
+  | Actual start, Actual stop ->
+    if start.line = stop.line && start.col >= stop.col - 1 then
+      Printf.sprintf "%s %S, line %d, character %d"
+        ftok r.file start.line start.col
+    else
+      (* || start.line <> stop.line
+       * || start.bol <> stop.bol
+      *)
+    if start.line = stop.line then
+      Printf.sprintf "%s %S, line %d, characters %d-%d"
+        ftok r.file start.line start.col (stop.col - 1)
+    else
+      (* start.line <> stop.line *)
+      Printf.sprintf "%s %S, line %d, character %d to line %d, character %d"
+        ftok r.file
+        start.line start.col
+        stop.line (stop.col - 1)
+  | _ ->
+    Printf.sprintf "%s %S" ftok r.file
 
 let string_of_locus_nofile r =
   match r.start, r.stop with
-    | Actual start, Actual stop ->
-        if start.line = stop.line && start.col >= stop.col - 1 then
-          Printf.sprintf "line %d, character %d"
-            start.line start.col
-        else
-          (* || start.line <> stop.line
-           * || start.bol <> stop.bol
-           *)
-          if start.line = stop.line then
-            Printf.sprintf "line %d, characters %d-%d"
-              start.line start.col (stop.col - 1)
-          else
-            (* start.line <> stop.line *)
-            Printf.sprintf "line %d, character %d to line %d, character %d"
-              start.line start.col
-              stop.line (stop.col - 1)
-    | _ -> "<unknown location>"
+  | Actual start, Actual stop ->
+    if start.line = stop.line && start.col >= stop.col - 1 then
+      Printf.sprintf "line %d, character %d"
+        start.line start.col
+    else
+      (* || start.line <> stop.line
+       * || start.bol <> stop.bol
+      *)
+    if start.line = stop.line then
+      Printf.sprintf "line %d, characters %d-%d"
+        start.line start.col (stop.col - 1)
+    else
+      (* start.line <> stop.line *)
+      Printf.sprintf "line %d, character %d to line %d, character %d"
+        start.line start.col
+        stop.line (stop.col - 1)
+  | _ -> "<unknown location>"
 
 let string_of_pt ?(file="<nofile>") l =
   string_of_locus { start = l ; stop = l ; file = file }
 
 let compare r s =
   match Pervasives.compare (line r.start) (line s.start) with
-    | 0 ->
-        Pervasives.compare (column r.start) (column s.start)
-    | c -> c
+  | 0 ->
+    Pervasives.compare (column r.start) (column s.start)
+  | c -> c

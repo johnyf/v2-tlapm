@@ -42,12 +42,12 @@ let extract_level expr =
 
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_prove_from_expr suffices expr =  {
-    location = extract_location expr;
-    level = extract_level expr;
-    assumes = [];
-    new_symbols = [];
-    prove = expr;
-  }
+  location = extract_location expr;
+  level = extract_level expr;
+  assumes = [];
+  new_symbols = [];
+  prove = expr;
+}
 
 class free_variables_visitor = object
   inherit [simple_op_decl list] visitor as super

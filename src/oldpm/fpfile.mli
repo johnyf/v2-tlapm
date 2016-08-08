@@ -12,7 +12,7 @@ val fp_init : string -> string list -> out_channel;;
    Trim the history to 10 entries.
    Open the [fp_file] for writing, write the known results to it,
    and return its out_channel for incremental updates.
- *)
+*)
 
 val fp_writes : out_channel -> string -> Types.status_type6 list -> unit;;
 (* [fp_writes oc fp statuses]

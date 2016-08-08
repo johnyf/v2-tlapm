@@ -43,7 +43,7 @@ type 'a macc =  anySimpleExpr * 'a
 
 val format_anysimple : anySimpleExpr -> string
 
-					  
+
 class ['a] any_extractor : object
   (** All other any_extractor methods handle the conversion from anyExpr to one
       of the corresponding type. Extract converts from 'a to anyExpr. The
@@ -82,4 +82,4 @@ class ['a] any_extractor : object
   method user_defined_op : 'a -> simple_user_defined_op
 end
 
-					 
+

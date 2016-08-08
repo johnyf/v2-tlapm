@@ -15,7 +15,7 @@ let self_sum = Digest.file Sys.executable_name
    modules are loaded. *)
 let rawversion () =
   sprintf "%d.%d.%d (build %s)" Version.major Version.minor Version.micro
-          (Revision.get ())
+    (Revision.get ())
 ;;
 
 let debug_flags : (string, unit) Hashtbl.t = Hashtbl.create 3
@@ -81,15 +81,15 @@ let path_prefix = sprintf "PATH=\"${PATH}%s\";" extrapath;;
 let get_exec e =
   match !e with
   | Unchecked (exec, cmd, vers) ->
-     let check = sprintf "%s type %s >/dev/null" path_prefix exec in
-     begin match Sys.command check with
-     | 0 ->
+    let check = sprintf "%s type %s >/dev/null" path_prefix exec in
+    begin match Sys.command check with
+      | 0 ->
         let p = Unix.open_process_in (path_prefix ^ vers) in
         let v = Std.input_list p in
         let c = sprintf "%s %s" path_prefix cmd in
         e := Checked (c, v);
         c
-     | _ ->
+      | _ ->
         let msg1 = sprintf "Executable %S not found" exec in
         let msg2 =
           if Filename.is_relative exec
@@ -100,10 +100,10 @@ let get_exec e =
         eprintf "%s" msg;
         e := NotFound msg;
         failwith msg;
-     end;
+    end;
   | User (cmd) ->
-     e := Checked (cmd, []);
-     cmd
+    e := Checked (cmd, []);
+    cmd
   | Checked (cmd, vers) -> cmd
   | NotFound msg -> failwith msg;
 ;;
@@ -121,8 +121,8 @@ let isabelle_success_string = "((TLAPS SUCCESS))"
 let isabelle =
   let cmd =
     Printf.sprintf "isabelle-process -r -q -e \"(use_thy \\\"$file\\\"; \
-                                                writeln \\\"%s\\\");\" TLA+"
-                   isabelle_success_string
+                    writeln \\\"%s\\\");\" TLA+"
+      isabelle_success_string
   in
   make_exec "isabelle-process" cmd "isabelle version"
 ;;
@@ -132,29 +132,29 @@ let set_fast_isabelle () =
     eprintf "Warning: --fast-isabelle is not available on this architecture \
              (ignored)\n%!"
   else begin try
-    let echos =
-      "echo \"$ISABELLE_HOME\"; echo \"$ML_HOME\"; echo \"$ISABELLE_OUTPUT\""
-    in
-    let pr_cmd =
-      sprintf "%s isabelle env sh -c %s" path_prefix (Filename.quote echos)
-    in
-    let ic = Unix.open_process_in pr_cmd in
-    let isabelle_home = input_line ic in
-    let ml_home = input_line ic in
-    let isabelle_output = input_line ic in
-    close_in ic;
-    let poly = Filename.concat ml_home "poly" in
-    let cmd =
-      Printf.sprintf "export ISABELLE_HOME='%s'; \
-                      export ML_HOME='%s'; \
-                      (echo 'PolyML.SaveState.loadState \"%s/TLA+\"; \
-                             (use_thy \"'\"$file\"'\"; writeln \"%s\");') | \
-                      %s"
-                     isabelle_home ml_home
-                     isabelle_output isabelle_success_string poly
-    in
-    isabelle := Unchecked (poly, cmd, "isabelle version");
-  with _ -> eprintf "Warning: error trying to set up fast-isabelle\n%!";
+      let echos =
+        "echo \"$ISABELLE_HOME\"; echo \"$ML_HOME\"; echo \"$ISABELLE_OUTPUT\""
+      in
+      let pr_cmd =
+        sprintf "%s isabelle env sh -c %s" path_prefix (Filename.quote echos)
+      in
+      let ic = Unix.open_process_in pr_cmd in
+      let isabelle_home = input_line ic in
+      let ml_home = input_line ic in
+      let isabelle_output = input_line ic in
+      close_in ic;
+      let poly = Filename.concat ml_home "poly" in
+      let cmd =
+        Printf.sprintf "export ISABELLE_HOME='%s'; \
+                        export ML_HOME='%s'; \
+                        (echo 'PolyML.SaveState.loadState \"%s/TLA+\"; \
+                        (use_thy \"'\"$file\"'\"; writeln \"%s\");') | \
+                        %s"
+          isabelle_home ml_home
+          isabelle_output isabelle_success_string poly
+      in
+      isabelle := Unchecked (poly, cmd, "isabelle version");
+    with _ -> eprintf "Warning: error trying to set up fast-isabelle\n%!";
   end
 ;;
 
@@ -168,18 +168,18 @@ let yices = make_exec "yices" "yices -tc \"$file\"" "yices --version";;
 let z3 =
   if Sys.os_type = "Cygwin" then
     make_exec "z3"
-              "z3 /smt2 `cygpath -w \"$file\"`"
-              "z3 /version"
+      "z3 /smt2 `cygpath -w \"$file\"`"
+      "z3 /version"
   else
     make_exec "z3"
-              "z3 -smt2 \"$file\""
-              "z3 -version"
+      "z3 -smt2 \"$file\""
+      "z3 -version"
 ;;
 let verit =
   make_exec "verit"
-            "verit --input=smtlib2 --disable-ackermann \
-                   --disable-banner --disable-print-success \"$file\""
-            "echo unknown"
+    "verit --input=smtlib2 --disable-ackermann \
+     --disable-banner --disable-print-success \"$file\""
+    "echo unknown"
 ;;
 let spass = make_exec "SPASS" "SPASS -PGiven=0 -PProblem=0 -PStatistic=0 \"$file\"" "echo unknown";;
 let eprover = make_exec "eprover" "eprover --tstp-format --silent \"$file\"" "eprover --version";;
@@ -190,9 +190,9 @@ let smt =
   try ref (User (Sys.getenv "TLAPM_SMT_SOLVER"))
   with Not_found -> ref !cvc3
 ;;
-    (* "verit --input=smtlib2 --disable-ackermann --disable-banner $file" *)
-    (* "z3 /smt2 MODEL=true PULL_NESTED_QUANTIFIERS=true $file" *)
-    (* Yices does not handle SMTLIB version 2 yet *)
+(* "verit --input=smtlib2 --disable-ackermann --disable-banner $file" *)
+(* "z3 /smt2 MODEL=true PULL_NESTED_QUANTIFIERS=true $file" *)
+(* Yices does not handle SMTLIB version 2 yet *)
 
 let set_smt_solver slv = smt := User slv;;
 
@@ -222,35 +222,35 @@ let default_method =
 let mk_meth name timeout =
   match name with
   | "zenon" ->
-     let timeout = Option.default Method.default_zenon_timeout timeout in
-     Method.Zenon timeout
+    let timeout = Option.default Method.default_zenon_timeout timeout in
+    Method.Zenon timeout
   | "auto" | "blast" | "force" ->
-     let timeout = Option.default Method.default_isabelle_timeout timeout in
-     Method.Isabelle (timeout, name)
+    let timeout = Option.default Method.default_isabelle_timeout timeout in
+    Method.Isabelle (timeout, name)
   | "smt" ->
-     let timeout = Option.default Method.default_smt2_timeout timeout in
-     Method.Smt3 timeout
+    let timeout = Option.default Method.default_smt2_timeout timeout in
+    Method.Smt3 timeout
   | "z3" ->
-     let timeout = Option.default Method.default_smt2_timeout timeout in
-     Method.Z33 timeout
+    let timeout = Option.default Method.default_smt2_timeout timeout in
+    Method.Z33 timeout
   | "cvc3" ->
-     let timeout = Option.default Method.default_smt2_timeout timeout in
-     Method.Cvc33 timeout
+    let timeout = Option.default Method.default_smt2_timeout timeout in
+    Method.Cvc33 timeout
   | "yices" ->
-     let timeout = Option.default Method.default_smt2_timeout timeout in
-     Method.Yices3 timeout
+    let timeout = Option.default Method.default_smt2_timeout timeout in
+    Method.Yices3 timeout
   | "verit" ->
-     let timeout = Option.default Method.default_smt2_timeout timeout in
-     Method.Verit timeout
+    let timeout = Option.default Method.default_smt2_timeout timeout in
+    Method.Verit timeout
   | "spass" ->
-     let timeout = Option.default Method.default_spass_timeout timeout in
-     Method.Spass timeout
+    let timeout = Option.default Method.default_spass_timeout timeout in
+    Method.Spass timeout
   | "tptp" ->
-     let timeout = Option.default Method.default_tptp_timeout timeout in
-     Method.Tptp timeout
+    let timeout = Option.default Method.default_tptp_timeout timeout in
+    Method.Tptp timeout
   | "ls4" ->
-     let timeout = Option.default Method.default_ls4_timeout timeout in
-     Method.LS4 timeout
+    let timeout = Option.default Method.default_ls4_timeout timeout in
+    Method.LS4 timeout
   | "fail" -> Method.Fail
   | _ -> failwith (sprintf "unknown method %S" name)
 ;;
@@ -315,14 +315,14 @@ let use_xtla = ref false
 let () =
   try match Sys.getenv "TLAPM_CACHE" with
     | "gen" ->
-        xtla := true ;
-        use_xtla := false
+      xtla := true ;
+      use_xtla := false
     | "use" ->
-         xtla := true ;
-        use_xtla:= true
+      xtla := true ;
+      use_xtla:= true
     | _ ->
-        xtla := false ;
-        use_xtla := false
+      xtla := false ;
+      use_xtla := false
   with Not_found -> ()
 
 let keep_going   = ref false
@@ -339,12 +339,12 @@ let external_tool_config force (name, tool) =
   end;
   match !tool with
   | Checked (cmd, []) ->
-      [sprintf "%s == %S" name cmd]
+    [sprintf "%s == %S" name cmd]
   | Checked (cmd, v::_) ->
-      [sprintf "%s == %S" name cmd;
-       sprintf "%s version == %S" name v]
+    [sprintf "%s == %S" name cmd;
+     sprintf "%s version == %S" name v]
   | NotFound msg ->
-      [msg]
+    [msg]
   | _ -> []
 ;;
 
@@ -362,23 +362,23 @@ let configuration toolbox force =
           let sp = List.rev sp in
           let first_line = "search_path == << \"" ^ List.hd sp ^ "\"" in
           let mid_lines = List.map begin
-            fun l -> "                , \"" ^ l ^ "\""
-          end (List.tl sp) in
+              fun l -> "                , \"" ^ l ^ "\""
+            end (List.tl sp) in
           let last_line = "                , \"" ^ last ^ "\" >>" in
           first_line :: mid_lines @ [last_line]
         end
-      end
+    end
     @ List.flatten (List.map (external_tool_config force)
-                             [("Isabelle", isabelle);
-                              ("zenon", zenon);
-                              ("CVC3", cvc3);
-                              ("Yices", yices);
-                              ("Z3", z3);
-                              ("VeriT", verit);
-                              ("SMT", smt);
-                              ("Spass", spass);
-                              ("LS4", ls4);
-                             ])
+                      [("Isabelle", isabelle);
+                       ("zenon", zenon);
+                       ("CVC3", cvc3);
+                       ("Yices", yices);
+                       ("Z3", z3);
+                       ("VeriT", verit);
+                       ("SMT", smt);
+                       ("Spass", spass);
+                       ("LS4", ls4);
+                      ])
     @ [ "flatten_obligations == " ^ (if !ob_flatten then "TRUE" else "FALSE")
       ; "normalize == " ^ (if !pr_normal then "TRUE" else "FALSE") ]
   in
@@ -404,10 +404,10 @@ let check_zenon_ver () =
   match get_version zenon with
   | [] -> ()
   | ret :: _ ->
-     Scanf.sscanf ret
-       "zenon version %d.%d.%d [%c%d] %4d-%02d-%02d"
-       (fun _ _ _ _ znum year month date ->
-          zenon_version := Some (zen, znum, year * 10000 + month * 100 + date))
+    Scanf.sscanf ret
+      "zenon version %d.%d.%d [%c%d] %4d-%02d-%02d"
+      (fun _ _ _ _ znum year month date ->
+         zenon_version := Some (zen, znum, year * 10000 + month * 100 + date))
 ;;
 
 let get_zenon_verfp () = if !zenon_version = None then check_zenon_ver ();
@@ -420,7 +420,7 @@ let check_isabelle_ver () =
   match get_version isabelle with
   | [] -> ()
   | ret :: _ ->
-     isabelle_version := Some (List.hd (Ext.split ret ':'))
+    isabelle_version := Some (List.hd (Ext.split ret ':'))
 
 let get_isabelle_version () =
   if !isabelle_version = None then check_isabelle_ver ();
@@ -443,6 +443,6 @@ let fp_deb = ref false
 
 let backend_timeout = ref 5.;;
 (** How much time a back-end is allowed to spend processing the obligation
-   before sending it to its external prover. This gets multiplied by
-   timeout_stretch before use.
+    before sending it to its external prover. This gets multiplied by
+    timeout_stretch before use.
 *)

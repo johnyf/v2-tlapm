@@ -2,10 +2,10 @@ open Commons
 open Expr_ds
 
 let builtin_location = {
-    line     = mkDummyRange;
-    column   = mkDummyRange;
-    filename = "--TLA+ BUILTINS--";
-  }
+  line     = mkDummyRange;
+  column   = mkDummyRange;
+  filename = "--TLA+ BUILTINS--";
+}
 
 let builtin_true = { level = Some ConstantLevel;
                      name = "TRUE";
@@ -21,10 +21,10 @@ let builtin_false = { level = Some ConstantLevel;
 
 let formal_param i arity =
   FP {
-  location = builtin_location;
-  level = None;
-  name = "fparam" ^ (string_of_int i);
-  arity;
+    location = builtin_location;
+    level = None;
+    name = "fparam" ^ (string_of_int i);
+    arity;
   }
 
 let bounded_exists =
@@ -56,12 +56,12 @@ let tuple =
   }
 
 let if_then_else =
-    { name = "$IfThenElse";
-      level = None;
-      arity = 3;
-      params = [
-          (formal_param 0 0, true);
-          (formal_param 1 0, true);
-          (formal_param 2 0, true);
-        ];
-    }
+  { name = "$IfThenElse";
+    level = None;
+    arity = 3;
+    params = [
+      (formal_param 0 0, true);
+      (formal_param 1 0, true);
+      (formal_param 2 0, true);
+    ];
+  }
