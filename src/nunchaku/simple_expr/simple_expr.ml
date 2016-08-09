@@ -46,15 +46,15 @@ class expr_to_simple_expr = object(self)
   (** ----------------------------------------------**)
   (** failsafe against using this on the module / proof level **)
 
-  method context _ _ = raise (UnhandledLanguageElement (Nunchaku, ""))
-  method mule _ _ = raise (UnhandledLanguageElement (Nunchaku, ""))
+  method context _ _ = raise (UnhandledLanguageElement (Nunchaku, "context"))
+  method mule _ _ = raise (UnhandledLanguageElement (Nunchaku, "module"))
 
   (** ----------------------------------------------**)
   (** failsafe: those operators should be removed during preprocessing **)
 
-  method at acc x = raise (UnhandledLanguageElement (Nunchaku, ""))
-  method label acc x = raise (UnhandledLanguageElement (Nunchaku, ""))
-  method let_in acc x = raise (UnhandledLanguageElement (Nunchaku, ""))
+  method at acc x = raise (UnhandledLanguageElement (Nunchaku, "at"))
+  method label acc x = raise (UnhandledLanguageElement (Nunchaku, "label"))
+  method let_in acc x = raise (UnhandledLanguageElement (Nunchaku, "let in"))
 
   (** ----------------------------------------------**)
   (** non recursive expressions **)
@@ -314,7 +314,8 @@ class expr_to_simple_expr = object(self)
 
   (** Op_def **)
   method op_def acc x = match x with
-    | O_module_instance _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
+    | O_module_instance _ ->
+      raise (UnhandledLanguageElement (Nunchaku, "module instance"))
     | O_user_defined_op udo ->
       let acc1 = self#user_defined_op acc udo
       in
@@ -365,8 +366,10 @@ class expr_to_simple_expr = object(self)
       in
       let sx = EMM_expr se
       in set_any acc1 (Any_expr_or_module_or_module_instance sx)
-    | EMM_module _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | EMM_module_instance _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
+    | EMM_module _ ->
+      raise (UnhandledLanguageElement (Nunchaku, "module"))
+    | EMM_module_instance _ ->
+      raise (UnhandledLanguageElement (Nunchaku, "module instance"))
 
 
 
@@ -506,10 +509,10 @@ class expr_to_simple_expr = object(self)
       in
       let sx = FMOTA_op_def se
       in set_any acc1 (Any_operator sx)
-    | FMOTA_theorem e -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | FMOTA_module _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | FMOTA_assume _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | FMOTA_ap_subst_in _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
+    | FMOTA_theorem e -> raise (UnhandledLanguageElement (Nunchaku, "operator theorem"))
+    | FMOTA_module _ -> raise (UnhandledLanguageElement (Nunchaku, "operator module"))
+    | FMOTA_assume _ -> raise (UnhandledLanguageElement (Nunchaku, "operator assume"))
+    | FMOTA_ap_subst_in _ -> raise (UnhandledLanguageElement (Nunchaku, "operator subst in ap"))
 
 
 
@@ -572,10 +575,10 @@ class expr_to_simple_expr = object(self)
       in
       let sx = E_binder se
       in set_any acc1 (Any_expr sx)
-    | E_subst_in e -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | E_label _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | E_at _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
-    | E_let_in _ -> raise (UnhandledLanguageElement (Nunchaku, ""))
+    | E_subst_in e -> raise (UnhandledLanguageElement (Nunchaku, "subst in"))
+    | E_label _ -> raise (UnhandledLanguageElement (Nunchaku, "label"))
+    | E_at _ -> raise (UnhandledLanguageElement (Nunchaku, "at"))
+    | E_let_in _ -> raise (UnhandledLanguageElement (Nunchaku, "let in"))
 
 
   (** Entry **)

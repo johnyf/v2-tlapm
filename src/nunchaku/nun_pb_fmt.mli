@@ -7,7 +7,10 @@ open Simple_expr_dereference
 open Nun_pb
 open Tla_simple_pb
 
-type fc = statement list * simple_term_db * term * bool
+type name_type = Numeral of int | Builtin of string | User of string
+type name_translation = (name_type * string) list
+
+type fc = statement list * simple_term_db * term * bool * name_translation
 
 class formatter :
   object

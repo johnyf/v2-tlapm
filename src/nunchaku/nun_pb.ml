@@ -35,6 +35,8 @@ module Builtin : sig
     | `Exists (* Only for translation *)
     | `Apply
     | `Mem
+    | `Intersect
+    | `Union
     | `Undefined of string
     ]
 
@@ -58,6 +60,8 @@ end = struct
     | `Exists (* Only for translation *)
     | `Apply
     | `Mem
+    | `Intersect
+    | `Union
     | `Undefined of string
     ]
 
@@ -70,6 +74,8 @@ end = struct
     | `Exists
     | `Apply
     | `Mem
+    | `Intersect
+    | `Union
     | `Not -> `Prefix
     | `And
     | `Or
@@ -95,6 +101,8 @@ end = struct
     | `Exists -> "exists"
     | `Apply -> "app"
     | `Mem -> "mem"
+    | `Intersect -> "inter"
+    | `Union -> "union"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
