@@ -15,7 +15,9 @@ Executable tlapm
 #  XOCamlbuildExtraArgs: "-w +44"
   BuildDepends: xmlm,
                 str,
-                unix
+                unix,
+                sexplib,
+                result
 
 
 Document tlapm_api
@@ -42,7 +44,9 @@ Executable test
   BuildDepends: xmlm,
                 str,
                 unix,
-                kaputt
+                kaputt,
+                sexplib,
+                result
 
 Test "test-runner"
   Type: Custom (0.0.1)

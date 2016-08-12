@@ -4,94 +4,10 @@
  *
  * Copyright (C) 2008-2010  INRIA and Microsoft Corporation
  *)
-
-Revision.f "$Rev: 32215 $";;
-
 open Ext
-open Property
-open Loc
+open Format
 
-type hint = string wrapped
-
-let pp_print_hint ff h = Format.pp_print_string ff h.core
-
-module HC = struct
-  type t = hint
-  let compare x y = Pervasives.compare x.core y.core
-end
-
-module Coll = struct
-  module Sm = Map.Make (String)
-  module Ss = Set.Make (String)
-  module Sh = Weak.Make (struct
-                           type t = string
-                           let hash = Hashtbl.hash
-                           let equal = (=)
-                         end)
-  module Hm = Map.Make (HC)
-  module Hs = Set.Make (HC)
-end
-
-let prop : locus pfuncs =
-  make ~uuid:"efa05a42-e82d-40a2-b130-9cfdb089a0d5" "Util.prop"
-
-let get_locus lw = get lw prop
-let set_locus lw l = assign lw prop l
-let query_locus lw = query lw prop
-let locate x l = set_locus (noprops x) l
-let location ?(cap=true) lw = match query_locus lw with
-  | None -> "<unknown location>"
-  | Some loc -> string_of_locus ~cap:cap loc
-
-(* FIXME get rid of nonl *)
-let kfprintf ?debug ?at ?prefix ?nonl cont ff fmt =
-  match debug with
-  | Some dbg when not (Params.debugging dbg) ->
-      Format.ikfprintf cont ff fmt
-  | _ ->
-     begin match at with
-     | None -> ()
-     | Some thing ->
-        match query_locus thing with
-        | None -> Format.fprintf ff "<unknown location>:@\n";
-        | Some loc ->
-           let str = string_of_locus ~cap:true loc in
-           Format.fprintf ff "%s:@\n" str;
-     end;
-     let prefix = match debug with
-       | None -> Option.default "Error: " prefix
-       | Some dbg -> "Debug [" ^ dbg ^ "]: "
-     in
-     if at <> None then Format.fprintf ff "%s" prefix;
-     let has_nl =
-       let fmts = string_of_format fmt in
-       String.length fmts >= 2
-       && fmts.[String.length fmts - 1] = '.'
-       && fmts.[String.length fmts - 2] = '@'
-     in
-     let fmt = match nonl with
-       | None when not has_nl -> fmt ^^ format_of_string "@."
-       | _ -> fmt
-     in
-     Format.kfprintf cont ff fmt
-;;
-
-let sprintf ?debug ?at ?prefix ?nonl fmt =
-  ignore (Format.flush_str_formatter ());
-  kfprintf ?debug ?at ?prefix ?nonl
-           (fun _ -> Format.flush_str_formatter ()) Format.str_formatter fmt;
-;;
-
-let fprintf ?debug ?at ?prefix ?nonl ff fmt =
-  kfprintf ?debug ?at ?prefix ?nonl (fun _ -> ()) ff fmt
-;;
-
-let eprintf ?debug ?at ?prefix ?nonl fmt =
-  fprintf ?debug ?at ?prefix ?nonl Format.err_formatter fmt
-
-let printf ?debug ?at ?prefix ?nonl fmt =
-  fprintf ?debug ?at ?prefix ?nonl Format.std_formatter fmt
-
+type 'a fmt = formatter -> 'a -> unit
 
 (* FIXME remove, replace with assert false *)
 exception Bug
@@ -105,12 +21,13 @@ let bug ?at msg =
       "Please file a bug report, including as much information" ;
       "as you can. Mention the following in your report: " ;
       "" ]
-      @ Params.configuration false false
+    (* @ Params.configuration false false *)
     in
     String.concat "\n" lines ^ "\n"
   in
   (*Backend.Toolbox.print_message "error" msg ^"\n"^bugmsg;*)
-  eprintf ?at ~prefix:"BUG: " "%s\n%s%!" msg bugmsg ;
+  (* Format.eprintf ?at ~prefix:"BUG: " "%s\n%s%!" msg bugmsg ; *)
+  Format.eprintf "BUG: %s\n%s%!" msg bugmsg ; (* TODO: print location *)
   raise Bug
 
 type csum = int * int
@@ -158,46 +75,66 @@ let line_wrap ?(cols=70) s =
 let heap_stats () =
   Gc.full_major () ;
   let st = Gc.stat () in
-  eprintf "@.@.>>>>> HEAP STATS: live_words = %d <<<<<<@.@." st.Gc.live_words
+  Format.eprintf "@.@.>>>>> HEAP STATS: live_words = %d <<<<<<@.@." st.Gc.live_words
 
 let add_hook h f x =
   let old = !h in
   h := (fun () -> f x; old ());
 ;;
 
-let rm_temp_file fname =
-  if not (Params.debugging "tempfiles") then begin
-    try Sys.remove fname with _ -> ()
-  end;
-;;
+(* TODO: depends on Params, change dependency to new param handling
+   let rm_temp_file fname =
+   if not (Params.debugging "tempfiles") then begin
+   try Sys.remove fname with _ -> ()
+   end;
+   ;;
 
-let temp_file (clean_hook : (unit -> unit) ref) suffix =
-  let (fname, chan) =
-    Filename.open_temp_file ~temp_dir:!Params.output_dir ~mode:[Open_binary]
-                            "tlapm_" suffix
-  in
-  let f () =
-    close_out chan;
-    rm_temp_file fname;
-  in
-  add_hook clean_hook f ();
-  (fname, chan)
-;;
+   let temp_file (clean_hook : (unit -> unit) ref) suffix =
+   let (fname, chan) =
+   Filename.open_temp_file ~temp_dir:!Params.output_dir ~mode:[Open_binary]
+                          "tlapm_" suffix
+   in
+   let f () =
+   close_out chan;
+   rm_temp_file fname;
+   in
+   add_hook clean_hook f ();
+   (fname, chan)
+   ;;
+*)
 
 (* some general formatting utils *)
-let fmtPair ?front:(f="(") ?middle:(m=", ") ?back:(b=")") left right (x,y) =
-  f ^ (left x) ^ m ^ (right y) ^ b
+let fmt_string = pp_print_string
 
-let rec mkString_ ?middle:(m=";") fmt = function
-  | [] -> ""
-  | [x] -> fmt x
-  | x::xs -> (fmt x) ^ m ^ (mkString_ ~middle:m fmt xs)
+let fmt_pair ?front:(f="(") ?middle:(m=", ") ?back:(b=")")
+    fmt_left fmt_right formatter (x,y) =
+  fprintf formatter "%s%a%s%a%s" f fmt_left x m fmt_right y b;
+  ()
+
+let fmt_option ?none:(none="None") ?some:(some="Some ") ?some_back:(back="")
+    fmt_arg formatter =
+  function
+  | Some s -> fprintf formatter "%s%a%s" some fmt_arg s back
+  | None -> fprintf formatter "%s" none
+
+
+let fmt_list ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt formatter lst =
+  let rec fmt_list_ ?middle:(m=";") formatter = function
+    | [] ->
+      ()
+    | [x] ->
+      fprintf formatter "%a" fmt x
+    | x::xs ->
+      fprintf formatter "%a%s%a" fmt x m (fmt_list_ ~middle:m) xs;
+      ()
+  in
+  fprintf formatter "%s%a%s" f (fmt_list_ ~middle:m) lst b;
+  ()
+
 
 let mkString ?front:(f="[") ?middle:(m="; ") ?back:(b="]") fmt lst =
-  f ^ (mkString_ ~middle:m fmt lst) ^ b
-
-let fmt_dependencylist =
-  mkString (fmtPair string_of_int (mkString string_of_int))
+  let fmt_element formatter x = fprintf formatter "%s" (fmt x) in
+  asprintf "%a" (fmt_list ~front:f ~middle:m ~back:b fmt_element) lst
 
 (* right-associative function application just like Haskell's $ *)
 let (  @$ ) f x = f x;;
@@ -207,20 +144,20 @@ let (  @$ ) f x = f x;;
    list, where all dependencies of a key is contained in the dependency list  *)
 let rec collect_dependencies  keys_dependencies = function
   | (x,y)::xs -> (
-    (* look at the first key-dependency pair, check if the key has already
-       dependencies and add the dependency to the list, if necessary *)
-    match List.partition (fun kd -> x = fst kd) keys_dependencies with
-    | ([], rest) ->
-       (* if key does not have a list associated, make a new entry *)
-      collect_dependencies  ((x,[y]) :: rest) xs
-    | ([(_, dependencies)], rest) when List.mem y dependencies ->
-      (* y is already in the dependencies, don't add it twice *)
-      collect_dependencies  keys_dependencies xs
-    | ([(_, dependencies)], rest) (* when not List.mem y dependencies *) ->
-      collect_dependencies  ((x, y::dependencies) :: rest) xs
-    | _ ->
-       failwith "Implementation error in finding an ordering!"
-  )
+      (* look at the first key-dependency pair, check if the key has already
+         dependencies and add the dependency to the list, if necessary *)
+      match List.partition (fun kd -> x = fst kd) keys_dependencies with
+      | ([], rest) ->
+        (* if key does not have a list associated, make a new entry *)
+        collect_dependencies  ((x,[y]) :: rest) xs
+      | ([(_, dependencies)], rest) when List.mem y dependencies ->
+        (* y is already in the dependencies, don't add it twice *)
+        collect_dependencies  keys_dependencies xs
+      | ([(_, dependencies)], rest) (* when not List.mem y dependencies *) ->
+        collect_dependencies  ((x, y::dependencies) :: rest) xs
+      | _ ->
+        failwith "Implementation error in finding an ordering!"
+    )
   | [] -> keys_dependencies
 
 (** appends list2 to list without creating duplicates. does not remove
@@ -238,12 +175,12 @@ let rec flat_map f l = List.flatten ( List.map f l)
     completion list *)
 let remove_from_completion elements completion =
   List.map (fun (key,deps) ->
-    (key, List.filter (fun x -> not (List.mem x elements)) deps)
-  ) completion
+      (key, List.filter (fun x -> not (List.mem x elements)) deps)
+    ) completion
 
 let rec find_ordering_from_completion  completion = (
   (* let collect_keys =
-    List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in *)
+     List.fold_left (fun list (key,deps) -> add_missing list [key]) [] in *)
   let collect_deps =
     List.fold_left (fun list (key,deps) -> add_missing list deps) [] in
   let collect_all  =
@@ -253,18 +190,18 @@ let rec find_ordering_from_completion  completion = (
           (fun (key,_) -> not (List.mem key all_in_nodes) ) completion with
   | ([], []) -> []
   | ([], _) ->
-     failwith ("Could not find a least element to in the given list. "^
-                 "Could not create an ordering.")
+    failwith ("Could not find a least element to in the given list. "^
+              "Could not create an ordering.")
   | (least_elements, rest ) ->
-     let reduced_rest =
-       remove_from_completion (fst @$ List.split least_elements) rest in
-     let keys = List.map fst least_elements in
-     let all_rest = collect_all reduced_rest in
-     let all_least_dependencies = collect_deps least_elements in
-     let single_elements =
-       List.filter (fun x -> not (List.mem x all_rest)) all_least_dependencies in
-     let keys_single = add_missing keys single_elements in
-     List.append keys_single (find_ordering_from_completion reduced_rest)
+    let reduced_rest =
+      remove_from_completion (fst @$ List.split least_elements) rest in
+    let keys = List.map fst least_elements in
+    let all_rest = collect_all reduced_rest in
+    let all_least_dependencies = collect_deps least_elements in
+    let single_elements =
+      List.filter (fun x -> not (List.mem x all_rest)) all_least_dependencies in
+    let keys_single = add_missing keys single_elements in
+    List.append keys_single (find_ordering_from_completion reduced_rest)
 )
 
 let find_ordering  constraints =
@@ -276,7 +213,12 @@ let multiset_equal_lists l1 l2 =
   let s2 = List.sort l2 in
   s1 = s2
 
-(*
+let autodetect_executable_path =
+  let bin_string = Array.get Sys.argv 0 in
+  let lib_path = Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
+  lib_path
+
+ (*
 (* an (inefficient) implementation of flat_map *)
 let flat_map f =
   List.fold_left (fun x y -> List.append x (f y)) []

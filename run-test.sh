@@ -1,4 +1,9 @@
+echo "--- TLA -> XML ---"
 /usr/bin/java -jar lib/sany.jar -o -I ./library/ nun/tests.tla > nun/tests.xml
+echo "--- Compiling TLA with tests ---"
 make test
+echo "--- Calling TLA ---"
 ./tlapm.byte nun/tests.xml
-open nun/temp_obl.txt
+echo "--- Opening file ---"
+open nun/simple.txt
+open nun/complex.txt
