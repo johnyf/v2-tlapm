@@ -9,7 +9,7 @@ open Expr_termdb_utils
 open Expr_formatter
 open Format
 
-let debug f = ignore(f ())
+let debug f = () (* ignore(f ()) *)
 
 module Subst =
 struct
@@ -19,14 +19,18 @@ struct
 
 
   let domain = map (function | Subst (x, y) -> x)
-  let range =
+  let range tdb =
+    (* TODO: fix EO case and type of this function, it must return formal_param list *)
     flat_map (function
-        | Subst (_, EO_expr e) -> free_variables e
+        | Subst (_, EO_expr e) -> free_variables tdb e
         | _ -> [] )
-  let bound_range =
+  let formal_params_in_range tdb =
     flat_map (function
-        | Subst (_, EO_expr e) -> bound_variables e
-        | _ -> [] )
+        | Subst (_, eo) ->
+          let acc = (FP_Set.empty, tdb) in
+          let set, _ = (new formal_param_visitor)#expr_or_op_arg acc eo in
+          FP_Set.elements set
+      )
 
   let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) =
     function
@@ -112,7 +116,7 @@ type 'a subst_acc = {
   subclass_acc : 'a;
 }
 
-module Debug = struct
+module SubFormat = struct
   let fmt_bound_context ?intro:(str="Bound context: ") term_db =
     fmt_list ~front:str (fmt_formal_param term_db)
 
@@ -123,10 +127,10 @@ module Debug = struct
         (fmt_expr_or_op_arg term_db) y
 
 
-  let fmt_substs ?intro:(str="Substs: ") term_db formatter =
+  let fmt_substs ?intro:(str="[") term_db formatter =
     fmt_list ~front:str (fmt_subst term_db) formatter
 
-  let fmt_renaming ?intro:(str="Renaming: ") term_db =
+  let fmt_renaming ?intro:(str="[") term_db =
     fmt_list ~front:str
       (fun formatter ->
          function  | (x,y) ->
@@ -137,7 +141,7 @@ module Debug = struct
 
   let fmt_sacc formatter
       { term_db; bound_context; bound_renaming; substs; _} =
-    fprintf formatter "SAcc @[<v 2>{@,%a@,%a@,%a@,}@]"
+    fprintf formatter "SAcc @[<v 2>@[{@,%a@,%a@,%a@,}@]@]"
       (fmt_substs term_db) substs
       (fmt_bound_context term_db) bound_context
       (fmt_renaming term_db) bound_renaming
@@ -187,8 +191,13 @@ class ['a] expr_substitution = object(self)
 
   method unbounded_bound_symbol acc { param; tuple } =
     let sacc = get_acc acc in
-    let free = Subst.range sacc.substs in
-    let bound = append (Subst.bound_range sacc.substs) sacc.bound_context in
+    let free = Subst.range sacc.term_db sacc.substs in
+    let bound : formal_param list = concat
+        [ (* [param]; *)
+          (Subst.formal_params_in_range sacc.term_db sacc.substs);
+          sacc.bound_context;
+        ]
+    in
     let (rterm_db, rparam) = Subst.rename sacc.term_db ~free ~bound param in
     let (bound_context, bound_renaming) =
       (rparam :: sacc.bound_context, (param, rparam) :: sacc.bound_renaming)
@@ -211,23 +220,28 @@ class ['a] expr_substitution = object(self)
     let sacc0 = get_acc acc0 in
     let domain = self#get_macc_extractor#expr acc in
      *)
-    let bound = sacc.bound_context in
-    let free = Subst.range sacc.substs in
+    let bound = concat
+        [ (* params; *)
+          (Subst.formal_params_in_range sacc.term_db sacc.substs);
+          sacc.bound_context;
+        ]
+    in
+    let free = Subst.range sacc.term_db sacc.substs in
     (* do renaming of symbols, if neccessary *)
-    let (rterm_db, rparams_reverse) =
+    let (rterm_db, rparams_reverse, _blacklist) =
       fold_left (function
-          | (rdb, rps) ->
+          | (rdb, rps, bl) ->
             fun param ->
               let db, rp =
-                Subst.rename rdb ~free ~bound:rps param
+                Subst.rename rdb ~free ~bound:bl param
               in
-              (db, rp::rps)
+              (db, rp::rps, rp::bl)
         )
-        (sacc.term_db, bound) params
+        (sacc.term_db, [], bound) params
     in
     (* restore parameter order *)
     let rparams = rev rparams_reverse in
-    assert(length params = length rparams);
+    assert(length params = length rparams); (* TODO: check if this holds *)
     (* create the renaming from old to new symbols *)
     let bound_renaming =
       filter (function
@@ -242,10 +256,10 @@ class ['a] expr_substitution = object(self)
           (fmt_list (fmt_formal_param rterm_db)) rparams
         ;
         fprintf std_formatter "@[<v>Mapping: %a (bounded)@,@]"
-          (Debug.fmt_renaming rterm_db) bound_renaming
+          (SubFormat.fmt_renaming rterm_db) bound_renaming
       );
     (* add new symbols to bound context *)
-    let bound_context =  append bound rparams 
+    let bound_context =  append bound rparams
     in
     let acc0 = set_acc acc { term_db = rterm_db;
                              substs = sacc.substs;
@@ -255,7 +269,7 @@ class ['a] expr_substitution = object(self)
                                append sacc.bound_renaming bound_renaming;
                              subclass_acc = ();
                            } in
-    let acc1  = self#expr acc domain in
+    let acc1  = self#expr acc0 domain in
     let domain = self#get_macc_extractor#expr acc1 in
     let ubs = { params = rparams; tuple; domain } in
     set_anyexpr acc1 (Any_bounded_bound_symbol ubs)
@@ -284,7 +298,7 @@ class ['a] expr_substitution = object(self)
     let sacc = get_acc acc in
     debug
       (fun () -> fprintf std_formatter
-          "Binder acc: @.%a@." Debug.fmt_sacc sacc) ;
+          "Binder acc: @.%a@." SubFormat.fmt_sacc sacc) ;
     (* process bound symbols to get the renaming *)
     let ie = self#get_id_extractor in
     let bound_symbols, acc0 =
@@ -294,7 +308,7 @@ class ['a] expr_substitution = object(self)
     let sacc0 = get_acc acc0 in
     debug (fun () ->
         fprintf std_formatter "After processing bound sybols:@.%a@."
-          Debug.fmt_sacc sacc0)
+          SubFormat.fmt_sacc sacc0)
     ;
     let renaming_substs =
       map (function (x,y) ->
@@ -317,7 +331,7 @@ class ['a] expr_substitution = object(self)
     debug (fun () ->
         fprintf std_formatter
           "Renaming acc: @.%a to %a@."
-          Debug.fmt_sacc sacc1
+          SubFormat.fmt_sacc sacc1
           (fmt_expr_or_op_arg sacc1.term_db) operand)
     ;
     let any_renamed_operand, sacc2 = self#expr_or_op_arg acc1 operand in
@@ -364,14 +378,14 @@ class ['a] expr_substitution = object(self)
       set_anyexpr acc (Any_user_defined_op uop)
 
   method bound_symbol acc b =
-    Debug.print_acc ~text:"Bound symbol before:" (get_acc acc) |> debug;
+    SubFormat.print_acc ~text:"Bound symbol before:" (get_acc acc) |> debug;
     let acc0 = super#bound_symbol acc b in
-    Debug.print_acc ~text:"Bound symbol after:" (get_acc acc0) |> debug;
+    SubFormat.print_acc ~text:"Bound symbol after:" (get_acc acc0) |> debug;
     acc0
 
 
   method context acc _ =
-    failwith "Can't apply a substitutionto a context."
+    failwith "Can't apply a substitution to a context."
 
 end
 

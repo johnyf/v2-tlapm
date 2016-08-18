@@ -1,3 +1,8 @@
+#directory "_build/src/core"
+#directory "_build/src/sany"
+#directory "_build/src/expr"
+#directory "_build/src/nunchaku"
+#directory "_build/src/test"
 #directory "_build/src"
 #load "any_expr.cmo"
 #load "commons.cmo"
@@ -18,7 +23,6 @@
 #load "sany_visitor.cmo"
 #load "util.cmo"
 #load "xml_utils.cmo"
-
 
 open Commons
 open Expr_ds

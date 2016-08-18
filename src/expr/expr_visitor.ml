@@ -103,7 +103,8 @@ class ['a] visitor :
       let acc = List.fold_left self#expr_or_op_arg acc3 operands in
       acc
 
-    method binder acc0 {location; level; operator; operand; bound_symbols} =
+    method binder acc0 { location; level; operator; operand;
+                         bound_symbols } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#operator acc2 operator in
@@ -123,8 +124,15 @@ class ['a] visitor :
       | B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
       | B_unbounded_bound_symbol s -> self#unbounded_bound_symbol acc s
 
-    method bounded_bound_symbol acc x = acc
-    method unbounded_bound_symbol acc x = acc
+    method bounded_bound_symbol acc0 { params; tuple; domain } =
+      let acc1 = List.fold_left self#formal_param acc0 params in
+      (* skip tuple *)
+      let acc2 = self#expr acc1 domain in
+      acc2
+
+    method unbounded_bound_symbol acc0 { param; tuple; } =
+      let acc1 = self#formal_param acc0 param in
+      acc1
 
 
     method formal_param acc0 = function

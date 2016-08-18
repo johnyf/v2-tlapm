@@ -757,7 +757,7 @@ let expr_formatter = new formatter
 
 let mk_fmt (f : fc -> 'a -> fc) term_db fmt (expr : 'a) =
   let acc = (fmt, term_db, true, Expression, 0) in
-  ignore (f acc expr; fprintf fmt "@." )
+  ignore (f acc expr)
 
 let mk_printer (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
   mk_fmt f term_db (formatter_of_out_channel channel) expr

@@ -31,9 +31,3 @@ val extract_level : expr -> level option
 
 (** Wraps an expression into an assume-prove with empty assumptions *)
 val assume_prove_from_expr : bool -> expr -> assume_prove
-
-(** Finds all the free variables in an expression *)
-val free_variables : expr -> op_decl list
-
-(** Finds all the bound variables in an expression *)
-val bound_variables : expr -> formal_param list

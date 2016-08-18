@@ -487,13 +487,16 @@ and op_def_or_theorem_or_assume =
 
 (** The LET statement of TLA.
     Example:
-    LET T == A /\ B IN T => T
+    LET T == A /\ B
+        U == 0 = 1
+    IN U => T
 *)
 and let_in = {
   location          : location;
   level             : level option;
+ (* TODO: this cannot be anything else than an op_def, narrow the type *)
+  op_defs           : op_def_or_theorem_or_assume list;
   body              : expr;
-  op_defs           : op_def_or_theorem_or_assume list
 }
 
 and numeral = {
