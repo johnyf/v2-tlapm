@@ -162,3 +162,10 @@ A: Unknown, an incomplete list is:
 
 Q: how to unify ASSUME NEW i ... with an eigenvariable in an assumption?
 A: use the PICK operator?
+
+Q: What is the meaning of the different semantical entailments in TLA?
+A: In the context of proofs, We have three entailments, |= , |[]= and ||= .
+ The first one is the evaluation of a behaviour, the second one is true for boxed formulas
+ only. And the third is a quantification on all behaviours. To prove a Lemma, you need the
+ ||= operator. (missing: details and explanations)
+

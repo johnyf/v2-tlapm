@@ -6,6 +6,7 @@ open Expr_map
 open Expr_utils
 open Expr_dereference
 open Expr_termdb_utils
+open Expr_termdb_utils.DeepTraversal
 open Expr_formatter
 open Format
 
@@ -24,6 +25,7 @@ struct
     flat_map (function
         | Subst (_, EO_expr e) -> free_variables tdb e
         | _ -> [] )
+
   let formal_params_in_range tdb =
     flat_map (function
         | Subst (_, eo) ->
@@ -188,6 +190,15 @@ class ['a] expr_substitution = object(self)
     | E_string x    as e -> super#expr acc e
     | E_numeral x   as e -> super#expr acc e
     | E_let_in x    as e -> super#expr acc e
+
+  method subst_in acc s =
+    failwith "Expr substitution inside instantiation not supported."
+
+  method ap_subst_in acc s =
+    failwith "Assume Prove substitution inside instantiation not supported."
+
+  method op_appl acc ({ location; level; operator; operands; } as appl) =
+    super#op_appl acc appl
 
   method unbounded_bound_symbol acc { param; tuple } =
     let sacc = get_acc acc in

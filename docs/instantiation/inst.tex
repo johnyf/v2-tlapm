@@ -1,0 +1,69 @@
+\documentclass[a4paper]{article}
+
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{listings}
+
+\title{An instantiation algorithm for TLA+ expressions}
+
+\newcommand{\assignment}[1]{\{#1\}}
+\newcommand{\inst}[2]{#1 {\leftarrow} #2}
+\newcommand{\einst}[3]{#1 \stackrel{#2}{\Leftarrow} #3}
+\newcommand{\tlaplus}[0]{{TLA+}}
+
+\begin{document}
+
+\maketitle
+
+\section{Overview}
+\label{sec:overview}
+\tlaplus{} has two kinds of substitution: instantiation of modules, which
+ preserves validity, and beta-reduction of lambda-expressions, which does not
+ necessarily preserve validity. Moreover, the two substitutions do not commute:
+
+
+\section{Old Attempt}
+
+We define two substitutions, one for within the context of enabled and one for
+ within.
+
+Syntax conventions:
+
+\begin{tabular}[h]{ll}
+  $c,d,\ldots$ & rigid variable \\
+  $x,y,\ldots$ & flexible variable \\
+  $\overline{x}$ & vector $x_1, \ldots, x_k$ of variables where $k$ is irrelevant \\
+  $e$  & expression \\
+  $\sigma$  & a map (flexible and rigid) variable to expression \\
+  $\xi$  & a renaming i.e. a map variable to variable \\
+\end{tabular}
+
+Substitution mappings differ from the identity function only on a finite number
+ of values.
+
+\[
+\begin{array}[h]{l@{\,\,:=\,\,}lp{7cm}}
+  \inst{c}{\sigma} & \sigma{c} & \\
+  \inst{x}{\sigma} & \sigma(x) & \\
+  \inst{Op}{\sigma} & TODO & \\
+  \inst{Op(e_1, \ldots, e_n)}{\sigma}
+                   & \inst{Op}{}(\inst{e_1}{\sigma}, \ldots, \inst{e_n}{\sigma})
+                       & \mbox{ if Op has the Leibniz property} \\
+  \inst{ENABLED(e)}{\sigma} & \exists \overline{y}( \einst{e}{\xi}{\sigma} )
+                       & \mbox{where $\xi(y) \not \in FV(e)$ for all $y \in FV(e)$} \\
+ & & \mbox{
+                            i.e. $\xi$ assigns fresh variables to every variable
+                            in $e$ }  \\
+
+  \einst{c}{\xi}{\sigma} & \sigma{c} & \\
+  \einst{x}{\xi}{\sigma} & \sigma(x) & \\
+  \einst{e'}{\xi}{\sigma} & (\einst{\inst{e}{\xi}}{\xi}{\sigma})' & \\
+  \einst{Op}{\xi}{\sigma} & TODO & \\
+  \einst{Op(e_1, \ldots, e_n)}{\xi}{\sigma}
+                   & \inst{Op}{}(\einst{e_1}{\xi}{\sigma}, \ldots, \einst{e_n}{\xi}{\sigma})
+                       & \mbox{ if Op has the Leibniz property} \\
+\end{array}
+\]
+
+\end{document}

@@ -97,7 +97,7 @@ let sub2 = [Subst.Subst
 (* helpers *)
 class free_bound_lists_visitor = object
   inherit [(formal_param list) * (op_decl list) * (formal_param list)]
-      tdb_visitor as super
+      DeepTraversal.tdb_visitor as super
 
   method unbounded_bound_symbol ((bs, fs, allfps), tdb) ({ param; _ } as sym ) =
     let acc = ((append bs [param], fs, allfps), tdb) in
@@ -144,6 +144,8 @@ let intersect_free_bound tdb exp =
   fprintf std_formatter "@[Context bound vars: %a@]@,"
     (fmt_list (fmt_formal_param term_db)) context_bound ;
   free_and_bound
+
+
 
 let test_subst substs =
   Test.make_assert_test

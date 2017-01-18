@@ -390,12 +390,15 @@ and read_instance i  =
     params;
   }
 
-and is_node name = is_expr_node name || is_proof_node name || (List.mem name
-                                                                 ["APSubstInNode"; "AssumeProveNode"; "DefStepNode";
-                                                                  "OpArgNode"; "InstanceNode"; "NewSymbNode";
-                                                                  "FormalParamNodeRef"; "ModuleNodeRef"; "OpDeclNodeRef";
-                                                                  "ModuleInstanceKindRef"; "UserDefinedOpKindRef"; "BuiltInKindRef";
-                                                                  "AssumeNodeRef"; "TheoremNodeRef"; "UseOrHideNode"; ])
+and is_node name =
+  is_expr_node name
+  || is_proof_node name
+  || (List.mem name
+        ["APSubstInNode"; "AssumeProveNode"; "DefStepNode";
+         "OpArgNode"; "InstanceNode"; "NewSymbNode";
+         "FormalParamNodeRef"; "ModuleNodeRef"; "OpDeclNodeRef";
+         "ModuleInstanceKindRef"; "UserDefinedOpKindRef"; "BuiltInKindRef";
+         "AssumeNodeRef"; "TheoremNodeRef"; "UseOrHideNode"; ])
 
 and read_node i = get_child_choice i [
     ((=) "APSubstInNode",         fun i -> N_ap_subst_in (read_apsubstinnode i));

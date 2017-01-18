@@ -89,5 +89,5 @@ THEOREM ASSUME Invariant, [Next]_vars PROVE Invariant'
 
 =============================================================================
 \* Modification History
-\* Last modified Tue Nov 17 15:42:58 CET 2015 by marty
+\* Last modified Tue Aug 23 15:24:02 CEST 2016 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty
