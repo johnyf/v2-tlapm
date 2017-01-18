@@ -24,16 +24,16 @@ opam install oasis xmlm kaputt result sexplib
 
 To initialize the configuration, call
 
- oasis setup ;
- ./configure --enable-tests --enable-debug
+    oasis setup ;
+    ./configure --enable-tests --enable-debug
 
 in the v2-tlapm base directory. For the actual compilation, the usual
 
-make
+    make
 
 will compile the project, wheras
 
-make test
+    make test
 
 will run the test suite.
 
