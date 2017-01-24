@@ -4,6 +4,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{listings}
+\usepackage{parcolumns}
 
 \title{An instantiation algorithm for TLA+ expressions}
 
@@ -11,6 +12,30 @@
 \newcommand{\inst}[2]{#1 {\leftarrow} #2}
 \newcommand{\einst}[3]{#1 \stackrel{#2}{\Leftarrow} #3}
 \newcommand{\tlaplus}[0]{{TLA+}}
+\newcommand{\tla}[1]{#1}
+\newcommand{\sidebyside}[2]{
+    \begin{minipage}{0.45\linewidth}
+      #1
+    \end{minipage}
+    \space{10pt}
+    \begin{minipage}{0.45\linewidth}
+      #2
+    \end{minipage}
+}
+
+\lstdefinelanguage{tlaplus}{
+  morekeywords= { MODULE, LET, IN, VARIABLE, VARIABLES, CONSTANT, CONSTANTS,
+    ASSUME, NEW, PROVE, THEOREM, LEMMA, ENABLED, ==, INSTANCE, BY, DEF },
+  sensitive=true,
+  morecomment=[l]{\*},
+  morecomment=[s]{(*}{*)},
+  morestring=[b]",
+  literate={~} {$\sim$}{1},
+  columns=fullflexible,
+  basicstyle=\small
+}
+
+\lstset{language=tlaplus}
 
 \begin{document}
 
@@ -20,50 +45,75 @@
 \label{sec:overview}
 \tlaplus{} has two kinds of substitution: instantiation of modules, which
  preserves validity, and beta-reduction of lambda-expressions, which does not
- necessarily preserve validity. Moreover, the two substitutions do not commute:
+ necessarily preserve validity. Moreover, the two substitutions do not commute.
+ For example, let us consider modules Foo and Bar:
+
+\begin{parcolumns}{2}
+\colchunk{
+\begin{lstlisting}
+---- MODULE Foo ----
+
+VARIABLE x
+
+E(u) == x' # u'
+D(u) == ENABLED ( E(u) )
+
+THEOREM T1 == ~ D(x)
+
+====
+\end{lstlisting}
+}
+\colchunk{
+\begin{lstlisting}
+---- MODULE Bar ----
+
+VARIABLE y
+
+I == INSTANCE Foo with x <- y
 
 
-\section{Old Attempt}
+THEOREM T2 == D(y)
 
-We define two substitutions, one for within the context of enabled and one for
- within.
+====
+\end{lstlisting}
+}
+\end{parcolumns}
 
-Syntax conventions:
+\vspace{2mm}
+\noindent
+It looks like \tla{I!T1} and \tla{T2} talk about the same formula \tla{D(y)},
+ but this is not the case: the first can be read as \tla{I!(D(y))}\footnote{This
+ is not valid \tlaplus{} syntax.} and the second as \tla{(I!D)(y)}. In other
+ words, it makes a difference if we beta-reduce first or if we instantiate
+ first. Reducing D(x) first leads to \tla{ENABLED (x' \# x')}, which -- following the
+ renaming instuctions in ``Specifying Systems'' -- becomes \tla{ENABLED (\$x'
+ \# \$x')} by the instantiation of \tla{x} with \tla{y}, where primed
+ occurrences of \tla{\$x} are bound by their enclosing ENABLED and therefore
+ untouched.
 
-\begin{tabular}[h]{ll}
-  $c,d,\ldots$ & rigid variable \\
-  $x,y,\ldots$ & flexible variable \\
-  $\overline{x}$ & vector $x_1, \ldots, x_k$ of variables where $k$ is irrelevant \\
-  $e$  & expression \\
-  $\sigma$  & a map (flexible and rigid) variable to expression \\
-  $\xi$  & a renaming i.e. a map variable to variable \\
-\end{tabular}
+Instantiating first keeps the occurrence of the  variable \tla{u} intact,
+ leading to \tla{I!D(u) == ENABLED ( u \# \$x') }. Unfolding the definitions and
+ reducing the application \tla{I!D(y)} subsequently leads to
+ \tla{ENABLED (y' \# \$x')}. Now it is clear that \tla{I!(D(y))} is
+ unsatisfiable while \tla{(I!D)(y)} is satisfiable. Since \tlaplus{}
+ contains set theory, finite domains -- and in particular, single element
+ domains -- are excluded. Therefore \tla{(I!D)(y)} is a theorem in \tlaplus{}.
 
-Substitution mappings differ from the identity function only on a finite number
- of values.
+In the following, we will develop algorithms for both kinds of substitutions.
+ Since inner substitutions have to be carried out before applying outer ones,
+ special consideration will be taken with regard to partially unfolded
+ definitions.
 
-\[
-\begin{array}[h]{l@{\,\,:=\,\,}lp{7cm}}
-  \inst{c}{\sigma} & \sigma{c} & \\
-  \inst{x}{\sigma} & \sigma(x) & \\
-  \inst{Op}{\sigma} & TODO & \\
-  \inst{Op(e_1, \ldots, e_n)}{\sigma}
-                   & \inst{Op}{}(\inst{e_1}{\sigma}, \ldots, \inst{e_n}{\sigma})
-                       & \mbox{ if Op has the Leibniz property} \\
-  \inst{ENABLED(e)}{\sigma} & \exists \overline{y}( \einst{e}{\xi}{\sigma} )
-                       & \mbox{where $\xi(y) \not \in FV(e)$ for all $y \in FV(e)$} \\
- & & \mbox{
-                            i.e. $\xi$ assigns fresh variables to every variable
-                            in $e$ }  \\
+\section{New Attempt: Explicit subtitutions}
 
-  \einst{c}{\xi}{\sigma} & \sigma{c} & \\
-  \einst{x}{\xi}{\sigma} & \sigma(x) & \\
-  \einst{e'}{\xi}{\sigma} & (\einst{\inst{e}{\xi}}{\xi}{\sigma})' & \\
-  \einst{Op}{\xi}{\sigma} & TODO & \\
-  \einst{Op(e_1, \ldots, e_n)}{\xi}{\sigma}
-                   & \inst{Op}{}(\einst{e_1}{\xi}{\sigma}, \ldots, \einst{e_n}{\xi}{\sigma})
-                       & \mbox{ if Op has the Leibniz property} \\
-\end{array}
-\]
+The original idea here is to represent both beta-reduction and instantiation
+ explicitly in the term graph. Then the two formulas in the introduction
+ could be written as D(u)\{u $\mapsto$ x\}[x $\mapsto$ y] and
+ D(u)[x $\mapsto$ y]\{u $\mapsto$ x\}, where reduction is denoted by curly
+ braces and instantiation is denoted by square braces. Actually, the SANY
+ data-structures allow to write reduction as application to an abstraction:
+ D(u)\{u $\mapsto$ x\} is then just \tla{(LAMBDA u: D(u))(x)}. Again, this
+ is not legal \tlaplus{} but allowed by SANY.
+
 
 \end{document}
