@@ -13,6 +13,9 @@
 \newcommand{\einst}[3]{#1 \stackrel{#2}{\Leftarrow} #3}
 \newcommand{\tlaplus}[0]{{TLA+}}
 \newcommand{\tla}[1]{#1}
+
+\newcommand{\dor}{\textbf{or}}
+
 \newcommand{\sidebyside}[2]{
     \begin{minipage}{0.45\linewidth}
       #1
@@ -115,5 +118,112 @@ The original idea here is to represent both beta-reduction and instantiation
  D(u)\{u $\mapsto$ x\} is then just \tla{(LAMBDA u: D(u))(x)}. Again, this
  is not legal \tlaplus{} but allowed by SANY.
 
+
+\subsection{Datastructures}
+\label{sec:ds}
+
+\begin{tabular}{lll}
+node & content & comment \\
+\hline
+Module & list of constants, list of variables, & \\
+       & list of instances, list of definitions & \\
+Constant  & name, arity & Set of Constants CS \\
+Variable  & name & arity == 0, Set of Variables VS \\
+Parameter & name, arity & Set of Paramters FP \\
+Definition & name, arity, list of parameters, expression body & Set of Definitions DS\\
+Expression  & constant & \\
+          & \dor{} variable & \\
+          & \dor{} parameter & \\
+          & \dor{} definition & \\
+          & \dor{} abstraction &\\
+          & \dor{} application &\\
+          & \dor{} substin & \\
+          & \dor{} selector &\\
+Application & head expression, argument expression list & head.arity == list length\\
+Abstraction & parameter, expression body & \\
+SubstIn     & instantiation, expression body & the explicit instantiation node \\
+Instance & module, parameters, instantiation & \\
+Instantiation & list of assigments of variables/constants to expressions& \\
+Selector & instance, definition & the ! operator\\
+\end{tabular}
+
+The definition and instantiation elements do not contain arguments since they
+ can always be rewritten in terms of abstractions: D(x) == F is equivalent to
+ D == LAMBDA x : F and I(x)!D is equivalent to LAMBDA x : I!D. We write
+ abstraction as $\lambda x : F$ and instantiation as $(\rho M\; with x_1
+ \leftarrow t_1,\ldots,x_n \leftarrow t_n)!e$ where the variables / constants
+ $x_i$ are exactly those declared in the module $M$.
+
+We assume we have a set $Unfolded$ of definitions which are unfolded and
+ a context tracing if we are inside ENABLED.
+
+Rewrite rules:\\
+
+\[
+\begin{array}{l@{\;\;\rightarrow\;\;}lll}
+  (\lambda x : c)(e) &  c & c \in CS \cup VS & \\
+  (\lambda x : x)(e) &  e & x \in FP &\\
+  (\lambda x : y)(e) &  y & y \in FP&\\
+  (\lambda x : D)(e) &  (\lambda x : b)(e) & D \in DS, b = D.body,
+                                             D \in Unfolded&\\
+  (\lambda x : f(g))(e) & ((\lambda x : f)(e))(\lambda x : g)(e)) &\\
+  (\lambda x : \lambda y : s)(t)
+                     & (\lambda z : (\lambda x : (\lambda y : s)(z))(t))
+                          & z \not \in FV(s) \cup FV(t) &\\
+  \hline
+  (\rho M\; with\; c \leftarrow s)! x & s & c \in CS \cup VS & * \\
+  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
+  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
+  (\rho M\; with\; c \leftarrow s)!(f(g))
+                     & (\rho M\; with\; c \leftarrow s)!(f)
+                       ((\rho M\; with\; c \leftarrow s)!(g) ) &  &\\
+  TODO
+\end{array}
+\]
+
+Remarks:\\
+\begin{tabular}{ll}
+  * & all modules of M are instantiated \\
+\end{tabular}
+
+\section{Excursion: parametrized instantiations in SANY}
+\label{sec:param-inst}
+
+In SANY, parametrized instantuitions have a representation where the
+ parameter is shifted over the instantiation. Let us consider the
+ modules Foo and Bar:
+
+\begin{parcolumns}{2}
+\colchunk{
+  \begin{lstlisting}
+---- MODULE Foo ----
+
+ VARIABLE a
+
+ D(u) == u' # a'
+ E(u) == D(u) \/ ENABLED D(u)
+
+====
+    \end{lstlisting}
+}
+\colchunk{
+  \begin{lstlisting}
+---- MODULE Bar ----
+ EXTENDS Naturals
+
+ VARIABLE x
+
+ I(v) == INSTANCE Foo WITH a <- x+v
+
+====
+  \end{lstlisting}
+}
+\end{parcolumns}
+
+The term \tla{I(x)!E(x)} is represented as \tla{I!E(x,x)} but they are
+ not equivalent. In the meta-notation, they would be
+ E\{u $\mapsto$ x\}[a $\mapsto$ x+v]\{v $\mapsto$ x\} vs. E\{u $\mapsto$ x,
+ v $\mapsto$ x\}[a $\mapsto$ x+v] with the same consequences as in the
+ introduction.
 
 \end{document}
