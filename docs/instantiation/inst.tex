@@ -138,13 +138,13 @@ Expression  & constant & \\
           & \dor{} abstraction &\\
           & \dor{} application &\\
           & \dor{} substin & \\
-          & \dor{} selector &\\
+%          & \dor{} selector &\\
 Application & head expression, argument expression list & head.arity == list length\\
 Abstraction & parameter, expression body & \\
 SubstIn     & instantiation, expression body & the explicit instantiation node \\
 Instance & module, parameters, instantiation & \\
 Instantiation & list of assigments of variables/constants to expressions& \\
-Selector & instance, definition & the ! operator\\
+%Selector & instance, definition & the ! operator\\
 \end{tabular}
 
 The definition and instantiation elements do not contain arguments since they
@@ -176,14 +176,18 @@ Rewrite rules:\\
   (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
   (\rho M\; with\; c \leftarrow s)!(f(g))
                      & (\rho M\; with\; c \leftarrow s)!(f)
-                       ((\rho M\; with\; c \leftarrow s)!(g) ) &  &\\
-  TODO
+                       ((\rho M\; with\; c \leftarrow s)!(g) ) & f \neq '\mbox{ or }f\mbox{ outside of }EN  &\\
+  (\rho M\; with\; c \leftarrow s)!(g')
+                     & ((\rho M\; with\; c \leftarrow \$c)!(g) )' & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
+  
 \end{array}
 \]
 
 Remarks:\\
 \begin{tabular}{ll}
   * & all modules of M are instantiated \\
+  ** & this is unclean since it doesn't capture the difference between
+       $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
 \end{tabular}
 
 \section{Excursion: parametrized instantiations in SANY}
