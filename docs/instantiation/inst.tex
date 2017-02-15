@@ -168,27 +168,91 @@ Rewrite rules:\\
                                              D \in Unfolded&\\
   (\lambda x : f(g))(e) & ((\lambda x : f)(e))(\lambda x : g)(e)) &\\
   (\lambda x : \lambda y : s)(t)
-                     & (\lambda z : (\lambda x : (\lambda y : s)(z))(t))
-                          & z \not \in FV(s) \cup FV(t) &\\
+                     & (\lambda y : (\lambda x : s)(t))
+                          & y \not \in FV(s) \cup FV(t) & ***\\
+  (\lambda x : \lambda y : s)(t)
+                     & (\lambda x : (\lambda z : (\lambda y : s)(z))(t))
+                          & y \in FV(s) \cup FV(t) , \\
+  \multicolumn{2}{l}{} & z \not \in FV(s) \cup FV(t) & \\
   \hline
   (\rho M\; with\; c \leftarrow s)! x & s & c \in CS \cup VS & * \\
   (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
-  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
+  (\rho M\; with\; c \leftarrow s)!D & (\rho M\; with\; c \leftarrow s)!(b)
+                          & D\in DS, D \in Unfolded, b = D.body&\\
   (\rho M\; with\; c \leftarrow s)!(f(g))
                      & (\rho M\; with\; c \leftarrow s)!(f)
                        ((\rho M\; with\; c \leftarrow s)!(g) ) & f \neq '\mbox{ or }f\mbox{ outside of }EN  &\\
   (\rho M\; with\; c \leftarrow s)!(g')
                      & ((\rho M\; with\; c \leftarrow \$c)!(g) )' & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
-  
 \end{array}
 \]
 
 Remarks:\\
 \begin{tabular}{ll}
   * & all modules of M are instantiated \\
-  ** & this is unclean since it doesn't capture the difference between
-       $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
+  ** & this is unclean since it doesn't capture the difference between \\
+     &  $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
+  \\
+  & FP-substitution stops at folded definitions and CS/VS subtitutions\\
+  & CS/VS-substitution stops at folded definitions and FP-substitutions\\
 \end{tabular}
+
+
+\subsection{Termination}
+\label{sec:termination}
+
+We define a lexicographic order on the following measures:
+
+\begin{enumerate}
+\item Variable name clashes:
+  \begin{itemize}
+  \item $clash(c)=clash(v)=clash(fp)=0$
+  \item $clash(s(t)) = clash(s) + clash(t)$ where $s$ is not abstraction
+  \item $clash(\lambda x . s) t = clash(s)$ if $x \not \in FV(t)$
+  \item $clash(\lambda x . s) t = clash(s) + 1$ if $x \in FV(t)$
+  \item $clash(\lambda x . s) = clash(s)$ for the cases not covered above
+  \end{itemize}
+
+% \item Number of applications inside abstractions:
+%   \begin{itemize}
+%   \item $apps(c)=apps(v)=apps(fp)=0$
+%   \item $apps(s(t)) = 1 + apps(s) + apps(t)$
+%   \item $apps(\lambda x . t) = apps(t)$
+% 
+%   \item $absapps(c)=absapps(v)=absapps(fp)=0$
+%   \item $absapps(s(t)) = absapps(s) + absapps(t)$
+%   \item $absapps(\lambda x . t) = apps(t)+absapps(t)$
+%  \end{itemize}
+
+  
+\item Deepest term under an abstraction which can be applied:
+  \begin{itemize}
+  \item $d(v)=d(c)=d(fp)=0$
+  \item $d(\lambda x . s)=1 + d(s)$
+  \item $d(s(t))= 1 + max(d(s), d(t))$
+  \end{itemize}
+
+  \begin{itemize}
+  \item $da(v)=da(c)=da(fp)=0$
+  \item $da(\lambda x . s)=1 + da(s)$
+  \item $da(s(t))= \left\{
+      \begin{array}{rl}
+        1 + d(s) + max(da(s),da(t))&\mbox{if }s=\lambda x.r\\
+        max(da(s),da(t))&\mbox{otherwise}\\
+      \end{array}\right.$
+  \end{itemize}
+
+\end{enumerate}
+
+\section{Open Problems}
+\begin{itemize}
+\item Confluence: I only checked overlaps of root position vs root position,
+  non-root overlaps are possible
+\item The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
+  the *** rule into an application redex(e)). This is probably also due to
+  overlaps
+\end{itemize}
+
 
 \section{Excursion: parametrized instantiations in SANY}
 \label{sec:param-inst}
@@ -230,4 +294,10 @@ The term \tla{I(x)!E(x)} is represented as \tla{I!E(x,x)} but they are
  v $\mapsto$ x\}[a $\mapsto$ x+v] with the same consequences as in the
  introduction.
 
+
+TODOs:\\
+\begin{itemize}
+\item  compute the set of unfolded defs
+\item  $(ENABLED\; A) \Leftrightarrow  C$ used instantiated
+\end{itemize}
 \end{document}
