@@ -6,6 +6,7 @@
 \usepackage{listings}
 \usepackage{parcolumns}
 \usepackage{graphicx}
+\usepackage{todonotes}
 
 \title{An instantiation algorithm for TLA+ expressions}
 
@@ -49,8 +50,24 @@
 \label{sec:overview}
 \tlaplus{} has two kinds of substitution: instantiation of modules, which
  preserves validity, and beta-reduction of lambda-expressions, which does not
- necessarily preserve validity. Moreover, the two substitutions do not commute.
- For example, let us consider modules Foo and Bar:
+ necessarily preserve validity. Following the notions of SANY, we distinguish
+ three kinds of variables: temporal constants and temporal variables are
+ bound by instantiation whereas formal parameters are bound by lambda
+ abstraction. Furthermore, ENABLED binds all temporal variables within its
+ argument which are in the context of the next state operator '.
+
+ In the presence of unresolved instantiations or substitutions, it is often
+ unclear, which operator binds the occurrence of a particular temporal variable:
+ when we consider the expression
+ \tla{$(\lambda\; fp : ENABLED\; (fp \# fp'))(x)$}, it seems that the variable
+ $x$ is bound in the module. But in the beta-reduced form $ENABLED\; (x \# x')$
+ of this expression, only the first occurrence of $x$ is bound by the
+ module but its second (primed) occurrence is bound by ENABLED\footnote{To
+ prevent complications from renaming, we will not assume alpha equivalence but
+ will handle the renaming of bound variables explicitly.}.
+
+ Furthermore, the two substitutions do not commute. For example, let us
+ consider modules Foo and Bar:
 
 \begin{parcolumns}{2}
 \colchunk{
@@ -62,7 +79,7 @@ VARIABLE x
 E(u) == x' # u'
 D(u) == ENABLED ( E(u) )
 
-THEOREM T1 == ~ D(x)
+THEOREM T1 == D(x)
 
 ====
 \end{lstlisting}
@@ -76,7 +93,7 @@ VARIABLE y
 I == INSTANCE Foo with x <- y
 
 
-THEOREM T2 == D(y)
+THEOREM T2 == I!D(y)
 
 ====
 \end{lstlisting}
@@ -89,31 +106,37 @@ It looks like \tla{I!T1} and \tla{T2} talk about the same formula \tla{D(y)},
  but this is not the case: the first can be read as \tla{I!(D(y))}\footnote{This
  is not valid \tlaplus{} syntax.} and the second as \tla{(I!D)(y)}. In other
  words, it makes a difference if we beta-reduce first or if we instantiate
- first. Reducing D(x) first leads to \tla{ENABLED (x' \# x')}, which -- following the
- renaming instuctions in ``Specifying Systems'' -- becomes \tla{ENABLED (\$x'
- \# \$x')} by the instantiation of \tla{x} with \tla{y}, where primed
- occurrences of \tla{\$x} are bound by their enclosing ENABLED and therefore
- untouched.
+ first. Reducing D(x) first leads to \tla{ENABLED (x' \# x')}, which --
+ following the renaming instuctions in ``Specifying Systems'' -- becomes
+ \tla{ENABLED (\$x' \# \$x')} by the instantiation of \tla{x} with \tla{y},
+ because primed occurrences of \tla{\$x} are bound by their enclosing ENABLED,
+ not by the instantiation.
 
-Instantiating first keeps the occurrence of the  variable \tla{u} intact,
- leading to \tla{I!D(u) == ENABLED ( u \# \$x') }. Unfolding the definitions and
- reducing the application \tla{I!D(y)} subsequently leads to
- \tla{ENABLED (y' \# \$x')}. Now it is clear that \tla{I!(D(y))} is
- unsatisfiable while \tla{(I!D)(y)} is satisfiable. Since \tlaplus{}
- contains set theory, finite domains -- and in particular, single element
- domains -- are excluded. Therefore \tla{(I!D)(y)} is a theorem in \tlaplus{}.
+Instantiating first keeps the occurrence of the  formal parameter \tla{u} intact,
+ leading to \tla{I!D(u) == ENABLED ( u \# \$x') } but reducing the application
+ \tla{I!D(y)} leads to \tla{ENABLED (y' \# \$x')}. Now it is clear that
+ \tla{I!(D(y))} is unsatisfiable while \tla{(I!D)(y)} is valid.\footnote{ Since
+   one of the axioms  of \tlaplus{} is that (TRUE \# FALSE), we can always find
+   a domain element different from $x$. In fact, the axioms of set-theory even
+   enforce denumerable models.}.
 
 In the following, we will develop algorithms for both kinds of substitutions.
- Since inner substitutions have to be carried out before applying outer ones,
- special consideration will be taken with regard to partially unfolded
- definitions.
+ Since the occurrence of a lambda reducible expression (redex) as a subterm of
+ an instantiation may block the evaluation of the latter, inner substitutions
+ (i.e. those closer to the leaves of the term tree) must be evaluated before
+ outer ones. Definitions will also need special consideration because
+ we allow some of them to stay folded. But since a definition can contain
+ substitutions, they can not be treated like temporal constants.\footnote{
+   Actually, already a definition \tla{D(x) == e} contains a substitution
+   because it is equivalent to D == LAMBDA x : e.
+ }
 
-\section{New Attempt: Explicit subtitutions}
+\section{New Attempt: Explicit substitutions}
 
 The original idea here is to represent both beta-reduction and instantiation
  explicitly in the term graph. Then the two formulas in the introduction
  could be written as D(u)\{u $\mapsto$ x\}[x $\mapsto$ y] and
- D(u)[x $\mapsto$ y]\{u $\mapsto$ x\}, where reduction is denoted by curly
+ D(u)[x $\mapsto$ y]\{u $\mapsto$ y\}, where reduction is denoted by curly
  braces and instantiation is denoted by square braces. Actually, the SANY
  data-structures allow to write reduction as application to an abstraction:
  D(u)\{u $\mapsto$ x\} is then just \tla{(LAMBDA u: D(u))(x)}. Again, this
@@ -123,15 +146,16 @@ The original idea here is to represent both beta-reduction and instantiation
 \subsection{Datastructures}
 \label{sec:ds}
 
-\begin{tabular}{lll}
+\begin{tabular}{lp{0.4\textwidth}p{0.3\textwidth}}
 node & content & comment \\
 \hline
 Module & list of constants, list of variables, & \\
        & list of instances, list of definitions & \\
-Constant  & name, arity & Set of Constants CS \\
-Variable  & name & arity == 0, Set of Variables VS \\
-Parameter & name, arity & Set of Paramters FP \\
-Definition & name, arity, list of parameters, expression body & Set of Definitions DS\\
+(Temporal) Constant  & name, arity & Set of Constants CS \\
+(Temporal) Variable  & name & arity == 0, Set of Variables VS \\
+(Formal )Parameter & name, arity & Set of Paramters FP \\
+Definition & name, arity, expression body & Set of Definitions DS,
+                                            all FPs in body are bound \\
 Expression  & constant & \\
           & \dor{} variable & \\
           & \dor{} parameter & \\
@@ -142,8 +166,7 @@ Expression  & constant & \\
 %          & \dor{} selector &\\
 Application & head expression, argument expression list & head.arity == list length\\
 Abstraction & parameter, expression body & \\
-SubstIn     & instantiation, expression body & the explicit instantiation node \\
-Instance & module, parameters, instantiation & \\
+SubstIn     & module, instantiation, expression body & the explicit instantiation node \\
 Instantiation & list of assigments of variables/constants to expressions& \\
 %Selector & instance, definition & the ! operator\\
 \end{tabular}
@@ -155,46 +178,56 @@ The definition and instantiation elements do not contain arguments since they
  \leftarrow t_1,\ldots,x_n \leftarrow t_n)!e$ where the variables / constants
  $x_i$ are exactly those declared in the module $M$.
 
-We assume we have a set $Unfolded$ of definitions which are unfolded and
- a context tracing if we are inside ENABLED.
+To allow for more flexibility, we state the algorithm as a set of rewrite
+ rules. The goal is to permute applications to abstractions further inside the
+ term and resolve them at the leaves of the term tree (rules 1-3, 8 and 9) or,
+ if the leaf is a folded definition, let the substitutions accumulate at the
+ leaf (rules 4 and 10). Beta-reduction readily distributes over application
+ (rule 5), but it needs special treatment when it is applied to an abstraction:
+ in case there are no name clashes, $\lambda\; x$ can be evaluated before
+ $\lambda\; y$ (rule 6), but if there are name clashes, we have to rename
+ $y$ to a fresh variable $z$ first (rule 7).
 
-Rewrite rules:\\
+\todo[inline]{Describe instantiations.}
+
+We assume we have a set $Unfolded$ of definitions which are unfolded and
+ a context tracing if we are inside ENABLED. Then the rewrite rules are:\\
 
 \[
-\begin{array}{l@{\;\;\rightarrow\;\;}lll}
-  (\lambda x : c)(e) &  c & c \in CS \cup VS & \\
-  (\lambda x : x)(e) &  e & x \in FP &\\
-  (\lambda x : y)(e) &  y & y \in FP&\\
-  (\lambda x : D)(e) &  (\lambda x : b)(e) & D \in DS, b = D.body,
+\begin{array}{ll@{\;\;\rightarrow\;\;}lll}
+1&  (\lambda x : c)(e) &  c & c \in CS \cup VS & \\
+2&  (\lambda x : x)(e) &  e & x \in FP &\\
+3&  (\lambda x : y)(e) &  y & y \in FP&\\
+4&  (\lambda x : D)(e) &  (\lambda x : b)(e) & D \in DS, b = D.body,
                                              D \in Unfolded&\\
-  (\lambda x : f(g))(e) & ((\lambda x : f)(e))(\lambda x : g)(e)) &\\
-  (\lambda x : \lambda y : s)(t)
+5&  (\lambda x : f(g))(e) & ((\lambda x : f)(e))(\lambda x : g)(e)) &\\
+6&  (\lambda x : \lambda y : s)(t)
                      & (\lambda y : (\lambda x : s)(t))
                           & y \not \in FV(s) \cup FV(t) & ***\\
-  (\lambda x : \lambda y : s)(t)
+7&  (\lambda x : \lambda y : s)(t)
                      & (\lambda x : (\lambda z : (\lambda y : s)(z))(t))
                           & y \in FV(s) \cup FV(t) , \\
-  \multicolumn{2}{l}{} & z \not \in FV(s) \cup FV(t) & \\
+  \multicolumn{3}{l}{} & z \not \in FV(s) \cup FV(t) & \\
   \hline
-  (\rho M\; with\; c \leftarrow s)! x & s & c \in CS \cup VS & * \\
-  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
-  (\rho M\; with\; c \leftarrow s)!D & (\rho M\; with\; c \leftarrow s)!(b)
+8&  (\rho M\; with\; c \leftarrow s)! x & s & c \in CS \cup VS & * \\
+9&  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
+10&  (\rho M\; with\; c \leftarrow s)!D & (\rho M\; with\; c \leftarrow s)!(b)
                           & D\in DS, D \in Unfolded, b = D.body&\\
-  (\rho M\; with\; c \leftarrow s)!(f(g))
+11&  (\rho M\; with\; c \leftarrow s)!(f(g))
                      & (\rho M\; with\; c \leftarrow s)!(f)
                        ((\rho M\; with\; c \leftarrow s)!(g) ) & f \neq '\mbox{ or }f\mbox{ outside of }EN  &\\
-  (\rho M\; with\; c \leftarrow s)!(g')
+12&  (\rho M\; with\; c \leftarrow s)!(g')
                      & ((\rho M\; with\; c \leftarrow \$c)!(g) )' & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
 \end{array}
 \]
 
 Remarks:\\
 \begin{tabular}{ll}
-  * & all modules of M are instantiated \\
+  * & all constants and variables of M are instantiated \\
   ** & this is unclean since it doesn't capture the difference between \\
      &  $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
   \\
-  & FP-substitution stops at folded definitions and CS/VS subtitutions\\
+  & FP-substitution stops at folded definitions and CS/VS substitutions\\
   & CS/VS-substitution stops at folded definitions and FP-substitutions\\
 \end{tabular}
 
@@ -302,10 +335,7 @@ The term \tla{I(x)!E(x)} is represented as \tla{I!E(x,x)} but they are
  v $\mapsto$ x\}[a $\mapsto$ x+v] with the same consequences as in the
  introduction.
 
-
-TODOs:\\
-\begin{itemize}
-\item  compute the set of unfolded defs
-\item  $(ENABLED\; A) \Leftrightarrow  C$ used instantiated
-\end{itemize}
+\vspace{2cm}
+\todo[inline]{ compute the set of unfolded defs}
+\todo[inline]{ $(ENABLED\; A) \Leftrightarrow  C$ used instantiated }
 \end{document}
