@@ -5,6 +5,7 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{parcolumns}
+\usepackage{graphicx}
 
 \title{An instantiation algorithm for TLA+ expressions}
 
@@ -249,10 +250,17 @@ We define a lexicographic order on the following measures:
 \item Confluence: I only checked overlaps of root position vs root position,
   non-root overlaps are possible
 \item The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
-  the *** rule into an application redex(e)). This is probably also due to
-  overlaps
+  the *** rule into an application redex(e)). The reason is that outer pattern
+  matches weigh heavier than inner ones:
+  \begin{center}
+    \includegraphics[width=4cm]{measure_ce1.pdf}
+    \includegraphics[width=4cm]{measure_ce2.pdf}
+  \end{center}
 \end{itemize}
 
+The weight of the abstraction on $x$ decreases as expected, but at the same time
+ the weight of the abstraction on $y$ increases. Since $y$ is higher, its weight
+ contributes more.
 
 \section{Excursion: parametrized instantiations in SANY}
 \label{sec:param-inst}

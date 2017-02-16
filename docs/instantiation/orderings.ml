@@ -8,16 +8,19 @@ let app s t = App (s, t)
 let abs x t = Abs (x, t)
 let chunk s d m = Chunk (s, d, m)
 
+let app_associative = false
+let abs_associative = false
+
 let rec pp_term_inner fmt = function
   | Var s ->
     Format.fprintf fmt "%s" s
   | Chunk (n,d,m) ->
     Format.fprintf fmt "(chunk %s %d %d)" n d m
-  | App (App(r,s), t) ->
+  | App (App(r,s), t) when app_associative ->
     Format.fprintf fmt "(%a %a)" pp_term r pp_term_inner (app s t)
   | App (s, t) ->
     Format.fprintf fmt "(%a %a)" pp_term_inner s pp_term_inner t
-  | Abs (x, Abs(y, t)) ->
+  | Abs (x, Abs(y, t)) when abs_associative ->
     Format.fprintf fmt "(λ%s %a)" x pp_term (abs y t)
   | Abs (x, t) ->
     Format.fprintf fmt "(λ%s %a)" x pp_term_inner t
@@ -26,11 +29,11 @@ and pp_term fmt = function
     Format.fprintf fmt "%s" s
   | Chunk (n,d,m) ->
     Format.fprintf fmt "(chunk %s %d %d)" n d m
-  | App (App(r,s), t) ->
+  | App (App(r,s), t) when app_associative ->
     Format.fprintf fmt "%a %a" pp_term r pp_term_inner (app s t)
   | App (s, t) ->
     Format.fprintf fmt "%a %a" pp_term_inner s pp_term_inner t
-  | Abs (x, Abs(y, t)) ->
+  | Abs (x, Abs(y, t)) when abs_associative ->
     Format.fprintf fmt "λ%s %a" x pp_term (abs y t)
   | Abs (x, t) ->
     Format.fprintf fmt "λ%s %a" x pp_term_inner t
@@ -51,7 +54,7 @@ let rec m =
   | Chunk (_, d, m) -> m
   | Var _ -> 0
   | App (Abs (x, s), t) ->
-    1 + (d s) + (combine (abs x s) t)
+    1 + (d s) + (combine s t)
   | App (s, t) ->
     combine s t
   | Abs (_, t) ->
@@ -138,10 +141,13 @@ module TT = struct
   let tests a b =
     ignore(
       List.concat [(line1 a b); (line2 a b); (line3 a b)] |>
-      List.filter (function | (_,_,false) -> true | _ -> false) |>
-      List.map (function | (t1, t2, _) ->
-          Format.printf "@[%a fails %a: %d < %d@]@,"
-            pp_term t1 pp_term t2 (m t1) (m t2))) ;
+      (fun x -> let l = List.length x in
+        Format.printf "Total # of test cases:%d@," l;
+        List.combine (range l) x) |>
+      List.filter (function | (_, (_,_,false)) -> true | _ -> false) |>
+      List.map (function | (n, (t1, t2, _)) ->
+          Format.printf "@[case %d: %a fails %a: expected %d > %d@]@,"
+            n pp_term t1 pp_term t2 (m t1) (m t2))) ;
     Format.printf "@."
 end
 ;;
