@@ -9,6 +9,11 @@
 \usepackage{todonotes}
 
 \title{An instantiation algorithm for TLA+ expressions}
+\author{}
+
+\makeatletter
+\let\ltxxlabel\ltx@label
+\makeatother
 
 \newcommand{\assignment}[1]{\{#1\}}
 \newcommand{\inst}[2]{#1 {\leftarrow} #2}
@@ -17,12 +22,21 @@
 \newcommand{\tla}[1]{#1}
 
 \newcommand{\dor}{\textbf{or}}
+\newcommand{\fpsubstin}[1]{\{#1\}}
+\newcommand{\fpscat}[0]{\circ}
+\newcommand{\substin}[2]{[#1:#2]}
+\newcommand{\fpwith}{\leftarrow}
+\newcommand{\fpwithout}[0]{\backslash}
+\newcommand{\fpwithoutset}[1]{\backslash\{#1\}}
+\newcommand{\iwith}{\leftarrow}
+\newcommand{\metavar}[1]{\mathbf{#1}}
+\newcommand{\rewrites}[0]{\;\rightarrow\;}
 
 \newcommand{\sidebyside}[2]{
     \begin{minipage}{0.45\linewidth}
       #1
     \end{minipage}
-    \space{10pt}
+    \hspace{10pt}
     \begin{minipage}{0.45\linewidth}
       #2
     \end{minipage}
@@ -163,9 +177,11 @@ Expression  & constant & \\
           & \dor{} abstraction &\\
           & \dor{} application &\\
           & \dor{} substin & \\
+          & \dor{} fpsubstin & \\
 %          & \dor{} selector &\\
 Application & head expression, argument expression list & head.arity == list length\\
 Abstraction & parameter, expression body & \\
+FPSubstIn  & list of pairs formal parameter, expression & explicit substitution node () \\
 SubstIn     & module, instantiation, expression body & the explicit instantiation node \\
 Instantiation & list of assigments of variables/constants to expressions& \\
 %Selector & instance, definition & the ! operator\\
@@ -178,6 +194,7 @@ The definition and instantiation elements do not contain arguments since they
  \leftarrow t_1,\ldots,x_n \leftarrow t_n)!e$ where the variables / constants
  $x_i$ are exactly those declared in the module $M$.
 
+\todo[inline]{rewrite for explicit fp substs}
 To allow for more flexibility, we state the algorithm as a set of rewrite
  rules. The goal is to permute applications to abstractions further inside the
  term and resolve them at the leaves of the term tree (rules 1-3, 8 and 9) or,
@@ -188,56 +205,150 @@ To allow for more flexibility, we state the algorithm as a set of rewrite
  $\lambda\; y$ (rule 6), but if there are name clashes, we have to rename
  $y$ to a fresh variable $z$ first (rule 7).
 
+\todo[inline]{insert operations on substitutions}
+A substitution $\sigma$ is a function which maps formal parameters
+ to expression and which differs from the identity function $id$ only at a
+ finite number of points. We write $\sigma=\fpsubstin{x \fpwith e}$ for the
+ function \[\sigma(y)=\left\{
+     \begin{array}{ll}
+       e& \mbox{if }y = x\\
+       y & otherwise\\
+     \end{array}\right.
+\]. The composition $f \fpscat g$ of two substitutions is simply function
+ composition $f(g(x))$. The removal operator $\sigma\fpwithout S$ is defined
+ as: \[\sigma(y)\fpwithout S =
+   \left\{\begin{array}{ll}
+     y &\mbox{if }y \in S\\
+     \sigma(y) & otherwise\\
+   \end{array}\right.
+\]
+
 \todo[inline]{Describe instantiations.}
 
 We assume we have a set $Unfolded$ of definitions which are unfolded and
  a context tracing if we are inside ENABLED. When we denote meta-variables
- standing for any term as starting with ?, then the rewrite rules are:\\
+ standing for any term in boldface, arbitrary FP substins as $\sigma$,
+ and an assignment of $CS(M)\cup VS(M)$ to arbirary terms as $\rho_M$,
+ then the rewrite rules are:\\
 
-\[
-\begin{array}{ll@{\;\;\rightarrow\;\;}lll}
-\\
-  \multicolumn{3}{c}{$rewrite rule$}
+ \newcounter{rulescounter}
+ \DeclareRobustCommand{\steprule}[1]{
+   \refstepcounter{rulescounter}\ltxxlabel{#1}
+   \therulescounter
+ }
+ \[
+   \begin{array}{ll@{\;\;\rightarrow\;\;}lll}
+     \\
+     \multicolumn{3}{c}{$rewrite rule$}
   & \multicolumn{2}{c}{$side conditions$} \\
-  \hline
-  1&  (\lambda x : c)(?e) &  c & c \in CS \cup VS & \\
-  2&  (\lambda x : x)(?e) &  ?e & x \in FP &\\
-  3&  (\lambda x : y)(?e) &  y & ?y \in FP&\\
-  4&  (\lambda x : D)(?e) &  (\lambda x : b)(?e) & D \in DS, b = ?D.body,
-                                                   D \in Unfolded&\\
-  5&  (\lambda x : ?f(?g))(?e) & ((\lambda x : ?f)(?e))(\lambda x : ?g)(?e)) &\\
-  6&  (\lambda x : \lambda y : ?s)(?t)
-   & (\lambda y : (\lambda x : ?s)(?t))
-                          & y \not \in FV(?s) \cup FV(?t) & ***\\
-  7&  (\lambda x : \lambda y : ?s)(?t)
-   & (\lambda x : (\lambda z : (\lambda y : ?s)(z))(?t))
-                          & y \in FV(s) \cup FV(t) , \\
-  \multicolumn{3}{l}{} & z \not \in FV(?s) \cup FV(?t) & \\
-  \hline
-  8&  (\rho M\; with\; c \leftarrow ?s)!x & ?s & c \in CS \cup VS & * \\
-  9&  (\rho M\; with\; c \leftarrow ?s)!x & x & x \in FP &\\
-  10&  (\rho M\; with\; c \leftarrow ?s)!D & (\rho M\; with\; c \leftarrow s)!(b)
-                          & D\in DS, D \in Unfolded, b = D.body&\\
-  11 &  (\rho M\; with\; c \leftarrow ?s)!(?f(?g))
-   & (\rho M\; with\; c \leftarrow ?s)!(?f)(\\
-  \multicolumn{3}{r}{  (\rho M\; with\; c \leftarrow s)!(?g) )}
-  & ?f \neq '\mbox{ or }?f\mbox{ outside of }EN  &\\
-  12&  (\rho M\; with\; c \leftarrow ?s)!(?g')
-   & ((\rho M\; with\; c \leftarrow \$c)!(?g) )'
-                          & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
-\end{array}
-\]
+     \hline
+     \steprule{r:fpcv} &  c \sigma &  c & c \in CS \cup VS & \\
+     \steprule{r:fpfp} &  x \sigma &  \sigma(x) & x \in FP &\\
+     \steprule{r:fpd}&  D &  b & D \in DS, b = D.body, D \in Unfolded&\\
+     \steprule{r:fpapp}&  (\metavar{f}(\metavar{g})))\sigma
+      & (\metavar{f}\sigma)(\metavar{g}\sigma) &\\
+     \steprule{r:fpabs}& (\lambda x : \metavar{s})(\metavar{t})
+                       & s(\fpsubstin{x \fpwith t})
+                                   & x \not \in FV(\metavar{t}) \\
+     \steprule{r:fpalpha} & (\lambda x : \metavar{s})(\metavar{t})
+                       & (\lambda z : \metavar{s}(\fpsubstin{x\fpwith z}))(\metavar{t})
+                                   & x \in FV(\metavar{t}),
+                                     z \not \in FV(\metavar{s}) \cup FV(\metavar{t}) \\
+     \steprule{r:fpshift} & (\lambda x : \metavar{s})\sigma
+      & \lambda x : \metavar{s}(\sigma\fpwithoutset{x}) &&\\
+     \steprule{r:fpcombine} & \metavar{t}\sigma_1\sigma_2 & \metavar{t}(\sigma_1\fpscat \sigma_2)
+                  &  \\
+     \hline
+     \steprule{r:instcv}&  \substin{M}{\rho_M}!c & \rho_M(c) & c \in CS \cup VS & \\
+     \steprule{r:instfp}&  \substin{M}{\rho_M}!x & x & x \in FP &\\
+     \steprule{r:instd}&  \substin{M}{\rho_M}!D & \substin{M}{\rho_M}!(b)
+                  & D\in DS, D \in Unfolded, b = D.body&\\
+     \steprule{r:instapp} &  \substin{M}{\rho_M}!(\metavar{f}(\metavar{g}))
+                       & \substin{M}{\rho_M}!(\metavar{f})(\\
+     \multicolumn{3}{r}{  \substin{M}{\rho_M}!(\metavar{g}) )}
+  & \metavar{f} \neq '\mbox{ or }\metavar{f}\mbox{ outside of }EN  &\\
+     \steprule{r:insten}&  \substin{M}{\rho_M}!(\metavar{g}')
+      & (\substin{M}{c \iwith \$c}!(\metavar{g}) )'
+                  & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &*\\
+   \end{array}
+ \]
 
 Remarks:\\
 \begin{tabular}{ll}
-  * & all constants and variables of M are instantiated \\
-  ** & this is unclean since it doesn't capture the difference between \\
+  * & this is unclean since it doesn't capture the difference between \\
      &  $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
   \\
   & FP-substitution stops at folded definitions and CS/VS substitutions\\
   & CS/VS-substitution stops at folded definitions and FP-substitutions\\
 \end{tabular}
 
+\subsection{Confluence}
+\label{sec:confluence}
+
+We consider all critical pairs:
+\begin{itemize}
+\item Rule \ref{r:fpapp} and rule \ref{r:fpabs} at position (1):\\
+  For this to happen we can assume that $x \not \in FV(t)$.\\
+  Starting rewriting at $\epsilon$, we derive:\\
+  $
+  \begin{array}{r@{\rewrites}ll}
+    ((\lambda x:s)t)\sigma & ((\lambda x:s)\sigma)(t\sigma) & \\
+    & (\lambda x : s(\sigma\fpwithoutset{x}))(t\sigma) & x \not \in t\sigma\\
+    & (s(\sigma\fpwithoutset{x}))\fpsubstin{x \fpwith t\sigma} & \\
+    & s(\sigma\fpwithoutset{x} \fpscat \fpsubstin{x \fpwith t\sigma}) & \\
+  \end{array}
+  $
+
+  Starting rewriting at (1), we derive:\\
+
+  $
+  \begin{array}{r@{\rewrites}l}
+  ((\lambda x:s)t)\sigma & (s\fpsubstin{x \fpwith t})\sigma ) \\
+    & s(\fpsubstin{x \fpwith t} \fpscat \sigma ) \\
+  \end{array}
+  $
+
+  But $(\sigma\fpwithoutset{x} \fpscat \fpsubstin{x \fpwith t\sigma}) =
+  (\fpsubstin{x \fpwith t} \fpscat \sigma)$:
+  
+  \sidebyside{
+  $(\sigma\fpwithoutset{x} \fpscat \fpsubstin{x \fpwith t\sigma})(y) =
+  \left\{
+    \begin{array}{ll}
+      t\sigma&\mbox{if }y=x\\
+      y\sigma& otherwise\\
+    \end{array}
+  \right.
+  $}{
+  $(\fpsubstin{x \fpwith t} \fpscat \sigma) (y) =
+    \left\{
+      \begin{array}{ll}
+        t \sigma&\mbox{if }y=x\\
+        y \sigma & otherwise\\
+      \end{array}
+    \right.
+  $
+  }
+
+  \todo[inline]{handle $x \in t\sigma$ case}
+\item Rule \ref{r:fpapp} and rule \ref{r:fpalpha} at position (1):
+  Starting rewriting at $\epsilon$ we derive:\\
+  $
+  \begin{array}{r@{\rewrites}l}
+    ((\lambda x:s)t)\sigma & ((\lambda x:s)\sigma)(t\sigma) \\
+    & (\lambda x : s(\sigma \fpwithoutset{x}))(t\sigma) \\
+  \end{array}
+  $
+
+  Starting rewriting at $\epsilon$ we derive:\\
+  $
+  \begin{array}{r@{\rewrites}l}
+    ((\lambda x:s)t)\sigma & ((\lambda z:s\fpsubstin{x \fpwith z})t)\sigma\\
+  \end{array}
+  $
+
+  \todo[inline]{finish}
+\end{itemize}
 
 \subsection{Termination}
 \label{sec:termination}
@@ -254,18 +365,6 @@ We define a lexicographic order on the following measures:
   \item $clash(\lambda x . s) = clash(s)$ for the cases not covered above
   \end{itemize}
 
-% \item Number of applications inside abstractions:
-%   \begin{itemize}
-%   \item $apps(c)=apps(v)=apps(fp)=0$
-%   \item $apps(s(t)) = 1 + apps(s) + apps(t)$
-%   \item $apps(\lambda x . t) = apps(t)$
-% 
-%   \item $absapps(c)=absapps(v)=absapps(fp)=0$
-%   \item $absapps(s(t)) = absapps(s) + absapps(t)$
-%   \item $absapps(\lambda x . t) = apps(t)+absapps(t)$
-%  \end{itemize}
-
-  
 \item Deepest term under an abstraction which can be applied:
   \begin{itemize}
   \item $d(v)=d(c)=d(fp)=0$
