@@ -191,33 +191,40 @@ To allow for more flexibility, we state the algorithm as a set of rewrite
 \todo[inline]{Describe instantiations.}
 
 We assume we have a set $Unfolded$ of definitions which are unfolded and
- a context tracing if we are inside ENABLED. Then the rewrite rules are:\\
+ a context tracing if we are inside ENABLED. When we denote meta-variables
+ standing for any term as starting with ?, then the rewrite rules are:\\
 
 \[
 \begin{array}{ll@{\;\;\rightarrow\;\;}lll}
-1&  (\lambda x : c)(e) &  c & c \in CS \cup VS & \\
-2&  (\lambda x : x)(e) &  e & x \in FP &\\
-3&  (\lambda x : y)(e) &  y & y \in FP&\\
-4&  (\lambda x : D)(e) &  (\lambda x : b)(e) & D \in DS, b = D.body,
-                                             D \in Unfolded&\\
-5&  (\lambda x : f(g))(e) & ((\lambda x : f)(e))(\lambda x : g)(e)) &\\
-6&  (\lambda x : \lambda y : s)(t)
-                     & (\lambda y : (\lambda x : s)(t))
-                          & y \not \in FV(s) \cup FV(t) & ***\\
-7&  (\lambda x : \lambda y : s)(t)
-                     & (\lambda x : (\lambda z : (\lambda y : s)(z))(t))
-                          & y \in FV(s) \cup FV(t) , \\
-  \multicolumn{3}{l}{} & z \not \in FV(s) \cup FV(t) & \\
+\\
+  \multicolumn{3}{c}{$rewrite rule$}
+  & \multicolumn{2}{c}{$side conditions$} \\
   \hline
-8&  (\rho M\; with\; c \leftarrow s)! x & s & c \in CS \cup VS & * \\
-9&  (\rho M\; with\; c \leftarrow s)! x & x & x \in FP &\\
-10&  (\rho M\; with\; c \leftarrow s)!D & (\rho M\; with\; c \leftarrow s)!(b)
+  1&  (\lambda x : c)(?e) &  c & c \in CS \cup VS & \\
+  2&  (\lambda x : x)(?e) &  ?e & x \in FP &\\
+  3&  (\lambda x : y)(?e) &  y & ?y \in FP&\\
+  4&  (\lambda x : D)(?e) &  (\lambda x : b)(?e) & D \in DS, b = ?D.body,
+                                                   D \in Unfolded&\\
+  5&  (\lambda x : ?f(?g))(?e) & ((\lambda x : ?f)(?e))(\lambda x : ?g)(?e)) &\\
+  6&  (\lambda x : \lambda y : ?s)(?t)
+   & (\lambda y : (\lambda x : ?s)(?t))
+                          & y \not \in FV(?s) \cup FV(?t) & ***\\
+  7&  (\lambda x : \lambda y : ?s)(?t)
+   & (\lambda x : (\lambda z : (\lambda y : ?s)(z))(?t))
+                          & y \in FV(s) \cup FV(t) , \\
+  \multicolumn{3}{l}{} & z \not \in FV(?s) \cup FV(?t) & \\
+  \hline
+  8&  (\rho M\; with\; c \leftarrow ?s)!x & ?s & c \in CS \cup VS & * \\
+  9&  (\rho M\; with\; c \leftarrow ?s)!x & x & x \in FP &\\
+  10&  (\rho M\; with\; c \leftarrow ?s)!D & (\rho M\; with\; c \leftarrow s)!(b)
                           & D\in DS, D \in Unfolded, b = D.body&\\
-11&  (\rho M\; with\; c \leftarrow s)!(f(g))
-                     & (\rho M\; with\; c \leftarrow s)!(f)
-                       ((\rho M\; with\; c \leftarrow s)!(g) ) & f \neq '\mbox{ or }f\mbox{ outside of }EN  &\\
-12&  (\rho M\; with\; c \leftarrow s)!(g')
-                     & ((\rho M\; with\; c \leftarrow \$c)!(g) )' & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
+  11 &  (\rho M\; with\; c \leftarrow ?s)!(?f(?g))
+   & (\rho M\; with\; c \leftarrow ?s)!(?f)(\\
+  \multicolumn{3}{r}{  (\rho M\; with\; c \leftarrow s)!(?g) )}
+  & ?f \neq '\mbox{ or }?f\mbox{ outside of }EN  &\\
+  12&  (\rho M\; with\; c \leftarrow ?s)!(?g')
+   & ((\rho M\; with\; c \leftarrow \$c)!(?g) )'
+                          & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &**\\
 \end{array}
 \]
 
