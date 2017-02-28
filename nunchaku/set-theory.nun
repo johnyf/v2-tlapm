@@ -6,43 +6,43 @@ val mem_raw : u -> u -> prop.
 # extensionality
 axiom forall (A : alpha_u) (B : alpha_u). upcast A = upcast B || (exists (x : alpha_u). ~ (mem_raw (upcast x) (upcast A) = mem_raw (upcast x) (upcast B))).
 
-rec mem : u -> u -> prop :=
-   forall x y. mem x y = (mem_raw x y asserting ((exists a. upcast a = x) && (exists b. upcast b = y))).
-#  forall x y. mem x y = unique_unsafe (fun P. P = mem_raw x y && (exists a. upcast a = x) && (exists b. upcast b = y)).
+rec t_mem : u -> u -> prop :=
+   forall x y. t_mem x y = (mem_raw x y asserting ((exists a. upcast a = x) && (exists b. upcast b = y))).
+#  forall x y. t_mem x y = unique_unsafe (fun P. P = mem_raw x y && (exists a. upcast a = x) && (exists b. upcast b = y)).
 
-val trans_mem : alpha_u  -> alpha_u -> prop.
+val t_trans_mem : alpha_u  -> alpha_u -> prop.
 
 # overapproximation of transitive closure
-axiom forall x (y : alpha_u). mem_raw (upcast x) (upcast y) => trans_mem x y.
-axiom forall x y (z : alpha_u). trans_mem x y && mem_raw (upcast y) (upcast z) => trans_mem x z.
+axiom forall x (y : alpha_u). mem_raw (upcast x) (upcast y) => t_trans_mem x y.
+axiom forall x y (z : alpha_u). t_trans_mem x y && mem_raw (upcast y) (upcast z) => t_trans_mem x z.
 
 # acyclicity
-axiom forall x. ~ trans_mem x x.
+axiom forall x. ~ t_trans_mem x x.
 
 # empty set
-rec emptyset : u :=
-  emptyset = unique_unsafe (fun A. forall a. ~ mem_raw (upcast a) A && (exists a. upcast a = A)).
+rec t_emptyset : u :=
+  t_emptyset = unique_unsafe (fun A. forall a. ~ mem_raw (upcast a) A && (exists a. upcast a = A)).
 
 # subset
-rec subset : u -> u -> prop :=
-  forall A B. subset A B = (forall a. mem (upcast a) A => mem (upcast a) B).
+rec t_subset : u -> u -> prop :=
+  forall A B. t_subset A B = (forall a. t_mem (upcast a) A => t_mem (upcast a) B).
 
 # union
-rec union : u -> u -> u :=
-  forall A B. union A B = unique_unsafe (fun C. forall x. mem (upcast x) C = (mem (upcast x) A || mem (upcast x) B)).
+rec t_union : u -> u -> u :=
+  forall A B. t_union A B = unique_unsafe (fun C. forall x. t_mem (upcast x) C = (t_mem (upcast x) A || t_mem (upcast x) B)).
 
 # intersection
-rec inter : u -> u -> u :=
-  forall A B. inter A B = unique_unsafe (fun C. forall x. mem (upcast x) C = (mem (upcast x) A && mem (upcast x) B)).
+rec t_inter : u -> u -> u :=
+  forall A B. t_inter A B = unique_unsafe (fun C. forall x. t_mem (upcast x) C = (t_mem (upcast x) A && t_mem (upcast x) B)).
 
 # substraction
-rec minus : u -> u -> u :=
-  forall A B. minus A B = unique_unsafe (fun C. forall x. mem (upcast x) C = (mem (upcast x) A && ~(mem (upcast x) B))).
+rec t_minus : u -> u -> u :=
+  forall A B. t_minus A B = unique_unsafe (fun C. forall x. t_mem (upcast x) C = (t_mem (upcast x) A && ~(t_mem (upcast x) B))).
 
 # powerset
-rec Pow : u -> u :=
-  forall B. Pow B = unique_unsafe (fun C. forall A. mem (upcast A) C = subset (upcast A) B).
+rec t_Pow : u -> u :=
+  forall B. t_Pow B = unique_unsafe (fun C. forall A. t_mem (upcast A) C = t_subset (upcast A) B).
 
 # big union
-rec Union : u -> u :=
-  forall A. Union A = unique_unsafe (fun U. forall x. mem (upcast x) U = (exists X. mem (upcast x) (upcast X) && mem (upcast X) A)).
+rec t_Union : u -> u :=
+  forall A. t_Union A = unique_unsafe (fun U. forall x. t_mem (upcast x) U = (exists X. t_mem (upcast x) (upcast X) && t_mem (upcast X) A)).

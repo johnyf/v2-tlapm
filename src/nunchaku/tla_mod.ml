@@ -79,7 +79,7 @@ let set_mem_main f = let (_,{cases;_}) = f in set_mem_aux cases []
 let nun_to_tla_fun fvar fdt = (List.map fst fvar, nun_to_tla_dt fdt)
 
 let add_fun name fvar fdt model = match name with
-  | s when s="mem" || s = "trans_mem" || s = "unique_unsafe__u" -> model
+  | s when s="t_mem" || s = "t_trans_mem" || s = "unique_unsafe__u" -> model
   | "mem_raw" -> let mem' = nun_to_tla_fun fvar fdt in
     set_mem model (set_mem_main mem')
   | "app" -> let app' = nun_to_tla_fun fvar fdt in set_app model (Some app')

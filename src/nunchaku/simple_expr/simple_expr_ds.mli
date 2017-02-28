@@ -281,4 +281,3 @@ type simple_entry =
 
 
 type simple_term_db = (int * simple_entry) list
-

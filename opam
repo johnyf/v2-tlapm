@@ -1,0 +1,34 @@
+opam-version: "1.2"
+name: "tlapm2"
+version: "dev"
+maintainer: "martin.riener@inria.fr"
+authors: ["Martin Riener" "Matthieu Lequesne"]
+homepage: "https://github.com/tlaplus/v2-tlapm"
+bug-reports: "https://github.com/tlaplus/v2-tlapm/issues"
+dev-repo: "https://github.com/tlaplus/v2-tlapm.git"
+build: [
+    ["oasis" "setup"]
+    ["./configure"
+        "--prefix" prefix
+        "--disable-tests"
+        "--enable-docs"
+    ]
+    [make "build"]
+]
+build-doc: [ make "doc" ]
+build-test: [ make "test" ]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "tlapm2"]
+depends: [
+    "ocamlfind" {build}
+    "base-unix"
+    "base-threads"
+    "oasis" {build}
+    "ocamlbuild" {build}
+    "xmlm" {>= "1.2.0"}
+    "sexplib"
+    "result"
+]
+depopts: [
+    "kaputt" {test}
+]
