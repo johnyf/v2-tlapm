@@ -2,8 +2,6 @@ open Sexplib.Type
 open Format
 open CCFormat
 
-
-
 (** Definition **)
 
 type term =
@@ -99,7 +97,7 @@ and unroll_values v = match v with
 
 and unroll_fun_term l = match l with
   | [(List vars);values] -> Fun ((unroll_vars vars),(unroll_values values))
-  | _ -> failwith "ERROR unroll_fun_term failed"   
+  | _ -> failwith "ERROR unroll_fun_term failed"
 
 let unroll_var v = match v with
   | [Atom var_name; var_type] -> (var_name, sexp_to_type var_type)
@@ -110,7 +108,7 @@ let rec sexp_to_fun_model_entry name var_acc t = match t with
   | _ -> Const (name, (Fun (var_acc,(unroll_values t))))
 
 let sexp_to_model_entry t = match t with
-  | List ((Atom "type")::tl) -> sexp_to_type_model_entry tl 
+  | List ((Atom "type")::tl) -> sexp_to_type_model_entry tl
   | List [(Atom "val");name;(List ((Atom "fun")::tl))]  -> sexp_to_fun_model_entry (sexp_to_name name) [] (List ((Atom "fun")::tl)) 
   | List ((Atom "val")::tl)  -> sexp_to_val_model_entry tl
   | _ -> failwith "sexp_to_model_entry failed"
@@ -138,7 +136,7 @@ let rec list_to_string print_one separator list =
   | t::q -> (print_one t)^separator^(list_to_string print_one separator q)
 
 let comma = ", "
-let andand = " && " 
+let andand = " && "
 let newline = " \n"
 let space = " "
 
@@ -187,7 +185,3 @@ let print_nun_mod output_file mod_tree =
   fprintf fft "@.%!";
   print_flush ();
   close_out oc
-
-
-
-

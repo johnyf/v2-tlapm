@@ -15,4 +15,3 @@ let print_tla_pb file obl =
   Format.fprintf fft "%a" fmt_tla_pb obl;
   Format.fprintf fft "@.%!";
   close_out oc
-

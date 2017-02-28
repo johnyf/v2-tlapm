@@ -100,9 +100,9 @@ end = struct
     | `Forall -> "forall"
     | `Exists -> "exists"
     | `Apply -> "app"
-    | `Mem -> "mem"
-    | `Intersect -> "inter"
-    | `Union -> "union"
+    | `Mem -> "t_mem"
+    | `Intersect -> "t_inter"
+    | `Union -> "t_union"
     | `Undefined s -> "?_" ^ s
 
   let print out s = Format.pp_print_string out (to_string s)
@@ -305,7 +305,12 @@ let rec unroll_if_ t = match t with
 
 let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
 
-let pp_set p = CCFormat.list ~start:"(unique_unsafe (fun S. forall (x:alpha_u). mem (upcast x) S = ((upcast x) = " ~stop:")))" ~sep:") || ((upcast x) = " p			  
+(* TODO: replace the strings by symbolic represntations of the formulas *)
+let pp_set p = CCFormat.list
+    ~start:"(unique_unsafe (fun S. forall (x:alpha_u). t_mem (upcast x) S = ((upcast x) = "
+    ~stop:")))"
+    ~sep:") || ((upcast x) = "
+    p
 
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
@@ -341,7 +346,8 @@ let rec print_term out term = match term with
   | Ite (a,b,c) ->
     (* special case to avoid deep nesting of ifs *)
     let pp_middle out (a,b) =
-      fpf out "@[<2>else if@ @[%a@]@]@ @[<2>then@ @[%a@]@]" print_term a print_term b
+      fpf out "@[<2>else if@ @[%a@]@]@ @[<2>then@ @[%a@]@]"
+        print_term a print_term b
     in
     let middle, last = unroll_if_ c in
     fpf out "@[<hv>@[<2>if@ @[%a@]@]@ @[<2>then@ %a@]@ %a@ @[<2>else@ %a@]@]"
@@ -349,17 +355,20 @@ let rec print_term out term = match term with
       (pp_list_ ~sep:"" pp_middle) middle
       print_term last
   | Forall ((var,ty),None,t) ->
-    fpf out "@[<2>(forall %a.@ %a)@]" print_typed_var (var,ty) print_term t (* TODO replace => by to_string Apply *)
+    fpf out "@[<2>(forall %a.@ %a)@]" print_typed_var (var,ty)
+      print_term t (* TODO replace => by to_string Apply *)
   | Forall ((var,ty),s,t) ->
-    fpf out "@[<2>(forall %a.@ %a => %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
+    fpf out "@[<2>(forall %a.@ %a => %a)@]" print_typed_var (var,ty)
+      print_mem (var,s) print_term t (* TODO replace => by to_string Apply *)
   | Exists ((var,ty),None,t) ->
     fpf out "@[<2>(exists %a.@ %a)@]" print_typed_var (var,ty) print_term t
   | Exists ((var,ty),s,t) ->
-    fpf out "@[<2>(exists %a.@ %a && %a)@]" print_typed_var (var,ty) print_mem (var,s) print_term t
+    fpf out "@[<2>(exists %a.@ %a && %a)@]" print_typed_var (var,ty)
+      print_mem (var,s) print_term t
   | Asserting (_, []) -> assert false
-  | SetEnum l -> 
+  | SetEnum l ->
     begin match l with
-      | [] -> fpf out "@[<2>%s@]" "emptyset"
+      | [] -> fpf out "@[<2>%s@]" "t_emptyset"
       | _ -> fpf out "@[<2>%a@]" (pp_set print_term_inner) l
     end
   | Asserting (t, l) ->
@@ -397,7 +406,7 @@ and print_typed_var out (v,ty) = match ty with
 
 and print_mem out (var,set) = match set with
   | None -> fpf out ""
-  | Some t -> fpf out "@ mem %a %a" pp_var_or_wildcard (`Var var) print_term t
+  | Some t -> fpf out "@ t_mem %a %a" pp_var_or_wildcard (`Var var) print_term t
 
 
 let pp_rec_defs out l =
