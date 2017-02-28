@@ -7,7 +7,7 @@ License:     BSD-3-clause
 Plugins:     META (0.3)
 AlphaFeatures: ocamlbuild_more_args
 
-Executable tlapm
+Executable tlapm2
   Path:       src
   BuildTools: ocamlbuild
 #  CompiledObject: native
