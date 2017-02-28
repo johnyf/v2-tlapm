@@ -22,6 +22,7 @@
 \newcommand{\tlaplus}[0]{{TLA+}}
 \newcommand{\tla}[1]{#1}
 
+\newcommand{\set}[1]{\{#1\}}
 \newcommand{\dor}{\textbf{or}}
 \newcommand{\fpsubstin}[1]{\{#1\}}
 \newcommand{\fpscat}[0]{\circ}
@@ -34,6 +35,7 @@
 \newcommand{\rewrites}[0]{\;\rightarrow\;}
 
 \newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
 
 \newcommand{\sidebyside}[2]{
   \begin{minipage}{0.45\linewidth}
@@ -223,6 +225,21 @@ Otherwise, we have to rename the bound variable accordingly
 \todo[inline]{insert instantiation rules \ref{r:instapp}, \ref{r:insten}.
   Problematic as long as ``inside enabled'' is not well defined.}
 
+We will neeed the notion of free variables which needs a little elaboration
+ in the presence of explicit substitutions and instantiations.
+
+ \begin{definition}[Free Variables]
+   We define the free variables $FV(t)$ inductively:
+   \begin{itemize}
+   \item $FV(x) = \set{x}$ if $x$ is a temporal variable, temporal constant or
+     formal parameter
+   \item $FV(s(t)) = FV(s) \cup FV(t)$
+   \item $FV(\lambda x : s) = FV(s) \fpwithoutset{x}$
+   \item $FV(s\sigma) = \set{FV(x\sigma) | x \in FV(s) }$
+   \item $FV(s\substin{M}{\rho}) = \set{FV(\rho_M(x) ) | x \in FV(s)} $
+   \end{itemize}
+ \end{definition}
+
 A substitution $\sigma$ is a function which maps formal parameters
 to expression and which differs from the identity function $id$ only at a
 finite number of points. We write $\sigma=\fpsubstin{x \fpwith e}$ for the
@@ -346,10 +363,54 @@ the result.
     \fpwithoutset{x})=y\sigma$ for $y \neq x$, the substitution
     $\sigma\fpwithoutset{x}$ is also idempotent.
   \item Rule \ref{r:fpcombine}: the property holds because the concatenation
-    of idempotent functions is again idempotent.
+    of idempotent functions is again idempotent. \textcolor{red}{This is wrong!}
   \end{itemize}
 \end{proof}
 
+Idempotence also ensures that domain and range of substitutions differ:
+
+\begin{lemma}
+  Let $\sigma$ be an idempotent substitution. Then $dom(\sigma) \cap rg(\sigma)
+  = \emptyset$.
+\end{lemma}
+\begin{proof}
+  For the sake of contradiction suppose that there exists $x \in dom(\sigma)
+  \cap rg(\sigma)$. Unfolding the definitions of domain and range, we know that
+  $x\sigma = s$ form some term $s \neq x$ and that there exists a
+  $z \in dom(\sigma)$ and a term $t[x]$ such that $\metavar{z}\sigma =
+  t[x]$\footnote{Although $t[x]$ may be $x$ itself.}.
+
+ We distinguish the following shapes of
+  $z\sigma$:
+  \begin{itemize}
+  \item Constant, Variable: This case is not applicable because $t[x]$ must
+    contain the formal parameter $x$.
+  \item Formal Parameter: Assume $\metavar{z}\sigma=x$. Because
+    $x\sigma \neq x$, $\metavar{z}$ must be a different parameter than $x$.
+    But then $\metavar{z}\sigma=t[x]$ is different from $\metavar{z}(\sigma
+    \fpscat\sigma) = t[s]$ which contradicts the  idempotence of $\sigma$.
+  \item Abstraction : Assume  $\metavar{z}\sigma=\lambda u . r[x]$ (with
+    $u \neq x$). But $\lambda u . r[x]$ is different from
+    $\lambda u \lambda u . t[x]$ which contradicts the idempotence of $\sigma$.
+  \item Application: Assume $\metavar{z}\sigma=f(r[x])$ for some $f$. Again,
+    $f(t[x])$ is different from $f(t[f(t[x])])$ which contradicts the
+    idempotence of $\sigma$.
+  \item FP Substitution: Assume $\metavar{z}\sigma=r\tau$ for some term $r$. By
+    the definition of the set of free variables, $FV(r\tau)=\set{FV(u\tau) |
+      u \in FV(r)}$, so either $r\tau$
+
+%Then $x\sigma$ can  be non-trivial (i.e. different from $x$) because $x \in s \land
+%    x\tau \neq x$ or because $x \in s$:
+%     \begin{itemize}
+%     \item By induction on the sum $n$ of explicit substitution and
+%       instantiation nodes: if $n=0$ the problematic cases~\ref{l:fv1}
+%       and~\ref{l:fv2} are not applicable. Otherwise we assume as IH that
+%       $\tau$
+%     \end{itemize}
+    \todo[inline]{But $\tau = \tau \fpscat \tau$ so this one is idempotent.}
+  \item\label{l:fv2} Instantiation: \todo[inline]{Finish}
+  \end{itemize}
+\end{proof}
 
 \subsection{Confluence}
 \label{sec:confluence}
