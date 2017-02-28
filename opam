@@ -7,6 +7,7 @@ homepage: "https://github.com/tlaplus/v2-tlapm"
 bug-reports: "https://github.com/tlaplus/v2-tlapm/issues"
 dev-repo: "https://github.com/tlaplus/v2-tlapm.git"
 build: [
+    ["oasis" "setup"]
     ["./configure"
         "--prefix" prefix
         "--disable-tests"
