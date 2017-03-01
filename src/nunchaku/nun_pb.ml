@@ -465,4 +465,4 @@ let print_statement out st = match st.stmt_value with
 
 let print_statement_list out l =
   Format.fprintf out "@[<v>%a@]"
-    (CCFormat.list ~sep:(CCFormat.return "@,") print_statement) l
+    (CCFormat.list ~sep:Format.pp_print_cut print_statement) l

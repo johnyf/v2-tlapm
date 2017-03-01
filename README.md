@@ -9,6 +9,17 @@ This is the next version of the TLA proof manager, which is part of the
 
 
 ## Installation
+The easiest way to install is via opam:
+
+    opam pin add https://github.com/tlaplus/v2-tlapm.git
+
+If it is already pinned but not installed a simple
+
+    opam install tlapm2
+
+will suffice.
+
+## Compilation
 The compilation requirements are:
 
 * a recent version of ocaml (at  least 4.02)
