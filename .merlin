@@ -18,3 +18,4 @@ PKG xmlm
 PKG kaputt
 PKG sexplib
 PKG result
+PKG containers

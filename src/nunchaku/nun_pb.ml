@@ -185,18 +185,6 @@ type statement = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 (** Tools **)
 
 
@@ -271,7 +259,7 @@ let rec head t = match t with
   | Unknown v | Var (`Var v) | AtVar v | MetaVar v -> v
   | Asserting (f,_)
   | App (f,_) -> head f
-  | Var `Wildcard | Builtin _ | TyArrow (_,_) | SetEnum (_) 
+  | Var `Wildcard | Builtin _ | TyArrow (_,_) | SetEnum (_)
   | Fun (_,_) | Let _ | Match _ | Ite (_,_,_)
   | Forall (_,_,_) | Mu _ | Exists (_,_,_) | TyForall (_,_) ->
     invalid_arg "untypedAST.head"
@@ -303,14 +291,15 @@ let rec unroll_if_ t = match t with
     (a,b) :: l, last
   | _ -> [], t
 
-let pp_list_ ~sep p = CCFormat.list ~start:"" ~stop:"" ~sep p
+let pp_list_ ~sep p = CCFormat.list ~sep p
 
-(* TODO: replace the strings by symbolic represntations of the formulas *)
-let pp_set p = CCFormat.list
-    ~start:"(unique_unsafe (fun S. forall (x:alpha_u). t_mem (upcast x) S = ((upcast x) = "
-    ~stop:")))"
-    ~sep:") || ((upcast x) = "
-    p
+(* TODO: replace the strings by symbolic representations of the formulas *)
+let pp_set p =
+  let start = "(unique_unsafe (fun S. forall (x:alpha_u). t_mem (upcast x) S = ((upcast x) = " in
+  let stop = ")))" in
+  let sep = CCFormat.return ") || ((upcast x) = " in
+  let middle = CCFormat.list ~sep p in
+  CCFormat.within start stop middle
 
 let rec print_term out term = match term with
   | Builtin s -> Builtin.print out s
@@ -329,7 +318,7 @@ let rec print_term out term = match term with
     end
   | App (a, l) ->
     fpf out "@[<2>%a@ %a@]"
-      print_term_inner a (pp_list_ ~sep:" " print_term_inner) l
+      print_term_inner a (pp_list_ ~sep:(CCFormat.return " ") print_term_inner) l
   | Fun (v, t) ->
     fpf out "@[<2>fun %a.@ %a@]" print_typed_var v print_term t
   | Mu (v, t) ->
@@ -339,10 +328,10 @@ let rec print_term out term = match term with
   | Match (t,l) ->
     let pp_case out (id,vars,t) =
       fpf out "@[<hv2>| %s %a ->@ %a@]"
-        id (pp_list_ ~sep:" " pp_var_or_wildcard) vars print_term t
+        id (pp_list_ ~sep:(CCFormat.return " ") pp_var_or_wildcard) vars print_term t
     in
     fpf out "@[<hv2>match @[%a@] with@ %a end@]"
-      print_term t (pp_list_ ~sep:"" pp_case) l
+      print_term t (pp_list_ ~sep:(CCFormat.return "") pp_case) l
   | Ite (a,b,c) ->
     (* special case to avoid deep nesting of ifs *)
     let pp_middle out (a,b) =
@@ -352,7 +341,7 @@ let rec print_term out term = match term with
     let middle, last = unroll_if_ c in
     fpf out "@[<hv>@[<2>if@ @[%a@]@]@ @[<2>then@ %a@]@ %a@ @[<2>else@ %a@]@]"
       print_term a print_term b
-      (pp_list_ ~sep:"" pp_middle) middle
+      (pp_list_ ~sep:(CCFormat.return "") pp_middle) middle
       print_term last
   | Forall ((var,ty),None,t) ->
     fpf out "@[<2>(forall %a.@ %a)@]" print_typed_var (var,ty)
@@ -373,7 +362,7 @@ let rec print_term out term = match term with
     end
   | Asserting (t, l) ->
     fpf out "@[<2>%a@ @[<2>asserting @[%a@]@]@]"
-      print_term_inner t (pp_list_ ~sep:" ∧ " print_term_inner) l
+      print_term_inner t (pp_list_ ~sep:(CCFormat.return " ∧ ") print_term_inner) l
   | TyArrow (a, b) ->
     fpf out "@[<2>%a ->@ %a@]"
       print_term_in_arrow a print_term b
@@ -397,7 +386,7 @@ and print_term_in_arrow out t = match t with
   | Fun (_,_)
   | Asserting _
   | TyArrow (_,_)
-  | SetEnum _ 
+  | SetEnum _
   | TyForall (_,_) -> fpf out "@[(%a)@]" print_term t
 
 and print_typed_var out (v,ty) = match ty with
@@ -410,28 +399,28 @@ and print_mem out (var,set) = match set with
 
 
 let pp_rec_defs out l =
-  let ppterms = pp_list_ ~sep:";" print_term in
+  let ppterms = pp_list_ ~sep:(CCFormat.return ";") print_term in
   let pp_case out (v,ty,l) =
     fpf out "@[<hv2>%s : %a :=@ %a@]" v print_term ty ppterms l in
-  fpf out "@[<hv>%a@]" (pp_list_ ~sep:" and " pp_case) l
+  fpf out "@[<hv>%a@]" (pp_list_ ~sep:(CCFormat.return " and ") pp_case) l
 
 let pp_spec_defs out (defined_l,l) =
-  let ppterms = pp_list_ ~sep:";" print_term in
+  let ppterms = pp_list_ ~sep:(CCFormat.return ";") print_term in
   let pp_defined out (v,ty) = fpf out "@[%s : %a@]" v print_term ty in
   let pp_defined_list out =
-    fpf out "@[<hv>%a@]" (pp_list_ ~sep:" and " pp_defined)
+    fpf out "@[<hv>%a@]" (pp_list_ ~sep:(CCFormat.return " and ") pp_defined)
   in
   fpf out "@[<v>%a :=@ %a@]" pp_defined_list defined_l ppterms l
 
 let pp_ty_defs out l =
   let ppcons out (id,args) =
-    fpf out "@[%s %a@]" id (pp_list_ ~sep:" " print_term) args in
-  let ppcons_l = pp_list_ ~sep:" | " ppcons in
+    fpf out "@[%s %a@]" id (pp_list_ ~sep:(CCFormat.return " ") print_term) args in
+  let ppcons_l = pp_list_ ~sep:(CCFormat.return " | ") ppcons in
   let pp_case out (id,ty_vars,l) =
     fpf out "@[<hv2>@[<h>%s %a@] :=@ %a@]"
-      id (pp_list_ ~sep:" " CCFormat.string) ty_vars ppcons_l l
+      id (pp_list_ ~sep:(CCFormat.return " ") CCFormat.string) ty_vars ppcons_l l
   in
-  fpf out "@[<hv>%a@]" (pp_list_ ~sep:" and " pp_case) l
+  fpf out "@[<hv>%a@]" (pp_list_ ~sep:(CCFormat.return " and ") pp_case) l
 
 let pp_wf out = function
   | `Wf -> fpf out "[wf]"
@@ -440,22 +429,25 @@ let pp_wf out = function
 let pp_mutual_preds out l =
   let pp_def out (p, ty, clauses) =
     fpf out "@[<hv2>@[%s@ : %a@] :=@ %a@]" p print_term ty
-      (pp_list_ ~sep:"; " print_term) clauses
+      (pp_list_ ~sep:(CCFormat.return "; ") print_term) clauses
   in
-  pp_list_ ~sep:" and " pp_def out l
+  pp_list_ ~sep:(CCFormat.return " and ") pp_def out l
 
-let pp_attr out l = fpf out "@[%a@]" (pp_list_ ~sep:" " CCFormat.string) l
+let pp_attr out l = fpf out "@[%a@]" (pp_list_ ~sep:(CCFormat.return " ") CCFormat.string) l
 let pp_attrs out = function
   | [] -> ()
-  | l -> fpf out "@ [@[%a@]]" (pp_list_ ~sep:"," pp_attr) l
+  | l -> fpf out "@ [@[%a@]]" (pp_list_ ~sep:(CCFormat.return ",") pp_attr) l
 
 let print_statement out st = match st.stmt_value with
   | Comm s -> fpf out "@[# %s.@]" s
   | Include (f, None) -> fpf out "@[include %s.@]" f
-  | Include (f, Some l) -> fpf out "@[include (%a) from %s.@]"
-                             (pp_list_ ~sep:"," CCFormat.string) l f
-  | Decl (v, t, attrs) -> fpf out "@[val %s : %a%a.@]" v print_term t pp_attrs attrs
-  | Axiom l -> fpf out "@[axiom @[%a@].@]" (pp_list_ ~sep:";" print_term) l
+  | Include (f, Some l) ->
+    fpf out "@[include (%a) from %s.@]"
+      (pp_list_ ~sep:(CCFormat.return ",") CCFormat.string) l f
+  | Decl (v, t, attrs) ->
+    fpf out "@[val %s : %a%a.@]" v print_term t pp_attrs attrs
+  | Axiom l -> fpf out "@[axiom @[%a@].@]"
+                 (pp_list_ ~sep:(CCFormat.return ";") print_term) l
   | Spec l -> fpf out "@[spec %a.@]" pp_spec_defs l
   | Rec l -> fpf out "@[rec %a.@]" pp_rec_defs l
   | Def (a,b) ->
@@ -466,10 +458,11 @@ let print_statement out st = match st.stmt_value with
   | Pred (k, preds) -> fpf out "@[pred%a %a.@]" pp_wf k pp_mutual_preds preds
   | Copy c ->
     fpf out "@[<v2>@[copy @[%s%a@] :=@ @[%a@]@]@,abstract = %s@,concrete = %s@]"
-      c.id (pp_list_ ~sep:" " CCFormat.string) c.copy_vars
+      c.id (pp_list_ ~sep:(CCFormat.return " ") CCFormat.string) c.copy_vars
       print_term c.of_ c.abstract c.concrete
-  | Copred (k, preds) -> fpf out "@[copred%a %a.@]" pp_wf k pp_mutual_preds preds
+  | Copred (k, preds) ->
+    fpf out "@[copred%a %a.@]" pp_wf k pp_mutual_preds preds
 
 let print_statement_list out l =
   Format.fprintf out "@[<v>%a@]"
-    (CCFormat.list ~start:"" ~stop:"" ~sep:"" print_statement) l
+    (CCFormat.list ~sep:(CCFormat.return "@,") print_statement) l

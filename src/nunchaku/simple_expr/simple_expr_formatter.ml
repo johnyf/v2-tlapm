@@ -484,13 +484,9 @@ let expr_formatter = new formatter
 let mk_fmt (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
   let fmt = formatter_of_out_channel channel in
   let acc = (fmt, term_db, true, Expression, 0) in
-  ignore (f acc expr; fprintf fmt "@.")
+  ignore (f acc expr);
+  fprintf fmt "@."
 
 let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
-
-
-
-
-

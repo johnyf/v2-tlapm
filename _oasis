@@ -17,6 +17,7 @@ Executable tlapm2
                 str,
                 unix,
                 sexplib,
+                containers,
                 result
 
 
@@ -46,6 +47,7 @@ Executable test
                 unix,
                 kaputt,
                 sexplib,
+                containers,
                 result
 
 Test "test-runner"

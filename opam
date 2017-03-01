@@ -2,7 +2,7 @@ opam-version: "1.2"
 name: "tlapm2"
 version: "dev"
 maintainer: "martin.riener@inria.fr"
-authors: ["Martin Riener" "Matthieu Lequesne"]
+authors: ["Damien Doligez" "Matthieu Lequesne" "Tomer Libal" "Martin Riener"]
 homepage: "https://github.com/tlaplus/v2-tlapm"
 bug-reports: "https://github.com/tlaplus/v2-tlapm/issues"
 dev-repo: "https://github.com/tlaplus/v2-tlapm.git"
@@ -28,6 +28,7 @@ depends: [
     "xmlm" {>= "1.2.0"}
     "sexplib"
     "result"
+    "containers" {>= "1.0"}
 ]
 depopts: [
     "kaputt" {test}
