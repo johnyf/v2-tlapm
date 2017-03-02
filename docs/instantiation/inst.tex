@@ -159,11 +159,9 @@ D(u)[x $\mapsto$ y]\{u $\mapsto$ y\}, where reduction is denoted by curly
 braces and instantiation is denoted by square braces. Actually, the SANY
 data-structures allow to write reduction as application to an abstraction:
 D(u)\{u $\mapsto$ x\} is then just \tla{(LAMBDA u: D(u))(x)}. Again, this
-is not legal \tlaplus{} but allowed by SANY. Nevertheless, having an explicit
+is not legal \tlaplus{} but allowed by SANY. Nevertheless, having explicit
 substitution nodes drastically simplifies the formal treatment of the
-behavior\footnote{For instance, we rely on the fact that the permutation
-  of explicit substitutions to the leaves of the term tree preserves their
-  idempotence. The explicit substitution nodes are also vital to the
+behavior\footnote{For instance, explicit substitution nodes are vital to the
   termination proof of the permutation algorithm.
 }.
 
@@ -209,7 +207,7 @@ $\substin{M}{x_1 \iwith t_1,\ldots,x_n \iwith t_n}$ where the variables /
 constants $x_i$ are exactly those declared in the module $M$.
 
 To allow for more flexibility, we state the algorithm as a set of rewrite
-rules. The goal is to permute applications to abstractions further inside the
+rules. The goal is to permute explicit substitutions further inside the
 term and resolve them at the leaves of the term tree (rules~\ref{r:fpcv},
 \ref{r:fpfp}, \ref{r:instcv} and~\ref{r:instfp}) or,
 if the leaf is a folded definition, let the substitutions accumulate at the
@@ -217,7 +215,7 @@ leaf (rules \ref{r:fpd} and \ref{r:instd}). Explicit substitutions readily
 distributes over application (rule~\ref{r:fpapp}) and abstraction
 (rule~\ref{r:fpshift}). Multiple substitutions can also be accumulated
 into one (rule~\ref{r:fpcombine}).
-Applications of abstractions directly convert into (idempotent) explicit
+Applications of abstractions directly convert into explicit
 substitutions, provided that there no name clashes (rule~\ref{r:fpabs}).
 Otherwise, we have to rename the bound variable accordingly
 (rule~\ref{r:fpalpha}).
@@ -321,96 +319,6 @@ Remarks:\\
     & FP-substitution stops at folded definitions and CS/VS substitutions\\
     & CS/VS-substitution stops at folded definitions and FP-substitutions\\
 \end{tabular}
-\subsection{Idempotence of Explicit Substitutions}
-\label{sec:idempotence}
-An important property of the rewriting system is that only introduces
-explicit idempotent substitutions. Intuitively speaking, the duplication of
-a substitution $\sigma$ that is distributed over an application may lead to
-multiple successive applications of $\sigma$. In this case, the idempotence
-of $\sigma$ ensures that the number of applications has no influence on
-the result.
-
-\begin{lemma}[Idempotence of substitutions is invariant under rewriting]
-  \label{lem:fpsubst-idempotent}
-  Let $\metavar{s}$ be an expression where all explicit substitutions are
-  idempotent and let $\metavar{t}$ an expression $\metavar{s}$ such that
-  $\metavar{s}$ rewrites to $\metavar{t}$. Then all explicit substitutions
-  in $\metavar{t}$ are also idempotent.
-\end{lemma}
-\begin{proof}
-  We proceed by induction on the structure of $\metavar{s}$. If it is a
-  leaf node (a temporal constant, temporal variable or a formal parameter),
-  there is no explicit substitution present and the property holds
-  trivially. Now assume as IH that the property holds for the terms
-  $\metavar{f},\metavar{g}$. Furthermore let us assume that
-  $\metavar{f},\metavar{g}$ only contain idempotent substitutions. Then by
-  IH all substitutions in any reducts $\metavar{rf}$ and $\metavar{rg}$ of
-  $\metavar{f}$ and $\metavar{g}$ are also
-  idempotent. If a new node containing $\metavar{f}$ and $\metavar{g}$ does
-  only have redexes inside of $\metavar{f}$ and $\metavar{g}$, the property
-  trivially carries on to all redexes. Therefore we still need to check
-  possible new redexes, where each corresponds to one of the patterns in
-  our rewrite system which changes or introduces new substitutions:
-  \begin{itemize}
-  \item Rule \ref{r:fpabs}: $\fpsubstin{x \fpwith t} \fpscat
-    \fpsubstin{x \fpwith t} = \fpsubstin{x \fpwith t}$ because of the
-    rule's condition that $x \not \in t$.
-  \item Rule \ref{r:fpalpha}: $\fpsubstin{x \fpwith z}\fpscat\fpsubstin{
-      x \fpwith z} = \fpsubstin{x \fpwith z}$ because of the rule's
-    condition that $x \in FV(t)$ but $z \not \in FV(t)$.
-  \item Rule \ref{r:fpshift}: by assumption we know that $\sigma$ is
-    idempotent. But since $x(\sigma\fpwithoutset{x})=x$ and $y(\sigma
-    \fpwithoutset{x})=y\sigma$ for $y \neq x$, the substitution
-    $\sigma\fpwithoutset{x}$ is also idempotent.
-  \item Rule \ref{r:fpcombine}: the property holds because the concatenation
-    of idempotent functions is again idempotent. \textcolor{red}{This is wrong!}
-  \end{itemize}
-\end{proof}
-
-Idempotence also ensures that domain and range of substitutions differ:
-
-\begin{lemma}
-  Let $\sigma$ be an idempotent substitution. Then $dom(\sigma) \cap rg(\sigma)
-  = \emptyset$.
-\end{lemma}
-\begin{proof}
-  For the sake of contradiction suppose that there exists $x \in dom(\sigma)
-  \cap rg(\sigma)$. Unfolding the definitions of domain and range, we know that
-  $x\sigma = s$ form some term $s \neq x$ and that there exists a
-  $z \in dom(\sigma)$ and a term $t[x]$ such that $\metavar{z}\sigma =
-  t[x]$\footnote{Although $t[x]$ may be $x$ itself.}.
-
- We distinguish the following shapes of
-  $z\sigma$:
-  \begin{itemize}
-  \item Constant, Variable: This case is not applicable because $t[x]$ must
-    contain the formal parameter $x$.
-  \item Formal Parameter: Assume $\metavar{z}\sigma=x$. Because
-    $x\sigma \neq x$, $\metavar{z}$ must be a different parameter than $x$.
-    But then $\metavar{z}\sigma=t[x]$ is different from $\metavar{z}(\sigma
-    \fpscat\sigma) = t[s]$ which contradicts the  idempotence of $\sigma$.
-  \item Abstraction : Assume  $\metavar{z}\sigma=\lambda u . r[x]$ (with
-    $u \neq x$). But $\lambda u . r[x]$ is different from
-    $\lambda u \lambda u . t[x]$ which contradicts the idempotence of $\sigma$.
-  \item Application: Assume $\metavar{z}\sigma=f(r[x])$ for some $f$. Again,
-    $f(t[x])$ is different from $f(t[f(t[x])])$ which contradicts the
-    idempotence of $\sigma$.
-  \item FP Substitution: Assume $\metavar{z}\sigma=r\tau$ for some term $r$. By
-    the definition of the set of free variables, $FV(r\tau)=\set{FV(u\tau) |
-      u \in FV(r)}$, so either $r\tau$
-
-%Then $x\sigma$ can  be non-trivial (i.e. different from $x$) because $x \in s \land
-%    x\tau \neq x$ or because $x \in s$:
-%     \begin{itemize}
-%     \item By induction on the sum $n$ of explicit substitution and
-%       instantiation nodes: if $n=0$ the problematic cases~\ref{l:fv1}
-%       and~\ref{l:fv2} are not applicable. Otherwise we assume as IH that
-%       $\tau$
-%     \end{itemize}
-    \todo[inline]{But $\tau = \tau \fpscat \tau$ so this one is idempotent.}
-  \item\label{l:fv2} Instantiation: \todo[inline]{Finish}
-  \end{itemize}
-\end{proof}
 
 \subsection{Confluence}
 \label{sec:confluence}
@@ -549,20 +457,8 @@ We define a lexicographic order on the following measures:
 
 \section{Open Problems}
 \begin{itemize}
-\item Confluence: I only checked overlaps of root position vs root position,
-  non-root overlaps are possible
-\item The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
-  the *** rule into an application redex(e)). The reason is that outer pattern
-  matches weigh heavier than inner ones:
-  \begin{center}
-    \includegraphics[width=4cm]{measure_ce1.pdf}
-    \includegraphics[width=4cm]{measure_ce2.pdf}
-  \end{center}
+\item Soundness of the Rules wrt to Denotational Semantics
 \end{itemize}
-
-The weight of the abstraction on $x$ decreases as expected, but at the same time
-the weight of the abstraction on $y$ increases. Since $y$ is higher, its weight
-contributes more.
 
 \section{Excursion: parametrized instantiations in SANY}
 \label{sec:param-inst}
@@ -607,4 +503,113 @@ introduction.
 \vspace{2cm}
 \todo[inline]{ compute the set of unfolded defs}
 \todo[inline]{ $(ENABLED\; A) \Leftrightarrow  C$ used instantiated }
+
+\newpage
+\appendix
+\section{Dropped Approach: Idempotence of Explicit Substitutions}
+\label{sec:idempotence}
+An important property of the rewriting system is that only introduces
+explicit idempotent substitutions. Intuitively speaking, the duplication of
+a substitution $\sigma$ that is distributed over an application may lead to
+multiple successive applications of $\sigma$. In this case, the idempotence
+of $\sigma$ ensures that the number of applications has no influence on
+the result.
+
+\begin{lemma}[Idempotence of substitutions is invariant under rewriting]
+  \label{lem:fpsubst-idempotent}
+  Let $\metavar{s}$ be an expression where all explicit substitutions are
+  idempotent and let $\metavar{t}$ an expression $\metavar{s}$ such that
+  $\metavar{s}$ rewrites to $\metavar{t}$. Then all explicit substitutions
+  in $\metavar{t}$ are also idempotent.
+\end{lemma}
+\begin{proof}
+  We proceed by induction on the structure of $\metavar{s}$. If it is a
+  leaf node (a temporal constant, temporal variable or a formal parameter),
+  there is no explicit substitution present and the property holds
+  trivially. Now assume as IH that the property holds for the terms
+  $\metavar{f},\metavar{g}$. Furthermore let us assume that
+  $\metavar{f},\metavar{g}$ only contain idempotent substitutions. Then by
+  IH all substitutions in any reducts $\metavar{rf}$ and $\metavar{rg}$ of
+  $\metavar{f}$ and $\metavar{g}$ are also
+  idempotent. If a new node containing $\metavar{f}$ and $\metavar{g}$ does
+  only have redexes inside of $\metavar{f}$ and $\metavar{g}$, the property
+  trivially carries on to all redexes. Therefore we still need to check
+  possible new redexes, where each corresponds to one of the patterns in
+  our rewrite system which changes or introduces new substitutions:
+  \begin{itemize}
+  \item Rule \ref{r:fpabs}: $\fpsubstin{x \fpwith t} \fpscat
+    \fpsubstin{x \fpwith t} = \fpsubstin{x \fpwith t}$ because of the
+    rule's condition that $x \not \in t$.
+  \item Rule \ref{r:fpalpha}: $\fpsubstin{x \fpwith z}\fpscat\fpsubstin{
+      x \fpwith z} = \fpsubstin{x \fpwith z}$ because of the rule's
+    condition that $x \in FV(t)$ but $z \not \in FV(t)$.
+  \item Rule \ref{r:fpshift}: by assumption we know that $\sigma$ is
+    idempotent. But since $x(\sigma\fpwithoutset{x})=x$ and $y(\sigma
+    \fpwithoutset{x})=y\sigma$ for $y \neq x$, the substitution
+    $\sigma\fpwithoutset{x}$ is also idempotent.
+  \item Rule \ref{r:fpcombine}: the property holds because the concatenation
+    of idempotent functions is again idempotent. \textcolor{red}{This is wrong!}
+  \end{itemize}
+\end{proof}
+
+Idempotence also ensures that domain and range of substitutions differ:
+
+\begin{lemma}
+  Let $\sigma$ be an idempotent substitution. Then $dom(\sigma) \cap rg(\sigma)
+  = \emptyset$.
+\end{lemma}
+\begin{proof}
+  For the sake of contradiction suppose that there exists $x \in dom(\sigma)
+  \cap rg(\sigma)$. Unfolding the definitions of domain and range, we know that
+  $x\sigma = s$ form some term $s \neq x$ and that there exists a
+  $z \in dom(\sigma)$ and a term $t[x]$ such that $\metavar{z}\sigma =
+  t[x]$\footnote{Although $t[x]$ may be $x$ itself.}.
+
+ We distinguish the following shapes of
+  $z\sigma$:
+  \begin{itemize}
+  \item Constant, Variable: This case is not applicable because $t[x]$ must
+    contain the formal parameter $x$.
+  \item Formal Parameter: Assume $\metavar{z}\sigma=x$. Because
+    $x\sigma \neq x$, $\metavar{z}$ must be a different parameter than $x$.
+    But then $\metavar{z}\sigma=t[x]$ is different from $\metavar{z}(\sigma
+    \fpscat\sigma) = t[s]$ which contradicts the  idempotence of $\sigma$.
+  \item Abstraction : Assume  $\metavar{z}\sigma=\lambda u . r[x]$ (with
+    $u \neq x$). But $\lambda u . r[x]$ is different from
+    $\lambda u \lambda u . t[x]$ which contradicts the idempotence of $\sigma$.
+  \item Application: Assume $\metavar{z}\sigma=f(r[x])$ for some $f$. Again,
+    $f(t[x])$ is different from $f(t[f(t[x])])$ which contradicts the
+    idempotence of $\sigma$.
+  \item FP Substitution: Assume $\metavar{z}\sigma=r\tau$ for some term $r$. By
+    the definition of the set of free variables, $FV(r\tau)=\set{FV(u\tau) |
+      u \in FV(r)}$, so either $r\tau$
+
+%Then $x\sigma$ can  be non-trivial (i.e. different from $x$) because $x \in s \land
+%    x\tau \neq x$ or because $x \in s$:
+%     \begin{itemize}
+%     \item By induction on the sum $n$ of explicit substitution and
+%       instantiation nodes: if $n=0$ the problematic cases~\ref{l:fv1}
+%       and~\ref{l:fv2} are not applicable. Otherwise we assume as IH that
+%       $\tau$
+%     \end{itemize}
+    \todo[inline]{But $\tau = \tau \fpscat \tau$ so this one is idempotent.}
+  \item\label{l:fv2} Instantiation: \todo[inline]{Finish}
+  \end{itemize}
+
+\section{Dropped approach: Problems with current Orderings}
+The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
+  the *** rule into an application redex(e)). The reason is that outer pattern
+  matches weigh heavier than inner ones:
+  \begin{center}
+    \includegraphics[width=4cm]{measure_ce1.pdf}
+    \includegraphics[width=4cm]{measure_ce2.pdf}
+  \end{center}
+
+The weight of the abstraction on $x$ decreases as expected, but at the same time
+the weight of the abstraction on $y$ increases. Since $y$ is higher, its weight
+contributes more.
+
+\end{proof}
+
+
 \end{document}
