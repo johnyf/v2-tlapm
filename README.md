@@ -5,13 +5,14 @@ This is the next version of the TLA proof manager, which is part of the
  current version[2].
 
 [1] https://tlaplus.codeplex.com
+
 [2] https://tlaps.codeplex.com
 
 
 ## Installation
 The easiest way to install is via opam:
 
-    opam pin add https://github.com/tlaplus/v2-tlapm.git
+    opam pin add tlapm2 https://github.com/tlaplus/v2-tlapm.git
 
 If it is already pinned but not installed a simple
 

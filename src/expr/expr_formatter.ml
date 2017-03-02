@@ -86,9 +86,9 @@ let ppf_newline acc = fprintf (ppf acc) "@\n"
     (TLAPS, Naturals etc.) *)
 let is_standard_location location =
   match location.filename with
-  | "--TLA+ BUILTINS--" -> true
-  | "TLAPS" -> true
-  | "TLC" -> true
+  | "--TLA+ BUILTINS--"
+  | "TLAPS"
+  | "TLC"
   | "Naturals" -> true
   | _ -> false
 
