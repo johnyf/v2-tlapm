@@ -258,8 +258,7 @@ as:
 \]
 For a substitution $\sigma$, we define the domain $dom(\sigma)$ as the (finite)
 set of formal parameters which have non-trivial assignments and the range
-$rg(\sigma)$ as the (finite) set of formal parameters occurring free in the
-image of $dom(\sigma)$.
+$rg(\sigma)$ as the terms in the image of $dom(\sigma)$.
 
 \todo[inline]{Describe instantiations.}
 
@@ -293,7 +292,8 @@ then the rewrite rules are:\\
                                   & x \in FV(\metavar{t}),
                                     z \not \in FV(\metavar{s}) \cup FV(\metavar{t}) \\
     \steprule{r:fpshift} & (\lambda x : \metavar{s})\sigma
-                      & \lambda x : \metavar{s}(\sigma\fpwithoutset{x}) &&\\
+                      & \lambda x : \metavar{s}(\sigma\fpwithoutset{x})
+                                  & x \not \in FV(rg(\sigma\fpwithoutset{x}))&\\
     \steprule{r:fpcombine} & \metavar{t}\sigma_1\sigma_2 & \metavar{t}(\sigma_1\fpscat \sigma_2)
                                   &  \\
     \hline
@@ -327,18 +327,19 @@ We consider all critical pairs:
 \begin{itemize}
 \item Rule \ref{r:fpapp} and rule \ref{r:fpabs} at position (1):\\
   For this to happen we can assume that $x \not \in FV(t)$. Still we need to
-  make a case distinction between $x \in t\sigma$ and $x \not \in t\sigma$\\
+  make a case distinction between $x \in FV(t\sigma)$ and $x \not \in FV(t\sigma)$\\
 
   \begin{itemize}
-  \item $x \not \in t\sigma$: Starting rewriting at $\epsilon$, we derive:\\
+  \item $x \not \in FV(t\sigma)$: Starting rewriting at $\epsilon$, we derive:\\
     $
-    \begin{array}{r@{\rewrites}ll}
-      ((\lambda x:s)t)\sigma & ((\lambda x:s)\sigma)(t\sigma) & \\
+    \begin{array}{r@{\rewrites}lll}
+      ((\lambda x:s)t)\sigma & ((\lambda x:s)\sigma)(t\sigma) & & (\ref{r:fpapp})\\
                              & (\lambda x : s(\sigma\fpwithoutset{x}))
-                               (t\sigma) & \\
+                               (t\sigma) & x \not\in FV(rg(\sigma\fpwithoutset{x}))
+                                                                & (\ref{r:fpshift})\\
                              & (s(\sigma\fpwithoutset{x}))\fpsubstin{
                                x \fpwith t\sigma} &  \mbox{if }x \not
-                                                    \in FV(t\sigma )\\
+                                                    \in FV(t\sigma) & (\ref{r:fpabs})\\
                              & s(\sigma\fpwithoutset{x} \fpscat
                                \fpsubstin{x \fpwith t\sigma}) & \\
     \end{array}
@@ -397,6 +398,16 @@ We consider all critical pairs:
                                \fpsubstin{x \fpwith z}) \fpscat
                                \fpsubstin{z \fpwith t\sigma} ) \\
     \end{array}
+    $
+
+    Now $\sigma\fpwithoutset{x}\fpscat\fpsubstin{x \fpwith z}(u) =
+    \left\{
+    \begin{array}{ll}
+      t\sigma & \mbox{if }u = x\\
+      u(\sigma\fpscat\fpsubstin{x \fpwith z}\fpscat\fpsubstin{z \fpwith t\sigma})
+              & otherwise \\
+    \end{array}
+    \right.
     $
 
   \end{itemize}
@@ -555,12 +566,12 @@ the result.
 Idempotence also ensures that domain and range of substitutions differ:
 
 \begin{lemma}
-  Let $\sigma$ be an idempotent substitution. Then $dom(\sigma) \cap rg(\sigma)
+  Let $\sigma$ be an idempotent substitution. Then $dom(\sigma) \cap FV(rg(\sigma))
   = \emptyset$.
 \end{lemma}
 \begin{proof}
   For the sake of contradiction suppose that there exists $x \in dom(\sigma)
-  \cap rg(\sigma)$. Unfolding the definitions of domain and range, we know that
+  \cap FV(rg(\sigma))$. Unfolding the definitions of domain and range, we know that
   $x\sigma = s$ form some term $s \neq x$ and that there exists a
   $z \in dom(\sigma)$ and a term $t[x]$ such that $\metavar{z}\sigma =
   t[x]$\footnote{Although $t[x]$ may be $x$ itself.}.
