@@ -342,7 +342,8 @@ and formal_param =
 *)
 and formal_param_ = {
   location          : location;
-  level             : level option; (* \A x : x = x' is provable because of the level of x. make sure the level is checked *)
+  level             : level option; (* \A x : x = x' is provable because of the
+                                       level of x. make sure the level is checked *)
   name              : string;
   arity             : int
 }
