@@ -41,11 +41,13 @@ true: annot, bin_annot
 <src>: include
 <src/core>: include
 <src/expr>: include
+<src/backends>: include
 <src/nunchaku>: include
 <src/nunchaku/simple_expr>: include
 <src/test>: include
 <src/sany>: include
 <src/test/*.ml{,i,y}>: pkg_kaputt
+<src/backends/*.ml{,i,y}>: pkg_containers
 <src/nunchaku/*.ml{,i,y}>: pkg_sexplib
 <src/nunchaku/*.ml{,i,y}>: pkg_containers
 <src/sany/*.ml{,i,y}>: pkg_xmlm
