@@ -11,7 +11,9 @@ open Settings
 open Arg_handler
 open Toolbox
 open Result
+open Scheduler
 open Backend_exceptions
+open Isabelle
 
 let  global_settings = ref default_settings
 
@@ -86,6 +88,8 @@ let load_sany settings =
     in
     failwith msg
 
+
+
 let compute_obligations settings sany_context =
   (* extract builtins from file *)
   let sany_builtins =
@@ -119,6 +123,10 @@ let announce_obligations settings formatter obligations =
   fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
   ()
 
+let announce_results msgs =
+  IntMap.fold (fun _ -> fun m -> fun _ ->
+      fmt_toolbox_msg err_formatter m) msgs ()
+
 let announce_all_failed settings formatter obligations =
   (* print obligation fail messages to stdout *)
   ignore(
@@ -138,32 +146,11 @@ let announce_all_failed settings formatter obligations =
 
 type exit_status = Exit_status of int
 
-let nunchaku_backend obligations settings =
-  let f obligation =
-    try
-      let result = nunchaku_result_printer (nunchaku settings obligation obligation.id) in
-      match result with
-      | Some message ->
-        let toolbox_msg = {
-          id       = obligation.id;
-          location = obligation.location;
-          status   = Failed;
-          prover   = Some Nunchaku;
-          meth     = None;
-          already_processed = Some false;
-          obligation_string = Some message;
-        }
-        in
-        print_string "\n\n";
-        fmt_toolbox_msg err_formatter toolbox_msg
-      | None -> ()
-    with
-    | UnhandledLanguageElement (_, _) ->
-      () (* fail gracefully for unhandled constructs *)
-  in
+
+let prepare_backends settings () =
   let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
-  ignore(Sys.command clear_tmp);
-  ignore (List.map f (List.rev obligations))
+  ignore(Sys.command clear_tmp)
+
 
 let init () =
   Printexc.record_backtrace true;
@@ -174,8 +161,9 @@ let init () =
     let obligations = compute_obligations settings sany_context in
     announce_obligations settings err_formatter obligations;
     (* here goes the calling of backends *)
-    nunchaku_backend obligations settings;
-
+    prepare_backends settings (); (*TODO refactor *)
+    let messages = scheduler settings obligations in
+    announce_results messages;
     Exit_status 0
   end
   with

@@ -223,3 +223,10 @@ let autodetect_executable_path =
 let flat_map f =
   List.fold_left (fun x y -> List.append x (f y)) []
  *)
+
+
+(* Maps for some types *)
+module IntMap = CCMap.Make(struct
+    type t = int
+    let compare : t->t->t = Pervasives.compare
+  end)
