@@ -1,15 +1,15 @@
 open Expr_ds
 open Expr_visitor
+open Expr_termdb_utils
 open Obligation
 open Backend_exceptions
 open CCFormat
 open Toolbox
 
-
-type ppacc = term_db * op_def list * formal_param list * unit printer
+type ppacc = tdb * op_def list * formal_param list * unit printer
 
 let unsupported msg =
-   raise (ExternalToolFailed (Isabelle, "Unsupported element", msg) )
+   raise (ExternalToolFailed (Commons.Isabelle, "Unsupported element", msg) )
 
 class ['a] term_visitor = object
   inherit ['a] visitor
@@ -38,10 +38,18 @@ end
 class gen_isa_pp = object(self)
   inherit [ppacc] term_visitor as super
 
-  method expr acc = failwith "implement!"
   method decimal acc = failwith "implement!"
   method numeral acc = failwith "implement!"
   method strng acc = failwith "implement!"
+
+  method formal_param acc = failwith "implement!"
+
+  method op_decl acc = failwith "implement!"
+  method op_def acc = failwith "implement!"
+  method builtin_op acc = failwith "implement!"
+  method user_defined_op acc = failwith "implement!"
+
+  method expr acc = failwith "implement!"
   method at acc = failwith "implement!"
   method op_appl acc = failwith "implement!"
   method binder acc = failwith "implement!"
@@ -51,11 +59,6 @@ class gen_isa_pp = object(self)
   method bound_symbol acc = failwith "implement!"
   method bounded_bound_symbol acc = failwith "implement!"
   method unbounded_bound_symbol acc = failwith "implement!"
-  method formal_param acc = failwith "implement!"
-  method op_decl acc = failwith "implement!"
-  method op_def acc = failwith "implement!"
-  method builtin_op acc = failwith "implement!"
-  method user_defined_op acc = failwith "implement!"
 
   (* identical: expr_or_op_arg, *)
 end
