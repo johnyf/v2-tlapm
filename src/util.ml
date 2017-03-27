@@ -226,7 +226,11 @@ let flat_map f =
 
 
 (* Maps for some types *)
-module IntMap = CCMap.Make(struct
+module IntOrdering =
+  struct
     type t = int
     let compare : t->t->t = Pervasives.compare
-  end)
+  end
+
+module IntMap = CCMap.Make(IntOrdering)
+module IntSet = CCSet.Make(IntOrdering)

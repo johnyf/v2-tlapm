@@ -132,16 +132,19 @@ let test_sany record () =
   let etree = Sany_expr.convert_context tree ~builtins:builtins in
   let internal_ns = internal_ds_names#context emptyset etree in
   let internal_names = StringSet.filter ((<>) "LAMBDA") internal_ns in
-  let intersection = StringSet.inter sany_names internal_names in
   let diff1 = StringSet.diff sany_names internal_names in
   let diff2 = StringSet.diff internal_names sany_names in
   let pp_sset = StringSet.pp ~start:"{" ~stop:"}" ~sep:", " CCFormat.string in
-  let msg =
-    CCFormat.sprintf "@[<v>SANY and EXPR names must agree@,S-E:%a@,E-S:%a@,Delta:%a@]"
-      pp_sset diff1 pp_sset diff2 pp_sset intersection
+  let msg1 =
+    CCFormat.sprintf "@[<v>SANY and EXPR names must agree@,S-E:%a@,@]"
+      pp_sset diff1
   in
-  (* Printf.printf "%s\n" (Util.mkString (fun x->x) internal_names); *)
-   Assert.equal ~msg (StringSet.is_empty intersection) true;
+  let msg2 =
+    CCFormat.sprintf "@[<v>SANY and EXPR names must agree@,E-S:%a@,@]"
+      pp_sset diff2
+  in
+  Assert.equal ~msg:msg1 (StringSet.is_empty diff1) true;
+  Assert.equal ~msg:msg2 (StringSet.is_empty diff2) true;
   (* update test result record *)
   record.sany_context <- Some tree;
   record.expr_context <- Some etree;
