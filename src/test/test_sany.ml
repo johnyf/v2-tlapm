@@ -7,18 +7,20 @@ open Util
 open Test_common
 open List
 
+module StringSet = CCSet.Make(String)
+
 (** extracts all names *)
 let name_visitor =
   object
-    inherit [string list] visitor as super
-    method name acc n = Util.add_missing acc [n]
+    inherit [StringSet.t] visitor as super
+    method name acc n = StringSet.add n acc
   end
 
 
 let internal_ds_names =
   object
-    inherit [string list] Expr_visitor.visitor as super
-    method name acc n = Util.add_missing acc [n]
+    inherit [StringSet.t] Expr_visitor.visitor as super
+    method name acc n = StringSet.add n acc
   end
 
 (* extractor counting suffices in expr tree *)
@@ -121,16 +123,25 @@ let test_sany record () =
   let channel = open_in record.filename in
   let tree = exhandler (fun () -> import_xml channel) in
   close_in channel;
-  let sany_names = List.sort compare (name_visitor#context [] tree) in
+  let emptyset = StringSet.empty in
+  let sany_ns = (name_visitor#context emptyset tree) in
+  let sany_names = StringSet.filter ((<>) "LAMBDA") sany_ns
+  in
   (* Printf.printf "%s\n" (Util.mkString (fun x->x) sany_names); *)
   let builtins = Sany_builtin_extractor.extract_from_context tree in
   let etree = Sany_expr.convert_context tree ~builtins:builtins in
-  let internal_names = List.sort compare (internal_ds_names#context [] etree) in
+  let internal_ns = internal_ds_names#context emptyset etree in
+  let internal_names = StringSet.filter ((<>) "LAMBDA") internal_ns in
+  let intersection = StringSet.inter sany_names internal_names in
+  let diff1 = StringSet.diff sany_names internal_names in
+  let diff2 = StringSet.diff internal_names sany_names in
+  let pp_sset = StringSet.pp ~start:"{" ~stop:"}" ~sep:", " CCFormat.string in
+  let msg =
+    CCFormat.sprintf "@[<v>SANY and EXPR names must agree@,S-E:%a@,E-S:%a@,Delta:%a@]"
+      pp_sset diff1 pp_sset diff2 pp_sset intersection
+  in
   (* Printf.printf "%s\n" (Util.mkString (fun x->x) internal_names); *)
-  Assert.equal
-    ~msg:("Names extracted from SANY XML are different " ^
-          "from the ones in the internal data-structrues!")
-    sany_names internal_names;
+   Assert.equal ~msg (StringSet.is_empty intersection) true;
   (* update test result record *)
   record.sany_context <- Some tree;
   record.expr_context <- Some etree;

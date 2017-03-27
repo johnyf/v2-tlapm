@@ -1,3 +1,5 @@
+open Kaputt
+
 type test_result = {
   filename : string;
   mutable sany_context : Sany_ds.context option;
@@ -26,7 +28,13 @@ let exhandler f =
     Printexc.record_backtrace false;
     ret
   with
-    x ->
+  | Assertion.Failed( {Assertion.expected_value; actual_value; message;} ) as x ->
+    Printf.printf "Assertion Failed: %s\n" (Printexc.to_string x);
+    Printf.printf "Expected:%s\nGot     :%s\nmessage:%s\n"
+      expected_value actual_value message;
+    Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
+    raise x
+  | x ->
     Printf.printf "Exception: %s\n" (Printexc.to_string x);
     Printf.printf "Backtrace: %s\n\n" (Printexc.get_backtrace ());
     raise x
