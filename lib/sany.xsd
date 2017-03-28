@@ -13,16 +13,19 @@
         <xs:element name="RootModule" type="xs:string"/>
         <xs:element ref="context"/>
         <xs:sequence maxOccurs="unbounded">
-          <xs:element ref="ModuleNode"/>
+          <xs:choice>
+            <xs:element ref="ModuleNode"/>
+            <xs:element ref="ModuleNodeRef"/>
+          </xs:choice>
         </xs:sequence>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- contextes and symbols references -->
   <!-- everything which has a uniquename is defined only once, here, and is referred by its name.
        this element resides within a certain scope and affects only this scope -->
-  <xs:element name="context"> 
+  <xs:element name="context">
     <xs:complexType>
       <xs:sequence minOccurs="0" maxOccurs="unbounded">
         <xs:element name="entry">
@@ -44,7 +47,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-              
+
   <xs:group name="OpDefNodeRef">
     <xs:choice>
       <xs:element ref="ModuleInstanceKindRef"/>
@@ -73,7 +76,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-        
+
   <xs:element name="FormalParamNodeRef">
     <xs:complexType>
       <xs:sequence>
@@ -81,7 +84,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="ModuleNodeRef">
     <xs:complexType>
       <xs:sequence>
@@ -89,7 +92,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="TheoremNodeRef">
     <xs:complexType>
       <xs:sequence>
@@ -97,7 +100,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="AssumeNodeRef">
     <xs:complexType>
       <xs:sequence>
@@ -105,7 +108,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="OpDeclNodeRef">
     <xs:complexType>
       <xs:sequence>
@@ -113,7 +116,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- A level node is a wrapper around all other nodes containing location and level information -->
   <xs:group name="node">
     <xs:sequence>
@@ -121,7 +124,7 @@
       <xs:element minOccurs="0"  ref="level"/>
     </xs:sequence>
   </xs:group>
-  
+
   <!-- ExprNode is a grouping of the following nodes -->
   <xs:group name="ExprNode">
     <xs:choice>
@@ -135,7 +138,7 @@
       <xs:element ref="SubstInNode"/>
     </xs:choice>
   </xs:group>
-  
+
   <!-- Location -->
   <xs:element name="location">
     <xs:complexType>
@@ -165,7 +168,7 @@
   <xs:element name="filename" type="xs:string"/>
   <xs:element name="begin" type="xs:integer"/>
   <xs:element name="end" type="xs:integer"/>
-  
+
   <!-- Level -->
   <xs:element name="level">
     <xs:simpleType>
@@ -181,8 +184,8 @@
     </xs:restriction>
   </xs:simpleType>
  </xs:element>
- 
- 
+
+
   <!-- Instantiations and substitutions -->
   <!-- Operator substitution? -->
   <!-- A list of substitutions and the expression they apply to -->
@@ -221,7 +224,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Expr substitution -->
   <!-- A list of substitutions and the expression they apply to -->
   <xs:element name="SubstInNode">
@@ -235,7 +238,7 @@
             </xs:sequence>
           </xs:complexType>
         </xs:element>
-        <xs:element name="body">       
+        <xs:element name="body">
           <xs:complexType>
             <xs:sequence>
               <xs:group ref="ExprNode"/>
@@ -245,7 +248,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Module substitution -->
   <!-- A list of substitutions, the name of the instance and list of instance params -->
   <xs:element name="InstanceNode">
@@ -273,7 +276,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Mapping from the OpDeclNode to either of the others -->
   <xs:element name="Subst">
     <xs:complexType>
@@ -286,13 +289,13 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- This is a unique name in the hierarchy -->
   <xs:element name="uniquename" type="xs:string"/>
-  
+
   <!-- This is a unique ID in the system -->
   <xs:element name="UID" type="xs:integer"/>
-  
+
   <!-- Assumptions and Theorems -->
   <!-- An assumption named by name and described by ExprNode -->
   <xs:element name="AssumeNode">
@@ -303,7 +306,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Similar to assumption but may contain a proof. It can also refer to a proof step -->
   <xs:element name="TheoremNode">
     <xs:complexType>
@@ -322,12 +325,12 @@
   <xs:element name="suffices">
     <xs:complexType/>
   </xs:element>
-  
+
   <!-- A non empty list of assumptions and a prove expressions with possible suffices and boxed -->
   <xs:element name="AssumeProveNode">
     <xs:complexType>
       <xs:sequence>
-        <xs:group ref="node"/>       
+        <xs:group ref="node"/>
         <xs:element name="assumes">
           <xs:complexType>
             <xs:choice maxOccurs="unbounded">
@@ -336,23 +339,23 @@
               <xs:element ref="NewSymbNode"/>
             </xs:choice>
           </xs:complexType>
-        </xs:element>   
+        </xs:element>
         <xs:element name="prove">
-          <xs:complexType>     
+          <xs:complexType>
             <xs:group ref="ExprNode"/>
           </xs:complexType>
-        </xs:element>   
+        </xs:element>
         <xs:element minOccurs="0" ref="suffices"/>
         <xs:element minOccurs="0" ref="boxed"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!--  Signals a boxed scope (not clear if it is implemented in SANY) -->
   <xs:element name="boxed">
     <xs:complexType/>
   </xs:element>
-  
+
   <!-- Represents a new declaration + possible domain -->
   <xs:element name="NewSymbNode">
     <xs:complexType>
@@ -363,8 +366,8 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
-  
+
+
   <!-- Operator definitions -->
   <!--  OpDefNode is classified according to its kinds (is NumberedProofStepKind relevant, since it is never referenced in by or use?) -->
   <xs:group name="OpDefNode">
@@ -374,7 +377,7 @@
       <xs:element ref="BuiltInKind"/>
     </xs:choice>
   </xs:group>
-  
+
   <!-- Reprensets the name of an instantiated module -->
   <xs:element name="ModuleInstanceKind">
     <xs:complexType>
@@ -384,12 +387,12 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- An operator and its definition, arity and list of arguments -->
   <xs:element name="UserDefinedOpKind">
     <xs:complexType>
-      <xs:sequence>      
-        <xs:group ref="node"/>    
+      <xs:sequence>
+        <xs:group ref="node"/>
         <xs:element ref="uniquename"/>
         <xs:element ref="arity"/>
         <xs:element name="body">
@@ -408,13 +411,13 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="recursive">
     <xs:complexType/>
   </xs:element>
-  
+
   <xs:element name="arity" type="xs:integer"/>
-  
+
   <xs:element name="leibnizparam">
     <xs:complexType>
       <xs:sequence>
@@ -423,16 +426,16 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="leibniz">
     <xs:complexType/>
   </xs:element>
-  
+
   <!--  This node represents all builtins, including quantifiers, set operatios, etc. -->
   <xs:element name="BuiltInKind">
     <xs:complexType>
       <xs:sequence>
-        <xs:group ref="node"/>              
+        <xs:group ref="node"/>
         <xs:element ref="uniquename"/>
         <xs:element ref="arity"/>
         <xs:element minOccurs="0" name="params">
@@ -450,12 +453,23 @@
     <xs:complexType>
       <xs:sequence>
         <xs:group ref="node"/>
-        <xs:element ref="uniquename"/>
-        <xs:element ref="arity"/>
+        <xs:element name="argument">
+          <xs:complexType>
+            <xs:choice>
+              <xs:element ref="FormalParamNodeRef"/>
+              <xs:element ref="ModuleNodeRef"/>
+              <xs:element ref="OpDeclNodeRef"/>
+              <xs:group ref="OpDefNodeRef"/>
+              <xs:element ref="TheoremNodeRef"/>
+              <xs:element ref="AssumeNodeRef"/>
+              <xs:element ref="APSubstInNode"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Represents params of user definitions -->
   <xs:element name="FormalParamNode">
     <xs:complexType>
@@ -466,7 +480,7 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Represents constants, variables, bound variables and new symbols -->
   <xs:element name="OpDeclNode">
     <xs:complexType>
@@ -487,12 +501,12 @@
               <xs:enumeration value="28"/> <!--NewTemporalKind-->
             </xs:restriction>
           </xs:simpleType>
-        </xs:element> 
+        </xs:element>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
-  
+
+
   <!-- Proofs -->
   <!-- The first three correspond to LeafProofNode, the last to NonLeafProofNode -->
   <xs:group name="ProofNode">
@@ -505,7 +519,7 @@
         <xs:element name="steps">
           <xs:complexType>
             <xs:sequence>
-              <xs:group ref="node"/>                       
+              <xs:group ref="node"/>
               <xs:sequence maxOccurs="unbounded">
                 <xs:group ref="step"/>
               </xs:sequence>
@@ -513,21 +527,21 @@
           </xs:complexType>
         </xs:element>
       </xs:choice>
-      </xs:sequence>     
+      </xs:sequence>
   </xs:group>
-  
+
   <xs:element name="omitted">
     <xs:complexType>
       <xs:group ref="node"/>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="obvious">
     <xs:complexType>
       <xs:group ref="node"/>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Facts and Defs are defined to be of these kinds according to comments in the Java code, seems step names cannot be referenced? -->
   <xs:element name="by">
     <xs:complexType>
@@ -551,16 +565,16 @@
               <xs:element ref="AssumeNodeRef"/>
             </xs:choice>
           </xs:complexType>
-        </xs:element>        
+        </xs:element>
         <xs:element minOccurs="0" ref="only"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="only">
     <xs:complexType/>
   </xs:element>
-  
+
   <!-- Steps are defined to be of this types according to comments in the Java code -->
   <xs:group name="step">
     <xs:choice>
@@ -571,7 +585,7 @@
       <xs:element ref="TheoremNode"/> <!-- in case of unnamed theorem -->
     </xs:choice>
   </xs:group>
-  
+
   <xs:element name="DefStepNode">
     <xs:complexType>
       <xs:sequence>
@@ -579,10 +593,10 @@
         <xs:group maxOccurs="unbounded" ref="OpDefNodeRef"/>
       </xs:sequence>
     </xs:complexType>
-<!--        <xs:element minOccurs="0" ref="stepnumber"/> this is cancelled out as it is not clear what exactly is referenced by USE facts (or BY proofs) 
-when the xml is generated, check what for the stepnumber take (maybe as simple strings? then we need to return this field)--> 
+<!--        <xs:element minOccurs="0" ref="stepnumber"/> this is cancelled out as it is not clear what exactly is referenced by USE facts (or BY proofs)
+when the xml is generated, check what for the stepnumber take (maybe as simple strings? then we need to return this field)-->
   </xs:element>
-  
+
   <xs:element name="UseOrHideNode">
     <xs:complexType>
       <xs:sequence>
@@ -608,19 +622,19 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
         </xs:element>
         <xs:element minOccurs="0" ref="only"/>
         <xs:element minOccurs="0" ref="hide"/>
-<!--        <xs:element minOccurs="0" ref="stepnumber"/> this is cancelled out as it is not clear what exactly is referenced by USE facts (or BY proofs) 
-when the xml is generated, check what for the stepnumber take (maybe as simple strings? then we need to return this field)--> 
+<!--        <xs:element minOccurs="0" ref="stepnumber"/> this is cancelled out as it is not clear what exactly is referenced by USE facts (or BY proofs)
+when the xml is generated, check what for the stepnumber take (maybe as simple strings? then we need to return this field)-->
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="hide">
     <xs:complexType/>
   </xs:element>
-  
+
   <xs:element name="stepnumber" type="xs:string"/>
-  
-  
+
+
   <!-- Expressions -->
   <!-- Occurrences of @ by supplying the innermost enclosing $Except and the innermost $Pair containing this @ -->
   <xs:element name="AtNode">
@@ -638,7 +652,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- A decimal number (read Java code and java API for more information)-->
   <xs:element name="DecimalNode">
     <xs:complexType>
@@ -648,7 +662,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- Represents a labelled expression nm(x,y): (ExprNode|AssumeProveNode) -->
   <xs:element name="LabelNode">
     <xs:complexType>
@@ -657,7 +671,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
         <xs:element ref="uniquename"/>
         <xs:element ref="arity"/>
         <xs:element name="body">
-          <xs:complexType>        
+          <xs:complexType>
             <xs:choice>
               <xs:group ref="ExprNode"/>
               <xs:element ref="AssumeProveNode"/>
@@ -674,14 +688,14 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- A list of definitions and the body -->
   <xs:element name="LetInNode">
     <xs:complexType>
       <xs:sequence>
-        <xs:group ref="node"/>           
+        <xs:group ref="node"/>
         <xs:element name="body">
-          <xs:complexType>        
+          <xs:complexType>
             <xs:group ref="ExprNode"/>
           </xs:complexType>
         </xs:element>
@@ -699,7 +713,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- An integer number -->
   <xs:element name="NumeralNode">
     <xs:complexType>
@@ -709,7 +723,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
         </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- An string -->
   <xs:element name="StringNode">
     <xs:complexType>
@@ -719,12 +733,12 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
         </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <!-- A general node for applications. FIrst the operator and then the operands -->
   <xs:element name="OpApplNode">
     <xs:complexType>
       <xs:sequence>
-        <xs:group ref="node"/>            
+        <xs:group ref="node"/>
         <xs:element name="operator">
           <xs:complexType>
             <xs:choice>
@@ -756,7 +770,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="unbound">
     <xs:complexType>
       <xs:sequence>
@@ -765,7 +779,7 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
   <xs:element name="bound">
     <xs:complexType>
       <xs:sequence>
@@ -780,22 +794,22 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
   <xs:element name="tuple">
     <xs:complexType/>
   </xs:element>
-  
+
   <!-- Module(constants,variables,operators,assumptions,theorems) -->
   <xs:element name="ModuleNode">
     <xs:complexType>
       <xs:sequence>
-        <xs:group ref="node"/>             
+        <xs:group ref="node"/>
         <xs:element ref="uniquename"/>
         <xs:choice>
-          <xs:element ref="OpDeclNodeRef"/>
-          <xs:group ref="OpDefNodeRef"/>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="OpDeclNodeRef"/>
+          <xs:group minOccurs="0" maxOccurs="unbounded" ref="OpDefNodeRef"/>
 <!--      <xs:element ref="AssumeNode"/> -->
-          <xs:element ref="AssumeNodeRef"/>
-          <xs:element ref="InstanceNode"/>
-          <xs:element ref="UseOrHideNode"/>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="AssumeNodeRef"/>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="InstanceNode"/>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="UseOrHideNode"/>
 <!--      <xs:element ref="TheoremNode"/> -->
-          <xs:element ref="TheoremNodeRef"/>
+          <xs:element minOccurs="0" maxOccurs="unbounded" ref="TheoremNodeRef"/>
         </xs:choice>
         <!--
         <xs:element name="constants">
@@ -839,5 +853,5 @@ when the xml is generated, check what for the stepnumber take (maybe as simple s
       </xs:sequence>
     </xs:complexType>
   </xs:element>
-  
+
 </xs:schema>

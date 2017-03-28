@@ -352,6 +352,9 @@ class converter = object(self)
                     module_entries;
                   } in
       (Any_mule m, acc)
+    | Sany_ds.MOD_ref i ->
+      let msg = CCFormat.sprintf "Expecting module, not module ref to %d" i in
+      failwith msg
 
   method op_arg acc0 { Sany_ds.location; level; argument } =
     let Any_location location, acc1 = self#location acc0 location in
@@ -721,7 +724,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     let (ae, (b,_, tdb)) = acc in
     let acc = (ae, (b,entries,tdb)) in
     let entries,  acc0 = fold self#entry acc entries unfold_entry in
-    let modules, acc1 = fold self#mule_ (Nothing, acc0) modules unfold_module in
+    let modules, acc1 = fold self#mule (Nothing, acc0) modules unfold_module in
     let c = {
       root_module;
       entries;

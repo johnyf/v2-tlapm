@@ -788,7 +788,7 @@ and read_module_entries i =
     ] in
   get_children_choice i handle_table
 
-and read_module i =
+and read_module_ i =
   open_tag i "ModuleNode";
   let location = get_child i "location" read_optlocation in
   let name = get_data_in i "uniquename" read_string in
@@ -800,6 +800,15 @@ and read_module i =
     } in
   close_tag i "ModuleNode";
   ret
+
+and read_module_ref i =
+  read_ref i "ModuleNodeRef" (fun x -> MOD_ref x)
+
+and read_module i =
+  get_child_choice i [
+    ((=) "ModuleNode", read_module_);
+    ((=) "ModuleNodeRef", read_module_ref)
+  ]
 
 (* User defined operator definition nodes:
    ModuleInstanceKind, UserDefinedOpKind, BuiltinKind
@@ -864,7 +873,11 @@ let read_modules i =
   open_tag i "modules";
   let root_module = get_data_in i "RootModule" read_string in
   let entries = get_children_in i "context" "entry" read_entry in
-  let ret = get_children i "ModuleNode" read_module in
+  let ret = get_children_choice i [
+          ((=) "ModuleNode", read_module_);
+          ((=) "ModuleNodeRef", read_module_ref)
+        ]
+  in
   close_tag i "modules";
   {
     root_module;
