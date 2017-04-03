@@ -13,7 +13,7 @@
 *)
 
 
-EXTENDS Naturals, FiniteSets
+EXTENDS Naturals
 
 CONSTANT N \* Number of bases, each team is represented by a color in 1 .. N
 
@@ -21,8 +21,6 @@ ASSUME N \in Nat /\ N > 1
 
 Bases == 1 .. N \* Each base is assigned to a team  
 Colors == 0 .. N \* Each spot is either empty (0) or assigned to a team 
-
-\* ASSUME IsFiniteSet(Bases) /\ IsFiniteSet(Colors) \* that should not be necessary
 
 VARIABLE base1 \* maps the base to the team of the player on the first spot 
 VARIABLE base2 \* maps the base to the team of the player on the second spot
@@ -39,27 +37,28 @@ OccursOnce1(c, b1, b2) == \E x \in Bases :
 \* The symmetric closure on OccursOnce1
 OccursOnce(c, b1, b2) == OccursOnce1(c, b1, b2) \/ OccursOnce1(c, b2, b1)
 
+
+OccursTwiceOnSame(b1, b2, color, x, y) ==
+           /\ x # y
+           /\ b1[x] = color
+           /\ b1[y] = color
+           /\ \A z \in (Bases \ {x,y}) : b1[z] # color 
+           /\ \A z \in Bases : b2[z] # color
+
+OccursTwiceOnDifferent(b1, b2, color, x, y) ==
+           /\ b1[x] = color
+           /\ b2[y] = color
+           /\ \A z \in (Bases \ {x}) : b1[z] # color
+           /\ \A z \in (Bases \ {y}) : b2[z] # color
+
+
 \* True iff all teams but team 1 have exactly two players on the bases 
 OccursTwice(b1, b2) ==
      \A color \in 2 .. N :
      \E x,y \in Bases :
-        \/
-           /\ x # y
-           /\ b1[x] = color
-           /\ b1[y] = color
-           /\ \A z \in Bases : (z # x /\ z # y /\ b1[z] # b1[x]) 
-           /\ \A z \in Bases : b2[z] # b1[x]
-        \/
-           /\ x # y
-           /\ b2[x] = color
-           /\ b2[y] = color
-           /\ \A z \in Bases : (z # x /\ z # y /\ b2[z] # b2[x]) 
-           /\ \A z \in Bases : b1[z] # b2[x]
-        \/
-           /\ b1[x] = color
-           /\ b2[y] = color
-           /\ \A z \in Bases : z # x => b1[z] # b1[x]
-           /\ \A z \in Bases : z # y => b2[z] # b2[y]
+        \/ OccursTwiceOnSame(b1, b2, color, x, y)
+        \/ OccursTwiceOnSame(b2, b1, color, x, y)
+        \/ OccursTwiceOnDifferent(b1, b2, color, x, y)
 
 \* True iff base1 and base2 are functions assigning bases to colors,
 \* Team 1 has exactly one player on the field, all other teams have
@@ -73,26 +72,16 @@ TypeOK == /\ base1 \in [Bases -> Colors]
 right_of(n) == 1 + ((n + 1) % N)
 left_of(n)  == 1 + ((n + (N-1)) % N)
 
-\* Action for moving a player from b1[n-1] to the empty spot on b1[n]
-MoveRight1(n, b1) == 
+\* Action for moving a player from left/rightto the empty spot on b1[n]
+Move1(next(_), n, b1, b2) == 
           /\ b1[n] = 0
-          /\ b1' = [b1 EXCEPT ![n] = b1[left_of(n)], ![left_of(n)] = 0 ] 
+          /\ b1' = [b1 EXCEPT ![n] = b1[next(n)], ![next(n)] = 0 ]
+          /\ UNCHANGED b2 
 \* Action for moving a player from b2[n-1] to the empty spot on b1[n]
-MoveRight2(n, b1, b2) ==
+Move2(next(_), n, b1, b2) ==
           /\ b1[n] = 0
-          /\ b1' = [b1 EXCEPT ![n] = b2[left_of(n)]]
-          /\ b2' = [b2 EXCEPT ![left_of(n)] = 0 ] 
-\* Action for moving a player from b1[n+1] to the empty spot on b1[n]
-MoveLeft1(n, b1) ==
-          /\ n \in 1..(N-1)
-          /\ b1[n] = 0
-          /\ b1' = [b1 EXCEPT ![n] = b1[right_of(n)], ![right_of(n)] = 0 ] 
-\* Action for moving a player from b2[n+1] to the empty spot on b1[n]
-MoveLeft2(n, b1, b2) ==
-          /\ n \in 1..(N-1)
-          /\ b1[n] = 0
-          /\ b1' = [b1 EXCEPT ![n] = b2[right_of(n)]]
-          /\ b2' = [b2 EXCEPT ![right_of(n)] = 0 ] 
+          /\ b1' = [b1 EXCEPT ![n] = b2[next(n)]]
+          /\ b2' = [b2 EXCEPT ![next(n)] = 0 ] 
 
 
 
@@ -109,14 +98,14 @@ Init == TypeOK
 
 \* All possible moves
 Next == \E n \in Bases :
-          \/ MoveRight1(n, base1)
-          \/ MoveRight1(n, base2)
-          \/ MoveRight2(n, base1, base2)
-          \/ MoveRight2(n, base2, base1)
-          \/ MoveLeft1(n, base1)
-          \/ MoveLeft1(n, base2)
-          \/ MoveLeft2(n, base1, base2)
-          \/ MoveLeft2(n, base2, base1)
+          \/ Move1(right_of, n, base1, base2)
+          \/ Move1(right_of, n, base2, base1)
+          \/ Move2(right_of, n, base1, base2)
+          \/ Move2(right_of, n, base2, base1)
+          \/ Move1(left_of,  n, base1, base2)
+          \/ Move1(left_of,  n, base2, base1)
+          \/ Move2(left_of,  n, base1, base2)
+          \/ Move2(left_of,  n, base2, base1)
 
 Spec == Init /\ [] [Next]_<<base1, base2>>
 
@@ -125,19 +114,15 @@ Spec == Init /\ [] [Next]_<<base1, base2>>
 Stops == /\ \A x \in 2 .. N : base1[x] = x /\ base2[x] = x 
          /\
           \/ (base1[1] = 0 /\ base2[1] = 1)
-          \/ (base1[1] = 1 /\ base2[1] = 2)
+          \/ (base1[1] = 1 /\ base2[1] = 0)
 
 
 
 \* In each spec, the game eventually stops
 Inv == Spec ~> Stops
-Inv2 == TypeOK
-
-
-
 
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Apr 03 10:41:34 CEST 2017 by marty
+\* Last modified Mon Apr 03 11:08:23 CEST 2017 by marty
 \* Created Thu Mar 30 21:33:35 CEST 2017 by marty
