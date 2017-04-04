@@ -311,7 +311,14 @@
     <xs:complexType>
       <xs:sequence>
         <xs:group ref="node"/>
-        <xs:element name="body">
+        <xs:element minOccurs="0" name="definition">
+          <xs:complexType>
+            <xs:choice>
+              <xs:element ref="AssumeDefRef"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="body"> <!-- Invariant: definition body is assumption body, if definition exists -->
           <xs:complexType>
             <xs:choice>
               <xs:group ref="ExprNode"/>
@@ -342,14 +349,18 @@
     <xs:complexType>
       <xs:sequence>
         <xs:group ref="node"/>
-        <xs:element name="body">
+        <xs:element minOccurs="0" name="definition">
           <xs:complexType>
             <xs:choice>
-              <!-- body without definition -->
+              <xs:element ref="TheoremDefRef"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="body"> <!-- Invariant: definition body is theorem body, if definition exists -->
+          <xs:complexType>
+            <xs:choice>
               <xs:group ref="ExprNode"/>
               <xs:group ref="AssumeProveLike"/>
-              <!-- body in a definition -->
-              <xs:element ref="TheoremDefNode"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>
@@ -406,6 +417,7 @@
       <xs:element ref="APSubstInNode"/>
     </xs:choice>
   </xs:group>
+
   <!--  Signals a boxed scope (not clear if it is implemented in SANY) -->
   <xs:element name="boxed">
     <xs:complexType/>
