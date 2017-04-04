@@ -10,6 +10,8 @@ THEOREM T == x'=x
 
 THEOREM ASSUME T PROVE FALSE
 
+THEOREM A == ASSUME TRUE PROVE TRUE
+
 ====================
 
 I == INSTANCE sub WITH x <- 0
@@ -29,5 +31,5 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be accepted by the toolbox too, but 
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Mar 31 14:38:15 CEST 2016 by marty
+\* Last modified Thu Mar 30 15:09:20 CEST 2017 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty

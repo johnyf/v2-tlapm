@@ -38,6 +38,7 @@ OccursOnce1(c, b1, b2) == \E x \in Bases :
 OccursOnce(c, b1, b2) == OccursOnce1(c, b1, b2) \/ OccursOnce1(c, b2, b1)
 
 
+\* A given color occurs twice on b1 at positions x and y and not at all on b2
 OccursTwiceOnSame(b1, b2, color, x, y) ==
            /\ x # y
            /\ b1[x] = color
@@ -45,6 +46,7 @@ OccursTwiceOnSame(b1, b2, color, x, y) ==
            /\ \A z \in (Bases \ {x,y}) : b1[z] # color 
            /\ \A z \in Bases : b2[z] # color
 
+\* A given color occrs once on b1 at position x and once on b2 at position y and nowhere else
 OccursTwiceOnDifferent(b1, b2, color, x, y) ==
            /\ b1[x] = color
            /\ b2[y] = color
@@ -72,7 +74,7 @@ TypeOK == /\ base1 \in [Bases -> Colors]
 right_of(n) == 1 + ((n + 1) % N)
 left_of(n)  == 1 + ((n + (N-1)) % N)
 
-\* Action for moving a player from left/rightto the empty spot on b1[n]
+\* Action for moving a player from left/right to the empty spot on b1[n]
 Move1(next(_), n, b1, b2) == 
           /\ b1[n] = 0
           /\ b1' = [b1 EXCEPT ![n] = b1[next(n)], ![next(n)] = 0 ]
@@ -83,7 +85,15 @@ Move2(next(_), n, b1, b2) ==
           /\ b1' = [b1 EXCEPT ![n] = b2[next(n)]]
           /\ b2' = [b2 EXCEPT ![next(n)] = 0 ] 
 
+\* Symmetric closure of Move1
+Move1S(next(_), n, b1, b2) ==
+  /\ Move1(next, n, b1, b2)
+  /\ Move1(next, n, b2, b1) 
 
+\* Symmetric closure of Move2
+Move2S(next(_), n, b1, b2) ==
+  /\ Move2(next, n, b1, b2)
+  /\ Move2(next, n, b2, b1) 
 
 \* a sample starting position for four bases
 Start1 ==
@@ -98,14 +108,10 @@ Init == TypeOK
 
 \* All possible moves
 Next == \E n \in Bases :
-          \/ Move1(right_of, n, base1, base2)
-          \/ Move1(right_of, n, base2, base1)
-          \/ Move2(right_of, n, base1, base2)
-          \/ Move2(right_of, n, base2, base1)
-          \/ Move1(left_of,  n, base1, base2)
-          \/ Move1(left_of,  n, base2, base1)
-          \/ Move2(left_of,  n, base1, base2)
-          \/ Move2(left_of,  n, base2, base1)
+          \/ Move1S(right_of, n, base1, base2)
+          \/ Move2S(right_of, n, base1, base2)
+          \/ Move1S(left_of,  n, base1, base2)
+          \/ Move2S(left_of,  n, base1, base2)
 
 Spec == Init /\ [] [Next]_<<base1, base2>>
 
@@ -116,13 +122,11 @@ Stops == /\ \A x \in 2 .. N : base1[x] = x /\ base2[x] = x
           \/ (base1[1] = 0 /\ base2[1] = 1)
           \/ (base1[1] = 1 /\ base2[1] = 0)
 
-
-
 \* In each spec, the game eventually stops
 Inv == Spec ~> Stops
 
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Apr 03 11:08:23 CEST 2017 by marty
+\* Last modified Mon Apr 03 11:14:05 CEST 2017 by marty
 \* Created Thu Mar 30 21:33:35 CEST 2017 by marty
