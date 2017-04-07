@@ -128,6 +128,28 @@ A:
    * WITNESS : TRUE
    * PICK x \in S : F(x) : \E x \in S : F(x)
 
+Q: Can I reference an assume prove within a formula?
+A: Yes, but it needs instantiation. The fragment
+
+THEOREM S == ASSUME TRUE PROVE 0=0
+THEOREM T == S => 1=1
+
+is not accepted by the parser, but
+
+---- MODULE Foo ----
+VARIABLE x
+THEOREM S == ASSUME TRUE PROVE 0=0
+====
+
+I == INSTANCE Foo WITH x <- 2
+THEOREM T == I!S => 1<-1
+
+is accepted. It is yet undecided if the PM should accept this pattern.
+
+Q: How can I see the input files, TLAPM v1 produces?
+A: Use the flag: --debug tempfiles
+
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet
