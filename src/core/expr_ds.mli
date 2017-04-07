@@ -48,7 +48,7 @@ open Commons
 
 *)
 
-type id = int
+type id_t = int
 
 (** Represents a node which can be instantiated via ap_subst_in*)
 type node =
@@ -185,7 +185,7 @@ and assume =
     Example: ASSUME x > 0
 *)
 and assume_ = {
-  id                : id;
+  id               : id_t;
   location          : location;
   level             : level option;
   definition        : assume_def option;
@@ -199,7 +199,7 @@ and assume_def =
 
 (** The union of assumption definitions and references to them *)
 and assume_def_ = {
-  id       : id;
+  id       : id_t;
   location : location option;
   level    : level option;
   name     : string;
@@ -209,7 +209,7 @@ and assume_def_ = {
 
 (* the definition statement of a theorem *)
 and theorem_def_ = {
-  id       : id;
+  id       : id_t;
   location : location option;
   level : level option;
   name  : string;
@@ -231,10 +231,11 @@ and theorem =
     THEOREM ASSUME NEW x, x > 0 PROVE -x <0 BY SMT
 *)
 and theorem_ = {
-  id       : id;
+  id       : id_t;
   location          : location;
   level             : level option;
-  name              : string option;
+  definition        : theorem_def option;
+  body              : node;
   statement         : statement;
   proof             : proof;
 }
@@ -318,7 +319,7 @@ and module_instance =
     I(x)!P(y) is represented as I!P(x,y)
 *)
 and module_instance_ = {
-  id                : id;
+  id                : id_t;
   location          : location;
   level             : level option;
   name              : string
@@ -335,7 +336,7 @@ and user_defined_op =
     Op(x,y) == ENABLED (x' # y')
 *)
 and user_defined_op_ = {
-  id                : id;
+  id                : id_t;
   location          : location;
   level             : level option;
   name              : string;
@@ -365,7 +366,7 @@ and builtin_op = BOP_ref of int
     Example: =>, TRUE
 *)
 and builtin_op_ = {
-  id                : id;
+  id                : id_t;
   level             : level option;
   name              : string;
   arity             : int;
@@ -393,7 +394,7 @@ and formal_param =
     Op(x,y) = x + y
 *)
 and formal_param_ = {
-  id                : id;
+  id                : id_t;
   location          : location;
   level             : level option; (* \A x : x = x' is provable because of the
                                        level of x. make sure the level is checked *)
@@ -412,7 +413,7 @@ and op_decl =
     ASSUME NEW P(_), NEW VARIABLE x PROVE P(x)
 *)
 and op_decl_ = {
-  id                : id;
+  id                : id_t;
   location          : location;
   level             : level option;
   name              : string;
@@ -632,23 +633,24 @@ and mule =
   (*  | MOD of mule_ *)
 
 and mule_ = {
-  id                : id;
+  id                : id_t;
   name              : string;
   location          : location;
   module_entries    : mule_entry list;
 }
 
 type entry =
-    | FP_entry of formal_param_
-    | MOD_entry of mule_
-    | OPDec_entry of op_decl_
-    | MI_entry of module_instance_
-    | UOP_entry of user_defined_op_
-    | BOP_entry of builtin_op_
-    | TDef_entry of theorem_def_
-    | ADef_entry of assume_def_
-    | THM_entry of theorem_
-    | ASSUME_entry of assume_
+  | FP_entry of formal_param_
+  | BI_entry of builtin_op_
+  | MOD_entry of mule_
+  | OPDec_entry of op_decl_
+  | MI_entry of module_instance_
+  | UOP_entry of user_defined_op_
+  | BOP_entry of builtin_op_
+  | TDef_entry of theorem_def_
+  | ADef_entry of assume_def_
+  | THM_entry of theorem_
+  | ASSUME_entry of assume_
 
 
 type term_db = (int * entry) list

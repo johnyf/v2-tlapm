@@ -46,6 +46,7 @@ and  new_symb_or_expr_or_assume_prove =
   | NEA_new_symb of new_symb
   | NEA_expr of expr
   | NEA_assume_prove of assume_prove
+  | NEA_ap_subst_in of ap_subst_in
 
 and ap_subst_in = {
   location          : location option;
@@ -384,16 +385,16 @@ and mule_ = {
 }
 and entry_object =
   | E_formal_param of formal_param_
-  | E_module of mule
+  | E_module of mule_
   | E_op_decl of op_decl_
   (* opdefs are inlined *)
   | E_module_instance of module_instance_
   | E_user_defined_op of user_defined_op_
   | E_builtin_op of builtin_op_
-  | E_thm_def of theorem_def
-  | E_assume_def of assume_def
-  | E_theorem of theorem
-  | E_assume of assume
+  | E_thm_def of theorem_def_
+  | E_assume_def of assume_def_
+  | E_theorem of theorem_
+  | E_assume of assume_
 
 
 (* context *)

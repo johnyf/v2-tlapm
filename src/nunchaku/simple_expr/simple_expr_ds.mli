@@ -281,3 +281,13 @@ type simple_entry =
 
 
 type simple_term_db = (int * simple_entry) list
+
+(** Definition **)
+
+type tla_simple_pb = {
+  (* actual obligation, without expansion *)
+  goal : simple_assume_prove;
+
+  (* the term database *)
+  term_db : simple_term_db;
+}

@@ -78,6 +78,7 @@ let format_prover = function
   | SMT -> "SMT"
   | LS4 -> "LS4"
   | Tlaps -> "TLAPS"
+  | Nunchaku -> "Nunchaku"
   | Default -> "Default provers"
 
 let fmt_prover f p =

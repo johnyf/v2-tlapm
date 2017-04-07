@@ -35,7 +35,9 @@ class ['a] visitor :
     method formal_param    : 'a -> formal_param -> 'a
     method op_decl         : 'a -> op_decl -> 'a
     method op_def          : 'a -> op_def -> 'a
+    method theorem_def     : 'a -> theorem_def -> 'a
     method theorem         : 'a -> theorem -> 'a
+    method assume_def      : 'a -> assume_def -> 'a
     method assume          : 'a -> assume -> 'a
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a

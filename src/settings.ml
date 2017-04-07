@@ -56,7 +56,7 @@ let fmt_settings formatter { java_executable; check_schema; xml_input;
   fprintf formatter "overlord      = %b@," overlord;
   fprintf formatter "check schema  = %b@," check_schema;
   fprintf formatter "xml input     = %b@," xml_input;
-  map (fprintf formatter "include directory: %s@,") include_paths;
+  ignore(map (fprintf formatter "include directory: %s@,") include_paths);
   fprintf formatter "toolbox range = %a@," fmt_int_range toolbox;
   fprintf formatter "fingerprints  = %b@," fingerprints;
   fprintf formatter "input file    = \"%s\"@," input_file;

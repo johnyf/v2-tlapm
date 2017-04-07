@@ -7,7 +7,7 @@ type test_result = {
   mutable explicit_lambda_context : Expr_ds.context option;
   mutable explicit_steps_context : Expr_ds.context option;
   mutable obligations  : Obligation.obligation list;
-  mutable simple_obligations : Tla_simple_pb.tla_simple_pb list;
+  mutable simple_obligations : Simple_expr_ds.tla_simple_pb list;
 }
 
 let mkTestResult ?sc ?ec ?lc ?esc ?ob:(ob=[]) ?sob:(sob=[]) name =

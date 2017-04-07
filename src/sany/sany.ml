@@ -260,8 +260,6 @@ and read_let i :let_in	=
       ((=) "BuiltInKindRef",        mkRef "BuiltInKindRef" mkOPDrefB);
       ((=) "AssumeNodeRef",         mkRef "AssumeNodeRef" mkAref);
       ((=) "TheoremNodeRef",        mkRef "TheoremNodeRef" mkTref);
-      ((=) "AssumeNode",            (fun i -> OTA_assume (read_assume i)));
-      ((=) "TheoremNode",           (fun i -> OTA_theorem (read_theorem i)));
     ] in
   close_tag i "LetInNode";
   {
@@ -477,7 +475,7 @@ and read_assume_def i =
   }
   in ADef r
 
-and read_assume i =
+and read_assume i : assume_ =
   open_tag i "AssumeNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
@@ -500,12 +498,8 @@ and read_assume i =
       None
     | _ -> failwith "Implementation error reading assume node!"
   in
-  ASSUME {
-    location = location;
-    level    = level;
-    definition;
-    expr     = expr;
-  }
+  let asm = { location; level; definition; expr; }
+  in asm
 
 
 and expr_nodes =
@@ -692,7 +686,7 @@ and read_steps i =
       ((=) "InstanceNode",   (fun i -> S_instance (read_instance i)));
       ((=) "TheoremNodeRef", (fun i -> S_theorem
                                  (THM_ref (read_ref i "TheoremNodeRef" id))));
-      ((=) "TheoremNode",    (fun i -> S_theorem (read_theorem i)));
+      (*      ((=) "TheoremNode",    (fun i -> S_theorem (read_theorem i))); no thms as steps anymore *)
     ] in
   close_tag i "steps";
   {
@@ -756,7 +750,7 @@ and read_theorem_def i =
   }
   in TDef r
 
-and read_theorem i : theorem =
+and read_theorem i : theorem_ =
   open_tag i "TheoremNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
@@ -768,7 +762,9 @@ and read_theorem i : theorem =
          r
       )
   in
+  open_tag i "body";
   let expr = read_expr_or_assumeprove i in
+  close_tag i "body";
   let proofl = get_optchild_choice i [(is_proof_node, read_proof)]  in
   let proof = match proofl with
     | [p] -> p
@@ -783,14 +779,14 @@ and read_theorem i : theorem =
       None
     | _ -> failwith "Implementation error reading assume node!"
   in
-  THM {
+  let thm = {
     location;
     level;
     definition;
     expr;
     proof;
     suffices;
-  }
+  } in thm
 
 and read_module_entries i =
   let read_varconst_ref i = read_ref i "OpDeclNodeRef"
@@ -814,17 +810,17 @@ and read_module_entries i =
       ((=) "UserDefinedOpKindRef", mkOpdefrefHandlerU "UserDefinedOpKindRef")  ;
       ((=) "BuiltInKindRef",       mkOpdefrefHandlerB "BuiltInKindRef")  ;
       (* assumptions *)
-      ((=) "AssumeNode", fun i -> MODe_assume (read_assume i));
       ((=) "AssumeNodeRef", mkAssumerefHandler "AssumeNodeRef");
       (* instances *)
       ((=) "InstanceNode", fun i -> MODe_instance (read_instance i));
       (* use_or_hides *)
       ((=) "UseOrHideNode", fun i -> MODe_use_or_hide (read_useorhide i));
       (* theorems *)
-      ((=) "TheoremNode", fun i -> MODe_theorem (read_theorem i));
       ((=) "TheoremNodeRef",
        fun i -> read_ref i "TheoremNodeRef"
            (fun x -> MODe_theorem (THM_ref x)) );
+      ((=) "TheoremNode", fun i -> failwith "only thm refs in modules!");
+      ((=) "AssumeNode", fun i -> failwith "only assume refs in modules!");
     ] in
   get_children_choice i handle_table
 
@@ -833,7 +829,7 @@ and read_module_ i =
   let location = get_child i "location" read_optlocation in
   let name = get_data_in i "uniquename" read_string in
   let module_entries = read_module_entries i in
-  let ret = MOD {
+  let ret = {
       location;
       name;
       module_entries;
@@ -844,11 +840,13 @@ and read_module_ i =
 and read_module_ref i =
   read_ref i "ModuleNodeRef" (fun x -> MOD_ref x)
 
+(*
 and read_module i =
   get_child_choice i [
     ((=) "ModuleNode", read_module_);
     ((=) "ModuleNodeRef", read_module_ref)
   ]
+*)
 
 (* User defined operator definition nodes:
    ModuleInstanceKind, UserDefinedOpKind, BuiltinKind
@@ -938,12 +936,12 @@ and read_entry i =
            | OPDef (O_user_defined_op (UOP op)) -> E_user_defined_op op
            | OPDef (O_builtin_op (BOP op)) -> E_builtin_op op
            | OPDef (O_module_instance (MI op)) -> E_module_instance op
-           | OPDef (O_assume_def op) -> E_assume_def op
-           | OPDef (O_thm_def op) -> E_thm_def op
+           | OPDef (O_assume_def (ADef op)) -> E_assume_def op
+           | OPDef (O_thm_def (TDef op)) -> E_thm_def op
            | _ ->
              failwith "Cannot have references as entry in the has table"
          ));
-      ((=)  "ModuleNode"     , (fun i ->  E_module  (read_module i)));
+      ((=)  "ModuleNode"     , (fun i ->  E_module  (read_module_ i)));
       ((=)  "OpDeclNode"     , (fun i ->  E_op_decl (read_op_decl i)  ));
       ((=)  "TheoremNode"    , (fun i ->  E_theorem (read_theorem i)));
       ((=)  "AssumeNode"     , (fun i ->  E_assume  (read_assume i)));
@@ -958,17 +956,11 @@ let read_modules i =
   open_tag i "modules";
   let root_module = get_data_in i "RootModule" read_string in
   let entries = get_children_in i "context" "entry" read_entry in
-  let ret = get_children_choice i [
-          ((=) "ModuleNode", read_module_);
-          ((=) "ModuleNodeRef", read_module_ref)
-        ]
+  let modules = get_children_choice i
+      [((=) "ModuleNodeRef", read_module_ref)]
   in
   close_tag i "modules";
-  {
-    root_module;
-    entries = entries;
-    modules = ret;
-  }
+  { root_module; entries; modules; }
 
 let read_header i =
   input i (* first symbol is dtd *)

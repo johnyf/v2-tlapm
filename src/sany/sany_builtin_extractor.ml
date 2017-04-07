@@ -1,7 +1,7 @@
 open Sany_ds
 open Commons
 
-type eacc = (int * Expr_ds.builtin_op) list * Sany_ds.entry list
+type eacc = (int * Expr_ds.builtin_op_) list * Sany_ds.entry list
 let builtins (b, _) = b
 let entries (_, e) = e
 
@@ -14,7 +14,7 @@ class extractor = object(self)
           let (x,y) = param in
           (Sany_expr.convert_formal_param (entries acc) x, y)
         )  params in
-      let op = { Expr_ds.level; name; arity; params; } in
+      let op : Expr_ds.builtin_op_ = { Expr_ds.id = uid; level; name; arity; params; } in
       ((uid, op) :: (builtins acc), entries acc)
     | _ -> super#entry acc { uid; reference }
 

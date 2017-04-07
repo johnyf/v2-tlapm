@@ -22,8 +22,10 @@ type anyExpr =
   | Any_instantiation of instantiation
   | Any_assume of assume
   | Any_assume_ of assume_
+  | Any_assume_def of assume_def
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
+  | Any_theorem_def of theorem_def
   | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
@@ -33,6 +35,7 @@ type anyExpr =
   | Any_user_defined_op of user_defined_op
   | Any_user_defined_op_ of user_defined_op_
   | Any_builtin_op of builtin_op
+  | Any_builtin_op_ of builtin_op_
   | Any_op_arg of op_arg
   | Any_formal_param of formal_param
   | Any_formal_param_ of formal_param_
@@ -82,12 +85,14 @@ class ['a] any_extractor : object
 
   method ap_subst_in : 'a -> ap_subst_in
   method assume : 'a -> assume
+  method assume_def : 'a -> assume_def
   method assume_prove : 'a -> assume_prove
   method at : 'a -> at
   method binder : 'a -> binder
   method bound_symbol : 'a -> bound_symbol
   method bounded_bound_symbol : 'a -> bounded_bound_symbol
   method builtin_op : 'a -> builtin_op
+  method builtin_op_ : 'a -> builtin_op_
   method context : 'a -> context
   method decimal : 'a -> decimal
   method def_step : 'a -> def_step
@@ -125,6 +130,7 @@ class ['a] any_extractor : object
   method subst_in : 'a -> subst_in
   method instantiation : 'a -> instantiation
   method theorem : 'a -> theorem
+  method theorem_def : 'a -> theorem_def
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol
   method use_or_hide : 'a -> use_or_hide
   method user_defined_op : 'a -> user_defined_op

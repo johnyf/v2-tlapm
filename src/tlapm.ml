@@ -62,11 +62,11 @@ let load_sany settings =
     | TLA_channel (c, _, _) -> c
   in
   let sany_context =
-    try
+    (*    try *)
       Ok (Sany.import_xml channel)
-    with
+(*    with
     | e ->
-      Error e
+      Error e *)
   in
   (* close_channels *)
   let exit_code = match fds with
@@ -78,7 +78,7 @@ let load_sany settings =
   in
   match (exit_code, sany_context) with
   | Unix.WEXITED 0,    Ok sc -> sc
-  | Unix.WEXITED code, _ ->
+  | Unix.WEXITED code, _ when code <> 0 ->
     let msg = asprintf "%s: java return code is %d"
         tla_error code
     in
@@ -92,6 +92,7 @@ let load_sany settings =
     failwith msg
 
 
+(*
 
 let compute_obligations settings sany_context =
   (* extract builtins from file *)
@@ -108,7 +109,7 @@ let compute_obligations settings sany_context =
     Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
   (* extract obligations *)
   Extract_obligations.extract_obligations_context fixed_theorems
-(*
+
 let announce_obligations settings formatter obligations =
   (* print obligations to stdout *)
   ignore(

@@ -17,8 +17,10 @@ type anyExpr =
   (*  | Any_subst of subst *)
   | Any_assume of assume
   | Any_assume_ of assume_
+  | Any_assume_def of assume_def
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
+  | Any_theorem_def of theorem_def
   | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
@@ -28,6 +30,7 @@ type anyExpr =
   | Any_user_defined_op of user_defined_op
   | Any_user_defined_op_ of user_defined_op_
   | Any_builtin_op of builtin_op
+  | Any_builtin_op_ of builtin_op_
   | Any_op_arg of op_arg
   | Any_formal_param of formal_param
   | Any_formal_param_ of formal_param_
@@ -82,8 +85,10 @@ let format_anyexpr = function
   | Any_instantiation _ -> "instantiation"
   | Any_assume _ -> "assume"
   | Any_assume_ _ -> "assume_"
+  | Any_assume_def _ -> "assume_def"
   | Any_theorem _ -> "theorem"
   | Any_theorem_ _ -> "theorem_"
+  | Any_theorem_def _ -> "theorem_def"
   | Any_statement _ -> "statement"
   | Any_assume_prove _ -> "assume_prove"
   | Any_new_symb _ -> "new_symb"
@@ -93,6 +98,7 @@ let format_anyexpr = function
   | Any_user_defined_op _ -> "user_defined_op"
   | Any_user_defined_op_ _ -> "user_defined_op_"
   | Any_builtin_op _ -> "builtin_op"
+  | Any_builtin_op_ _ -> "builtin_op_"
   | Any_op_arg _ -> "op_arg"
   | Any_formal_param _ -> "formal_param"
   | Any_formal_param_ _ -> "formal_param_"
@@ -142,6 +148,9 @@ class ['a] any_extractor = object(self)
   method assume acc =
     match self#extract acc with Any_assume x -> x
                               | _ -> failwith (self#fmt acc)
+  method assume_def acc =
+    match self#extract acc with Any_assume_def x -> x
+                              | _ -> failwith (self#fmt acc)
   method assume_prove acc =
     match self#extract acc with Any_assume_prove x -> x
                               | _ -> failwith (self#fmt acc)
@@ -160,6 +169,9 @@ class ['a] any_extractor = object(self)
   method builtin_op acc =
     match self#extract acc with Any_builtin_op x -> x
                               | _ -> failwith (self#fmt acc)
+  method builtin_op_ acc =
+    match self#extract acc with Any_builtin_op_ x -> x
+
   method context acc =
     match self#extract acc with Any_context x -> x
                               | _ -> failwith (self#fmt acc)
@@ -270,6 +282,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method theorem acc =
     match self#extract acc with Any_theorem x -> x
+                              | _ -> failwith (self#fmt acc)
+  method theorem_def acc =
+    match self#extract acc with Any_theorem_def x -> x
                               | _ -> failwith (self#fmt acc)
   method unbounded_bound_symbol acc =
     match self#extract acc with Any_unbounded_bound_symbol x -> x
