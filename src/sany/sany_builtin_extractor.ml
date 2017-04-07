@@ -9,8 +9,7 @@ class extractor = object(self)
   inherit [eacc] Sany_visitor.visitor as super
 
   method entry acc { uid; reference } = match reference with
-    | FMOTA_op_def
-        (OPDef (O_builtin_op (BOP {location; level; name; arity; params }))) ->
+    | E_builtin_op {location; level; name; arity; params } ->
       let params = List.map ( fun param ->
           let (x,y) = param in
           (Sany_expr.convert_formal_param (entries acc) x, y)

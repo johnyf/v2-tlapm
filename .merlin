@@ -16,6 +16,15 @@ B _build/src/backends
 B _build/src/nunchaku
 B _build/src/nunchaku/simple_expr
 
+CMT _build/src
+CMT _build/src/core
+CMT _build/src/expr
+CMT _build/src/sany
+CMT _build/src/test
+CMT _build/src/backends
+CMT _build/src/nunchaku
+CMT _build/src/nunchaku/simple_expr
+
 PKG xmlm
 PKG kaputt
 PKG sexplib

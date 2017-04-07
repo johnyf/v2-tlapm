@@ -21,19 +21,7 @@ open Commons
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove
-  | N_def_step of def_step
   | N_expr of expr
-  | N_op_arg of op_arg
-  | N_instance of instance
-  | N_new_symb of new_symb
-  | N_proof of proof
-  | N_formal_param of formal_param
-  | N_module of mule
-  | N_op_decl of op_decl
-  | N_op_def of op_def
-  | N_assume of assume
-  | N_theorem of theorem
-  | N_use_or_hide of use_or_hide
 
 and expr =
   | E_at of at
@@ -52,6 +40,7 @@ and expr_or_op_arg =
 and expr_or_assume_prove =
   | EA_expr of expr
   | EA_assume_prove of assume_prove
+  | EA_ap_subst_in of ap_subst_in
 
 and  new_symb_or_expr_or_assume_prove =
   | NEA_new_symb of new_symb
@@ -95,7 +84,19 @@ and assume =
 and assume_ = {
   location          : location option;
   level             : level option;
-  expr              : expr
+  definition        : assume_def option;
+  expr              : expr;   (* if definition is not empty, refers to definition.body *)
+}
+
+and assume_def =
+  | ADef of assume_def_
+  | ADef_ref of int
+
+and assume_def_ = {
+  location : location option;
+  level    : level option;
+  name     : string;
+  body     : expr;
 }
 
 and theorem =
@@ -105,11 +106,22 @@ and theorem =
 and theorem_ = {
   location          : location option;
   level             : level option;
-  name              : string option;
+  definition        : theorem_def option;
   expr              : expr_or_assume_prove;
   proof             : proof;
-  suffices          : bool
+  suffices          : bool;
 }
+
+and theorem_def_ = {
+  location : location option;
+  level : level option;
+  name  : string;
+  body  : expr_or_assume_prove;
+}
+
+and theorem_def =
+  | TDef of theorem_def_
+  | TDef_ref of int
 
 and assume_prove = {
   location          : location option;
@@ -135,6 +147,8 @@ and op_def_ =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
   | O_builtin_op of builtin_op
+  | O_thm_def of theorem_def
+  | O_assume_def of assume_def
 
 and module_instance =
   | MI_ref of int
@@ -318,8 +332,6 @@ and formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst 
   | FMOTA_module of mule
   | FMOTA_op_decl of op_decl
   | FMOTA_op_def of op_def
-  | FMOTA_theorem of theorem
-  | FMOTA_assume of assume
   | FMOTA_ap_subst_in of ap_subst_in
 
 and op_appl = {
@@ -370,11 +382,24 @@ and mule_ = {
   theorems          : theorem list ;
    *)
 }
+and entry_object =
+  | E_formal_param of formal_param_
+  | E_module of mule
+  | E_op_decl of op_decl_
+  (* opdefs are inlined *)
+  | E_module_instance of module_instance_
+  | E_user_defined_op of user_defined_op_
+  | E_builtin_op of builtin_op_
+  | E_thm_def of theorem_def
+  | E_assume_def of assume_def
+  | E_theorem of theorem
+  | E_assume of assume
+
 
 (* context *)
 type entry = {
   uid       : int;
-  reference : formal_param_or_module_or_op_decl_or_op_def_or_theorem_or_assume_or_apsubst;
+  reference : entry_object;
 }
 
 type context = {

@@ -57,6 +57,18 @@ class ['a] visitor :
     method context         : 'a -> context -> 'a
     method entry           : 'a -> entry -> 'a
 
+
+    method formal_param_   : 'a -> formal_param_ -> 'a
+    method mule_           : 'a -> mule_ -> 'a
+    method op_decl_        : 'a -> op_decl_ -> 'a
+    method module_instance_  : 'a -> module_instance_ -> 'a
+    method user_defined_op_  : 'a -> user_defined_op_ -> 'a
+    method builtin_op_     : 'a -> builtin_op_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
+    method theorem_        : 'a -> theorem_ -> 'a
+    method assume_         : 'a -> assume_ -> 'a
+
     (** handlers for disjunction types *)
     method expr_or_assume_prove : 'a -> expr_or_assume_prove -> 'a
     method expr_or_op_arg       : 'a -> expr_or_op_arg -> 'a

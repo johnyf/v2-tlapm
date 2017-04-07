@@ -103,7 +103,7 @@ let dr_opd (entries : Sany_ds.entry list) = function
     (
       match List.filter (fun x -> x.Sany_ds.uid = r) entries with
       | [] -> failwith "Could not find opdef!"
-      | [{reference = Sany_ds.FMOTA_op_def OPDef  od; _}] ->
+      | [{ Sany_ds.reference = Sany_ds.FMOTA_op_def Sany_ds.OPDef  od; _}] ->
         od
       | _ -> failwith "Lookup problem!"
     )
@@ -115,7 +115,8 @@ let dr_bop (entries : Sany_ds.entry list) = function
     (
       match List.filter (fun x -> x.Sany_ds.uid = r) entries with
       | [] -> failwith "Could not find opdef!"
-      | [{reference = Sany_ds.FMOTA_op_def OPDef (O_builtin_op (BOP od)); _}] ->
+      | [{ Sany_ds.reference = Sany_ds.FMOTA_op_def Sany_ds.OPDef
+               (Sany_ds.O_builtin_op (Sany_ds.BOP od)); _}] ->
         od
       | _ -> failwith "Lookup problem!"
     )
@@ -124,10 +125,10 @@ let dr_bop (entries : Sany_ds.entry list) = function
 
 (* check if an expr is a suffices operator *)
 let check_suffices entries = function
-  | Sany_ds.E_op_appl {operator = FMOTA_op_def opd; operands;_} -> (
+  | Sany_ds.E_op_appl {Sany_ds.operator = Sany_ds.FMOTA_op_def opd; operands;_} -> (
       match dr_opd entries opd with
-      | O_builtin_op op ->
-        let name = (dr_bop entries op).name in
+      | Sany_ds.O_builtin_op op ->
+        let name = (dr_bop entries op).Sany_ds.name in
         let found = (name = "$Suffices") in
         found
       | _ ->
@@ -322,7 +323,9 @@ class converter = object(self)
   method formal_param acc0 = function
     | Sany_ds.FP_ref i ->
       (Any_formal_param (FP_ref i), snd acc0)
-    | _ -> failwith "Expecting FP ref, not FP"
+    | Sany_ds.FP { Sany_ds.name; _ } ->
+      let msg = CCFormat.sprintf "Expecting FP ref, not FP %s" name in
+      failwith msg
 
   method private formal_param_ acc0 = function
     | Sany_ds.FP { Sany_ds.location; level; name; arity; } ->
@@ -335,7 +338,9 @@ class converter = object(self)
         arity ;
       }
       in (Any_formal_param (FP fp), acc2)
-    | _ -> failwith "Expecting FP, not FP ref"
+    | Sany_ds.FP_ref x ->
+      let msg = CCFormat.sprintf "Expecting FP, not FP ref to %d" x in
+      failwith msg
 
   method mule acc0 = function
     | Sany_ds.MOD_ref i ->
@@ -371,7 +376,7 @@ class converter = object(self)
   method op_decl acc0 = function
     | Sany_ds.OPD_ref x ->
       (Any_op_decl (OPD_ref x), snd acc0)
-    | Sany_ds.OPD {location; name; _ } ->
+    | Sany_ds.OPD { Sany_ds.location; name; _ } ->
       let msg =
         CCFormat.sprintf "Expected op decl ref not op decl %s" name in
       failwith msg
@@ -451,7 +456,9 @@ class converter = object(self)
         proof;
       } in
       (Any_theorem (THM t), acc4)
-    | _ -> failwith "Expected theorem ref not theorem."
+    | Sany_ds.THM_ref x ->
+      let msg = CCFormat.sprintf "Expected theorem not theorem ref to %d." x in
+      failwith msg
 
   method assume acc0  = function
     | Sany_ds.ASSUME_ref x -> (Any_assume (ASSUME_ref x), snd acc0)
@@ -691,7 +698,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
   method user_defined_op acc0 = function
     | Sany_ds.UOP_ref x ->
       (Any_user_defined_op (UOP_ref x), snd acc0)
-    | Sany_ds.UOP {name; _ } ->
+    | Sany_ds.UOP { Sany_ds.name; _ } ->
       let msg =
         CCFormat.sprintf "Expected user defined op ref, not uop %s!" name in
       failwith msg
@@ -839,7 +846,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     failwith "Implementation eror! This code should be unreachable!"
 
   method expr_or_op_arg acc = function
-    | Sany_ds.EO_op_arg ({ location; level; argument  } as oa) ->
+    | Sany_ds.EO_op_arg ({ Sany_ds.location; level; argument  } as oa) ->
       begin
         (* replace definitions called LAMBDA by lambdas*)
         (* i've seen only inline UOP lambdas so far, but there might be references *)
@@ -849,8 +856,8 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
             (Sany_ds.OPDef
                (Sany_ds.O_user_defined_op
                   (Sany_ds.UOP
-                     ({location; level; name="LAMBDA";
-                       arity; body; params;} )))) ->
+                     ({ Sany_ds.location; level; name="LAMBDA";
+                        arity; body; params;} )))) ->
           (* helper function copied from Expr_map, just for a different accumulator *)
           let unpack_fold unpack f acc l =
             let rec mfold ?first:(first=true) up f start_acc list =
@@ -921,19 +928,19 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
 
   method mule_entry acc = function
     | Sany_ds.MODe_op_decl x     ->
-      let acc = self#op_decl_ acc x in
+      let acc = self#op_decl acc x in
       let r = MODe_op_decl (macc_extract#op_decl acc) in
       set_anyexpr acc (Any_mule_entry r)
     | Sany_ds.MODe_op_def x      ->
-      let acc = self#op_def_ acc x in
+      let acc = self#op_def acc x in
       let r = MODe_op_def (macc_extract#op_def acc) in
       set_anyexpr acc (Any_mule_entry r)
     | Sany_ds.MODe_assume x      ->
-      let acc = self#assume_ acc x in
+      let acc = self#assume acc x in
       let r = MODe_assume (macc_extract#assume acc) in
       set_anyexpr acc (Any_mule_entry r)
     | Sany_ds.MODe_theorem x     ->
-      let acc = self#theorem_ acc x in
+      let acc = self#theorem acc x in
       let r = MODe_theorem (macc_extract#theorem acc) in
       set_anyexpr acc (Any_mule_entry r)
     | Sany_ds.MODe_instance x    ->
@@ -951,7 +958,7 @@ end
 let converter_instance = new converter
 
 let convert_context ?builtins:(b=[]) (x:Sany_ds.context) =
-  match converter_instance#context ( Nothing, (b,[],x.entries) ) x with
+  match converter_instance#context ( Nothing, (b,[],x.Sany_ds.entries) ) x with
   | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
 let convert_formal_param ?builtins:(b=[]) entries x =

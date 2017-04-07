@@ -72,14 +72,14 @@ let get_optlevel i =
                    "1 elements returned multiple elements")
 
 (** Parses the FormalParamNode within context/entry *)
-let read_formal_param i : formal_param =
+let read_formal_param i : formal_param_ =
   open_tag i "FormalParamNode";
   let loc = read_optlocation i in
   let level = get_optlevel i in
   let un = get_data_in i "uniquename" read_string in
   let ar = get_data_in i "arity" read_int in
   close_tag i "FormalParamNode";
-  FP {
+  {
     location = loc;
     level = level;
     arity = ar;
@@ -107,11 +107,16 @@ let read_opref i =
     | "FormalParamNodeRef"    -> rr (fun x -> FMOTA_formal_param (FP_ref x) )
     | "ModuleNodeRef"         -> rr (fun x -> FMOTA_module (MOD_ref x) )
     | "OpDeclNodeRef"         -> rr (fun x -> FMOTA_op_decl (OPD_ref x) )
-    | "ModuleInstanceKindRef" -> rr (fun x -> FMOTA_op_def (OPDef (O_module_instance (MI_ref x) )))
-    | "UserDefinedOpKindRef"  -> rr (fun x -> FMOTA_op_def (OPDef (O_user_defined_op (UOP_ref x) )))
-    | "BuiltInKindRef"        -> rr (fun x -> FMOTA_op_def (OPDef (O_builtin_op (BOP_ref x)) ))
-    | "TheoremNodeRef"        -> rr (fun x -> FMOTA_theorem (THM_ref x) )
-    | "AssumeNodeRef"         -> rr (fun x -> FMOTA_assume (ASSUME_ref x) )
+    | "ModuleInstanceKindRef" ->
+      rr (fun x -> FMOTA_op_def (OPDef (O_module_instance (MI_ref x) )))
+    | "UserDefinedOpKindRef"  ->
+      rr (fun x -> FMOTA_op_def (OPDef (O_user_defined_op (UOP_ref x) )))
+    | "BuiltInKindRef"        ->
+      rr (fun x -> FMOTA_op_def (OPDef (O_builtin_op (BOP_ref x)) ))
+    | "TheoremDefRef"        ->
+      rr (fun x -> FMOTA_op_def (OPDef (O_thm_def (TDef_ref x) )))
+    | "AssumeDefRef"         ->
+      rr (fun x -> FMOTA_op_def (OPDef (O_assume_def (ADef_ref x) )))
     | _ -> failwith ("Found tag " ^ name ^
                      " but we need an operator reference ("^
                      "FormalParamNodeRef, ModuleNodeRef, OpDeclNodeRef, " ^
@@ -401,33 +406,9 @@ and is_node name =
          "AssumeNodeRef"; "TheoremNodeRef"; "UseOrHideNode"; ])
 
 and read_node i = get_child_choice i [
-    ((=) "APSubstInNode",         fun i -> N_ap_subst_in (read_apsubstinnode i));
-    ((=) "AssumeProveNode",       fun i -> N_assume_prove (read_assume_prove i));
-    ((=) "DefStepNode",           fun i -> N_def_step (read_defstep i));
-    (is_expr_node,                fun i -> N_expr (read_expr i));
-    ((=) "InstanceNode",          fun i -> N_instance (read_instance i));
-    ((=) "NewSymbNode",           fun i -> N_new_symb (read_newsymb i));
-    (is_proof_node,               fun i -> N_proof (read_proof i));
-    ((=) "FormalParamNodeRef",    fun i -> N_formal_param
-         (read_ref i "FormalParamNodeRef" (fun x -> FP_ref x)));
-    ((=) "ModuleNodeRef",         fun i -> N_module
-         (read_ref i "ModuleNodeRef" (fun x -> MOD_ref x)));
-    ((=) "OpDeclNodeRef",         fun i -> N_op_decl
-         (read_ref i "OpDeclNodeRef" (fun x -> OPD_ref x)));
-    ((=) "ModuleInstanceKindRef",
-     fun i -> N_op_def (read_ref i "ModuleInstanceKindRef"
-                          (fun x -> OPDef (O_module_instance (MI_ref x)))));
-    ((=) "UserDefinedOpKindRef",
-     fun i -> N_op_def (read_ref i "UserDefinedOpKindRef"
-                          (fun x -> OPDef (O_user_defined_op (UOP_ref x)))));
-    ((=) "BuiltInKindRef",
-     fun i -> N_op_def (read_ref i "BuiltInKindRef"
-                          (fun x -> OPDef (O_builtin_op (BOP_ref x)))));
-    ((=) "AssumeNodeRef",         fun i -> N_assume
-         (read_ref i "AssumeNodeRef" (fun x -> ASSUME_ref x)));
-    ((=) "TheoremNodeRef",        fun i -> N_theorem
-         (read_ref i "TheoremNodeRef" (fun x -> THM_ref x)));
-    ((=) "UseOrHideNode",         fun i -> N_use_or_hide (read_useorhide i));
+    ((=) "APSubstInNode",   fun i -> N_ap_subst_in (read_apsubstinnode i));
+    ((=) "AssumeProveNode", fun i -> N_assume_prove (read_assume_prove i));
+    (is_expr_node,          fun i -> N_expr (read_expr i));
   ]
 
 (* untested *)
@@ -480,15 +461,49 @@ and read_unbounded_param i : unbounded_bound_symbol =
   } in
   close_tag i "unbound";
   ret
+
+and read_assume_def i =
+  open_tag i "AssumeDef";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let name = get_data_in i "uniquename" read_string in
+  let body = read_expr i in
+  close_tag i "AssumeDef";
+  let r : assume_def_ = {
+    location;
+    level;
+    name;
+    body;
+  }
+  in ADef r
+
 and read_assume i =
   open_tag i "AssumeNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
+  let opt_def =  get_optchild i "definition"
+      (fun i ->
+         open_tag i "definition";
+         let r = read_opref i in
+         close_tag i "definition";
+         r
+      )
+  in
+  open_tag i "body";
   let expr = read_expr i in
+  close_tag i "body";
   close_tag i "AssumeNode";
+  let definition = match opt_def with
+    | [ FMOTA_op_def (OPDef (O_assume_def t)) ] ->
+      Some t
+    | [] ->
+      None
+    | _ -> failwith "Implementation error reading assume node!"
+  in
   ASSUME {
     location = location;
     level    = level;
+    definition;
     expr     = expr;
   }
 
@@ -496,7 +511,8 @@ and read_assume i =
 and expr_nodes =
   ["AtNode"      ;   "DecimalNode" ;   "LabelNode"   ;
    "LetInNode"   ;   "NumeralNode" ;   "OpApplNode"  ;
-   "StringNode"  ;   "SubstInNode" ]
+   "StringNode"  ;   "SubstInNode" ;   "TheoremDefNode";
+   "AssumeDef"; ]
 
 and is_expr_node name = List.mem name expr_nodes
 
@@ -534,7 +550,7 @@ and read_op_decl i =
   let ar = get_data_in i "arity" read_int in
   let kind = opdeclkind_from_int (get_data_in i "kind" read_int) in
   close_tag i "OpDeclNode";
-  OPD {
+  {
     location = loc;
     level = level;
     name = un;
@@ -721,19 +737,36 @@ and is_proof_node name = List.mem name ["omitted"; "obvious"; "by"; "steps"]
 and read_expr_or_assumeprove i =
   get_child_choice i [
     ((=) "AssumeProveNode", (fun i -> EA_assume_prove (read_assume_prove i)));
+    ((=) "APSubstInNode", (fun i -> EA_ap_subst_in (read_apsubstinnode i)));
     (is_expr_node , (fun i -> EA_expr (read_expr i)));
   ]
+
+and read_theorem_def i =
+  open_tag i "TheoremDefNode";
+  let location = read_optlocation i in
+  let level = get_optlevel i in
+  let name = get_data_in i "uniquename" read_string in
+  let body = read_expr_or_assumeprove i in
+  close_tag i "TheoremDefNode";
+  let r : theorem_def_ = {
+    location;
+    level;
+    name;
+    body;
+  }
+  in TDef r
 
 and read_theorem i : theorem =
   open_tag i "TheoremNode";
   let location = read_optlocation i in
   let level = get_optlevel i in
-  let read_un i = get_data_in i "uniquename" read_string in
-  let name = match get_optchild i "uniquename" read_un with
-    | [] -> None
-    | [x] -> Some x
-    | _ ->
-      failwith "Implementation error! Theorems have exactly one unique name!"
+  let opt_def =  get_optchild i "definition"
+      (fun i ->
+         open_tag i "definition";
+         let r = read_opref i in
+         close_tag i "definition";
+         r
+      )
   in
   let expr = read_expr_or_assumeprove i in
   let proofl = get_optchild_choice i [(is_proof_node, read_proof)]  in
@@ -743,13 +776,20 @@ and read_theorem i : theorem =
   in
   let suffices = read_flag i "suffices" in
   close_tag i "TheoremNode";
+  let definition = match opt_def with
+    | [ FMOTA_op_def (OPDef (O_thm_def t)) ] ->
+      Some t
+    | [] ->
+      None
+    | _ -> failwith "Implementation error reading assume node!"
+  in
   THM {
-    location = location;
-    level    = level;
-    name     = name;
-    expr     = expr;
-    proof    = proof;
-    suffices = suffices;
+    location;
+    level;
+    definition;
+    expr;
+    proof;
+    suffices;
   }
 
 and read_module_entries i =
@@ -821,9 +861,44 @@ and read_op_def i =
                                    (O_module_instance (read_module_instance i))));
     ((=) "BuiltInKind"       , (fun i -> OPDef
                                    (O_builtin_op (read_builtin_kind i))));
+    ((=) "AssumeDef"         , (fun i -> OPDef
+                                   (O_assume_def (read_assume_def i))));
+    ((=) "TheoremDefNode"    , (fun i -> OPDef
+                                   (O_thm_def (read_theorem_def i))));
   ]
+
+
+and read_op_def_ref i =
+  get_child_choice i [
+    ((=) "UserDefinedOpKindRef" , (fun i -> OPDef
+                                      (O_user_defined_op
+                                         (read_ref i "UserDefinedOpKindRef"
+                                         (fun x -> UOP_ref x)))));
+    ((=) "ModuleInstanceKindRef", (fun i -> OPDef
+                                      (O_module_instance
+                                         (read_ref i "ModuleInstanceKindRef"
+                                            (fun x -> MI_ref x)))));
+    ((=) "BuiltInKindRef"       , (fun i -> OPDef
+                                      (O_builtin_op
+                                         (read_ref i "BuiltInKindRef"
+                                            (fun x -> BOP_ref x)))));
+    ((=) "TheoremDefRef"       , (fun i -> OPDef
+                                      (O_thm_def
+                                         (read_ref i "TheoremDefRef"
+                                            (fun x -> TDef_ref x)))));
+    ((=) "AssumeDefRef"       , (fun i -> OPDef
+                                      (O_assume_def
+                                         (read_ref i "AssumeDefRef"
+                                            (fun x -> ADef_ref x)))));
+  ]
+
 and is_op_def name = List.mem name
-    ["UserDefinedOpKind"; "ModuleInstanceKind"; "BuiltInKind"]
+    ["UserDefinedOpKind"; "ModuleInstanceKind"; "BuiltInKind"; "AssumeDef";
+     "TheoremDefNode"]
+
+and is_op_def_ref name = List.mem name
+    ["UserDefinedOpKindRef"; "ModuleInstanceKindRef"; "BuiltInKindRef";
+     "AssumeDefRef"; "TheoremDefRef"]
 
 (** Parses the OpArgNode *)
 and read_oparg i : op_arg =
@@ -834,15 +909,18 @@ and read_oparg i : op_arg =
   (* let arity = get_data_in i "arity" read_int in *)
   open_tag i "argument";
   let argument = get_child_choice i [
-      ((=)  "FormalParamNode", (fun i ->  FMOTA_formal_param
-                                   (read_formal_param i)));
-      (is_op_def             , (fun i ->  FMOTA_op_def (read_op_def i)));
-      ((=)  "ModuleNode"     , (fun i ->  FMOTA_module  (read_module i)));
-      ((=)  "OpDeclNode"     , (fun i ->  FMOTA_op_decl (read_op_decl i)));
-      ((=)  "TheoremNode"    , (fun i ->  FMOTA_theorem (read_theorem i)));
-      ((=)  "AssumeNode"     , (fun i ->  FMOTA_assume  (read_assume i)));
       ((=)  "APSubstInNode"  , (fun i ->  FMOTA_ap_subst_in
                                    (read_apsubstinnode i)));
+      ((=)  "FormalParamNodeRef", (fun i ->  FMOTA_formal_param
+                                      (read_ref i "FormalParamNodeRef"
+                                         (fun x -> FP_ref x))));
+      (is_op_def_ref         , (fun i ->  FMOTA_op_def (read_op_def_ref i)));
+      ((=)  "ModuleNodeRef"  , (fun i ->  FMOTA_module
+                                   (read_ref i "ModuleNodeRef"
+                                      (fun x -> MOD_ref x))));
+      ((=)  "OpDeclNodeRef"  , (fun i ->  FMOTA_op_decl
+                                   (read_ref i "OpDeclNodeRef"
+                                      (fun x -> OPD_ref x))));
     ] in
   close_tag i "argument";
   close_tag i "OpArgNode";
@@ -853,15 +931,22 @@ and read_entry i =
   open_tag i "entry";
   let uid = get_data_in i "UID" read_int in
   let symbol = get_child_choice i [
-      ((=)  "FormalParamNode", (fun i ->  FMOTA_formal_param
+      ((=)  "FormalParamNode", (fun i ->  E_formal_param
                                    (read_formal_param i)));
-      (is_op_def             , (fun i ->  FMOTA_op_def (read_op_def i)));
-      ((=)  "ModuleNode"     , (fun i ->  FMOTA_module  (read_module i)));
-      ((=)  "OpDeclNode"     , (fun i ->  FMOTA_op_decl (read_op_decl i)));
-      ((=)  "TheoremNode"    , (fun i ->  FMOTA_theorem (read_theorem i)));
-      ((=)  "AssumeNode"     , (fun i ->  FMOTA_assume  (read_assume i)));
-      ((=)  "APSubstInNode"  , (fun i ->  FMOTA_ap_subst_in
-                                   (read_apsubstinnode i)));
+      (is_op_def             , (fun i ->
+           match read_op_def i with
+           | OPDef (O_user_defined_op (UOP op)) -> E_user_defined_op op
+           | OPDef (O_builtin_op (BOP op)) -> E_builtin_op op
+           | OPDef (O_module_instance (MI op)) -> E_module_instance op
+           | OPDef (O_assume_def op) -> E_assume_def op
+           | OPDef (O_thm_def op) -> E_thm_def op
+           | _ ->
+             failwith "Cannot have references as entry in the has table"
+         ));
+      ((=)  "ModuleNode"     , (fun i ->  E_module  (read_module i)));
+      ((=)  "OpDeclNode"     , (fun i ->  E_op_decl (read_op_decl i)  ));
+      ((=)  "TheoremNode"    , (fun i ->  E_theorem (read_theorem i)));
+      ((=)  "AssumeNode"     , (fun i ->  E_assume  (read_assume i)));
     ] in
   close_tag i "entry";
   {

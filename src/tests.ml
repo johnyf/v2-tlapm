@@ -76,6 +76,7 @@ let () =
     List.concat [
       Test_util.get_tests;
       Test_sany.get_tests results;
+      (*
       Test_map.get_tests results;
       Test_correct_lambda.get_tests without_broken;
       Test_parse_theorems.get_tests without_broken;
@@ -85,6 +86,7 @@ let () =
       Test_simple_expr.get_tests without_nunchaku_broken;
       Test_nunchaku.get_tests without_nunchaku_broken;
       Test_issue2.get_tests without_broken;
+      *)
     ] in
   match check_xmloutput with
   | true  ->

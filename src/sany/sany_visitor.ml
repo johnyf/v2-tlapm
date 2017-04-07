@@ -23,7 +23,10 @@ class ['a] visitor :
     method formal_param    : 'a -> formal_param -> 'a
     method op_decl         : 'a -> op_decl -> 'a
     method op_def          : 'a -> op_def -> 'a
+    method builtin_op      : 'a -> builtin_op -> 'a
+    method theorem_def     : 'a -> theorem_def -> 'a
     method theorem         : 'a -> theorem -> 'a
+    method assume_def      : 'a -> assume_def -> 'a
     method assume          : 'a -> assume -> 'a
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
@@ -43,6 +46,17 @@ class ['a] visitor :
     method node            : 'a -> node -> 'a
     method def_step        : 'a -> def_step -> 'a
     method reference       : 'a -> int -> 'a
+
+    method formal_param_   : 'a -> formal_param_ -> 'a
+    method mule_           : 'a -> mule_ -> 'a
+    method op_decl_        : 'a -> op_decl_ -> 'a
+    method module_instance_  : 'a -> module_instance_ -> 'a
+    method user_defined_op_  : 'a -> user_defined_op_ -> 'a
+    method builtin_op_     : 'a -> builtin_op_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
+    method theorem_        : 'a -> theorem_ -> 'a
+    method assume_         : 'a -> assume_ -> 'a
 
     method context         : 'a -> context -> 'a
     method entry           : 'a -> entry -> 'a
@@ -107,7 +121,10 @@ class ['a] visitor :
 
     method formal_param acc0 = function
       | FP_ref i -> self#reference acc0 i
-      | FP { location; level; name; arity; } ->
+      | FP fp -> self#formal_param_ acc0 fp
+
+    method formal_param_ acc0 = function
+      | { location; level; name; arity; } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc3 = self#name acc2 name in
@@ -116,7 +133,9 @@ class ['a] visitor :
 
     method mule acc0 = function
       | MOD_ref i -> self#reference acc0 i
-      | MOD {name; location; module_entries } ->
+
+    method mule_ acc0 = function
+      | {name; location; module_entries } ->
         let acc0a = self#name acc0 name in
         let acc1 = self#location acc0a location in
         let acc = List.fold_left self#mule_entry acc1 module_entries in
@@ -132,7 +151,9 @@ class ['a] visitor :
 
     method op_decl acc0 = function
       | OPD_ref x -> self#reference acc0 x
-      | OPD  { location ; level ; name ; arity ; kind ; } ->
+
+    method op_decl_ acc0 = function
+      | { location ; level ; name ; arity ; kind ; } ->
         (* terminal node *)
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
@@ -146,14 +167,30 @@ class ['a] visitor :
       | OPDef (O_builtin_op x)      -> self#builtin_op acc x
       | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
 
-    method theorem acc0 = function
-      | THM_ref x -> self#reference acc0 x
-      | THM { location; level; name; expr; proof; suffices } ->
+    method theorem_def acc0 = function
+      | TDef_ref x -> self#reference acc0 x
+
+    method assume_def acc0 = function
+      | ADef_ref x -> self#reference acc0 x
+
+    method assume_def_ acc0 = function
+      | {location; level; name; body } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
-        let acc2a = match name with
+        let acc3 = self#name acc2 name in
+        let acc4 = self#expr_or_assume_prove in
+        acc4
+    
+    method theorem acc0 = function
+      | THM_ref x -> self#reference acc0 x
+
+    method theorem_ acc0 = function
+      | { location; level; definition; expr; proof; suffices } ->
+        let acc1 = self#location acc0 location in
+        let acc2 = self#level acc1 level in
+        let acc2a = match definition with
           | None -> acc2
-          | Some n -> self#name acc2 n in
+          | Some n -> self#theorem_def acc2 n in
         let acc3 = self#expr_or_assume_prove acc2a expr in
         let acc4 = self#proof acc3 proof  in
         (* skip suffices *)
@@ -161,7 +198,9 @@ class ['a] visitor :
 
     method assume acc0  = function
       | ASSUME_ref x -> self#reference acc0 x
-      | ASSUME {location; level; expr; } ->
+
+    method assume_ acc0  = function
+      |  {location; level; expr; } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc = self#expr acc2 expr in
@@ -272,7 +311,9 @@ class ['a] visitor :
 
     method module_instance acc0 = function
       | MI_ref x -> self#reference acc0 x
-      | MI {location; level; name} ->
+
+    method module_instance_ acc0 = function
+      | {location; level; name} ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc = self#name acc2 name in
@@ -280,7 +321,9 @@ class ['a] visitor :
 
     method builtin_op acc0 = function
       | BOP_ref x -> self#reference acc0 x
-      | BOP {location; level; name; arity; params } ->
+
+    method builtin_op_ acc0 = function
+      | {location; level; name; arity; params } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc3 = self#name acc2 name in
@@ -291,7 +334,9 @@ class ['a] visitor :
 
     method user_defined_op acc0 = function
       | UOP_ref x -> self#reference acc0 x
-      | UOP { location; level ; name ; arity ;
+
+    method user_defined_op_ acc0 = function
+      | { location; level ; name ; arity ;
               body ; params ; recursive ; } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in

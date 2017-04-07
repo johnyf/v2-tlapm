@@ -48,12 +48,15 @@ open Commons
 
 *)
 
+type id = int
+
 (** Represents a node which can be instantiated via ap_subst_in*)
 type node =
   | N_ap_subst_in of ap_subst_in
   | N_assume_prove of assume_prove
-  | N_def_step of def_step
   | N_expr of expr
+  (* (* these don't come from the input, but we might want to shift
+         ap subst inside an expression *)
   | N_op_arg of op_arg
   | N_instance of instance
   | N_new_symb of new_symb
@@ -65,6 +68,7 @@ type node =
   | N_assume of assume
   | N_theorem of theorem
   | N_use_or_hide of use_or_hide
+*)
 
 (** Represents a TLA expression.
     Example:
@@ -86,6 +90,14 @@ and expr =
 and expr_or_op_arg =
   | EO_expr of expr
   | EO_op_arg of op_arg
+
+(* The statement of a theorem
+and t_stmt =
+  | EAA_expr of expr
+  | EAA_assume_prove of assume_prove
+  | EAA_ap_subst_in of ap_subst_in
+*)
+
 
 (** An instantiation of an ASSUME - PROVE expression. Other
     nodes are also allowed in SANY although it is only inteded to be used
@@ -173,21 +185,53 @@ and assume =
     Example: ASSUME x > 0
 *)
 and assume_ = {
+  id                : id;
   location          : location;
   level             : level option;
+  definition        : assume_def option;
   expr              : expr
 }
+
+(** The union of assumption definitions and references to them *)
+and assume_def =
+  | ADef of assume_def_
+  | ADef_ref of int
+
+(** The union of assumption definitions and references to them *)
+and assume_def_ = {
+  id       : id;
+  location : location option;
+  level    : level option;
+  name     : string;
+  body     : expr;
+}
+
+
+(* the definition statement of a theorem *)
+and theorem_def_ = {
+  id       : id;
+  location : location option;
+  level : level option;
+  name  : string;
+  body  : node;
+}
+
+and theorem_def =
+  | TDef of theorem_def_
+  | TDef_ref of int
+
 
 (** The union of theorem statements and references to them. *)
 and theorem =
   | THM_ref of int
-  | THM of theorem_
+  (*  | THM of theorem_ *)
 
 (** The THEOREM statement of TLA.
     Example:
     THEOREM ASSUME NEW x, x > 0 PROVE -x <0 BY SMT
 *)
 and theorem_ = {
+  id       : id;
   location          : location;
   level             : level option;
   name              : string option;
@@ -195,10 +239,10 @@ and theorem_ = {
   proof             : proof;
 }
 
-and statement =
+and statement = (* TODO: check if the types in here fit *)
   (* these statements have proofs *)
-  | ST_FORMULA of assume_prove
-  | ST_SUFFICES of assume_prove
+  | ST_FORMULA of node
+  | ST_SUFFICES of node
   | ST_CASE of expr
   | ST_PICK of pick
   | ST_QED
@@ -233,7 +277,7 @@ and assume_prove = {
   location          : location;
   level             : level option;
   new_symbols       : new_symb list;
-  assumes           : assume_prove list;
+  assumes           : node list;
   prove             : expr;
   suffices          : bool;
   boxed             : bool
@@ -257,11 +301,13 @@ and op_def =
   | O_module_instance of module_instance
   | O_user_defined_op of user_defined_op
   | O_builtin_op of builtin_op
+  | O_thm_def of theorem_def
+  | O_assume_def of assume_def
 
 (** A module instantiation or a reference to one. *)
 and module_instance =
   | MI_ref of int
-  | MI of module_instance_
+  (*  | MI of module_instance_ *)
 
 (** An operator representing an instantiated module.
     Example:
@@ -272,6 +318,7 @@ and module_instance =
     I(x)!P(y) is represented as I!P(x,y)
 *)
 and module_instance_ = {
+  id                : id;
   location          : location;
   level             : level option;
   name              : string
@@ -281,13 +328,14 @@ and module_instance_ = {
 *)
 and user_defined_op =
   | UOP_ref of int (*make it int * string, but makes conversion more complex *)
-  | UOP of user_defined_op_
+(*  | UOP of user_defined_op_ *)
 
 (** A user defined operator in TLA.
     Example:
     Op(x,y) == ENABLED (x' # y')
 *)
 and user_defined_op_ = {
+  id                : id;
   location          : location;
   level             : level option;
   name              : string;
@@ -309,11 +357,15 @@ and lambda = {
   params            : (formal_param * bool (*is leibniz*)) list;
 }
 
+(** A reference to a builtin operator *)
+and builtin_op = BOP_ref of int
+
 (** A builtin operator of TLA. See the TLA book p. 268ff. for a list.
     Each operator is a constant.
     Example: =>, TRUE
 *)
-and builtin_op = {
+and builtin_op_ = {
+  id                : id;
   level             : level option;
   name              : string;
   arity             : int;
@@ -334,13 +386,14 @@ and op_arg = {
 (** A formal parameter or a reference to it.*)
 and formal_param =
   | FP_ref of int
-  | FP of formal_param_
+  (*  | FP of formal_param_ *)
 
 (** Represents arguments of a declared operator.
     Example: x and y in
     Op(x,y) = x + y
 *)
 and formal_param_ = {
+  id                : id;
   location          : location;
   level             : level option; (* \A x : x = x' is provable because of the
                                        level of x. make sure the level is checked *)
@@ -351,7 +404,7 @@ and formal_param_ = {
 (** An operator declaration or a reference to it. *)
 and op_decl =
   | OPD_ref of int
-  | OPD of op_decl_
+  (*  | OPD of op_decl_ *)
 
 (** An operator declaration, including operators introduced by NEW.
     Example:
@@ -359,6 +412,7 @@ and op_decl =
     ASSUME NEW P(_), NEW VARIABLE x PROVE P(x)
 *)
 and op_decl_ = {
+  id                : id;
   location          : location;
   level             : level option;
   name              : string;
@@ -575,22 +629,26 @@ and mule_entry =
 (* modules *)
 and mule =
   | MOD_ref of int
-  | MOD of mule_
+  (*  | MOD of mule_ *)
 
 and mule_ = {
+  id                : id;
   name              : string;
   location          : location;
   module_entries    : mule_entry list;
 }
 
 type entry =
-    FP_entry of formal_param_ |
-    MOD_entry of mule_ |
-    OPDec_entry of op_decl_ |
-    OPDef_entry of op_def |
-    THM_entry of theorem_ |
-    ASSUME_entry of assume_ |
-    APSUBST_entry of ap_subst_in
+    | FP_entry of formal_param_
+    | MOD_entry of mule_
+    | OPDec_entry of op_decl_
+    | MI_entry of module_instance_
+    | UOP_entry of user_defined_op_
+    | BOP_entry of builtin_op_
+    | TDef_entry of theorem_def_
+    | ADef_entry of assume_def_
+    | THM_entry of theorem_
+    | ASSUME_entry of assume_
 
 
 type term_db = (int * entry) list

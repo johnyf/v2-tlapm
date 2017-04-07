@@ -67,7 +67,7 @@ class ['a] expr_parse_theorems =
           | _ ->
             failwith "Step case operator expects exactly one argument!"
         in
-        let thm = THM {location; level; name; statement; proof } in
+        let thm = THM {id; location; level; name; statement; proof } in
         set_anyexpr acc1 (Any_theorem thm)
       |  _, E_binder { operator = FMOTA_op_def opd ;
                        operand;

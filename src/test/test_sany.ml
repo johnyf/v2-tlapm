@@ -188,11 +188,11 @@ let test_xml record =
   Test.make_assert_test
     ~title: ("xml parsing " ^ record.filename)
     (fun () -> ())
-    (fun () ->
-       Assert.no_raise ~msg:"Unexpected exception raised."
+(*    (fun () ->
+       Assert.no_raise ~msg:"Unexpected exception raised."*)
          (fun () -> exhandler ( test_sany record )  )
-    )
-    (fun () -> ()  )
+         (*    )*)
+    (fun _ -> ()  )
 
 let test_xml_suffices record =
   Test.make_assert_test

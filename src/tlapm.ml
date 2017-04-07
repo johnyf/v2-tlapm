@@ -1,19 +1,22 @@
 open Commons
 open Util
 open Sany
+open Format
+open Settings
+open Arg_handler
+open Result
+
+(*
 open Obligation
 open Extract_obligations
-open Format
 open Nunchaku
 open Expr_substitution
 open Expr_termdb_utils
-open Settings
-open Arg_handler
 open Toolbox
-open Result
 open Scheduler
 open Backend_exceptions
 open Isabelle
+*)
 
 let  global_settings = ref default_settings
 
@@ -105,7 +108,7 @@ let compute_obligations settings sany_context =
     Expr_parse_theorems.expr_parse_theorems_context fixed_lambda in
   (* extract obligations *)
   Extract_obligations.extract_obligations_context fixed_theorems
-
+(*
 let announce_obligations settings formatter obligations =
   (* print obligations to stdout *)
   ignore(
@@ -144,12 +147,12 @@ let announce_all_failed settings formatter obligations =
   );
   ()
 
-type exit_status = Exit_status of int
-
 
 let prepare_backends settings () =
   let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
   ignore(Sys.command clear_tmp)
+*)
+type exit_status = Exit_status of int
 
 
 let init () =
@@ -158,12 +161,14 @@ let init () =
     let settings = handle_arguments Sys.argv in
     global_settings := settings;
     let sany_context = load_sany settings in
+    (* TODO: put stuff back in
     let obligations = compute_obligations settings sany_context in
     announce_obligations settings err_formatter obligations;
     (* here goes the calling of backends *)
     prepare_backends settings (); (*TODO refactor *)
     let messages = scheduler settings obligations in
     announce_results messages;
+*)
     Exit_status 0
   end
   with
