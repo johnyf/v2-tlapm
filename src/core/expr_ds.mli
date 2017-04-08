@@ -457,8 +457,8 @@ and expr_or_module_or_module_instance =
 and defined_expr =
   | UMTA_user_defined_op of user_defined_op
   | UMTA_module_instance of module_instance
-  | UMTA_theorem of theorem
-  | UMTA_assume of assume
+  | UMTA_theorem_def of theorem_def
+  | UMTA_assume_def of assume_def
 
 (** The BY statment for a proof. The only flag differentiates between
     BY and BY ONLY proofs. See section 7.2.2 of the tla2 guide for

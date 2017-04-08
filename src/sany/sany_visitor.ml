@@ -412,8 +412,8 @@ class ['a] visitor :
     method user_defined_op_or_module_instance_or_theorem_or_assume acc = function
       | UMTA_user_defined_op x -> self#user_defined_op acc x
       | UMTA_module_instance x -> self#module_instance acc x
-      | UMTA_theorem x         -> self#theorem acc x
-      | UMTA_assume x          -> self#assume acc x
+      | UMTA_theorem_def x     -> self#theorem_def acc x
+      | UMTA_assume_def x      -> self#assume_def acc x
 
     method new_symb_or_expr_or_assume_prove acc = function
       | NEA_new_symb s      -> self#new_symb acc s

@@ -8,7 +8,6 @@
     unwraps the results of converter for a few particular types.
 *)
 open Expr_ds
-open Expr_builtins
 open Commons
 open Any_expr
 
@@ -778,12 +777,12 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     | Sany_ds.UMTA_module_instance x ->
       let Any_module_instance y, acc0 = self#module_instance acc x in
       (Any_defined_expr ( UMTA_module_instance y), acc0)
-    | Sany_ds.UMTA_theorem x         ->
-      let Any_theorem y, acc0 = self#theorem acc x in
-      (Any_defined_expr ( UMTA_theorem y), acc0)
-    | Sany_ds.UMTA_assume x          ->
-      let Any_assume y, acc0 = self#assume acc x in
-      (Any_defined_expr ( UMTA_assume y), acc0)
+    | Sany_ds.UMTA_theorem_def x         ->
+      let Any_theorem_def y, acc0 = self#theorem_def acc x in
+      (Any_defined_expr ( UMTA_theorem_def y), acc0)
+    | Sany_ds.UMTA_assume_def x          ->
+      let Any_assume_def y, acc0 = self#assume_def acc x in
+      (Any_defined_expr ( UMTA_assume_def y), acc0)
 
   method new_symb_or_expr_or_assume_prove acc =
     failwith "Implementation eror! This code should be unreachable!"

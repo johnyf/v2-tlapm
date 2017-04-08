@@ -229,9 +229,13 @@ and read_label i =
   let level = get_optlevel i in
   let name = get_data_in i "uniquename" read_string in
   let arity = get_data_in i "arity" read_int in
+  open_tag i "body";
   let body = read_expr_or_assumeprove i in
+  close_tag i "body";
+  open_tag i "params";
   let params = get_children i "params"
       (fun i -> read_ref i "FormalParamNodeRef" (fun x -> FP_ref x)) in
+  close_tag i "params";
   close_tag i "LabelNode";
   {
     location  = location;
@@ -634,10 +638,10 @@ and read_defs i =
                                      (UOP_ref (read_ref i "UserDefinedOpKindRef" id) )));
     ((=) "ModuleInstanceKindRef", (fun i -> UMTA_module_instance
                                       (MI_ref (read_ref i "ModuleInstanceKindRef" id) ) ));
-    ((=) "TheoremNodeRef", (fun i -> UMTA_theorem
-                               (THM_ref (read_ref i "TheoremNodeRef" id) )));
-    ((=) "AssumeNodeRef", (fun i -> UMTA_assume
-                              (ASSUME_ref (read_ref i "AssumeNodeRef" id) )));
+    ((=) "TheoremDefRef", (fun i -> UMTA_theorem_def
+                               (TDef_ref (read_ref i "TheoremDefRef" id) )));
+    ((=) "AssumeDefRef", (fun i -> UMTA_assume_def
+                              (ADef_ref (read_ref i "AssumeDefRef" id) )));
   ]
 
 and read_by i =
