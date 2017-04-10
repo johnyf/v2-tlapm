@@ -158,7 +158,6 @@ class ['a] visitor :
       | OPDef (O_user_defined_op x) -> self#user_defined_op acc x
       | OPDef (O_thm_def x)         -> self#theorem_def acc x
       | OPDef (O_assume_def x)      -> self#assume_def acc x
-                                         
 
     method theorem_def acc0 = function
       | TDef_ref x -> self#reference acc0 x
@@ -167,7 +166,6 @@ class ['a] visitor :
     method assume_def acc0 = function
       | ADef_ref x -> self#reference acc0 x
       | ADef x -> failwith "Implementation error!"
-                        
 
     method assume_def_ acc0 (a:assume_def_) = match a with
       | {location; level; name; body }  ->
@@ -176,7 +174,7 @@ class ['a] visitor :
        let acc3 = self#name acc2 name in
        let acc4 = self#expr acc3 body in
        acc4
-    
+
     method theorem_def_ acc0 (td:theorem_def_) =
       match td with
       | {location; level; name; body } ->

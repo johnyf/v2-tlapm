@@ -179,7 +179,7 @@ and instantiation = {
 (** The union of assumption statements and references to them. *)
 and assume =
   | ASSUME_ref of int
-  | ASSUME of assume_
+  (*  | ASSUME of assume_ *)
 
 (** The ASSUME statement of TLA.
     Example: ASSUME x > 0
@@ -194,13 +194,13 @@ and assume_ = {
 
 (** The union of assumption definitions and references to them *)
 and assume_def =
-  | ADef of assume_def_
+  (*  | ADef of assume_def_ *)
   | ADef_ref of int
 
 (** The union of assumption definitions and references to them *)
 and assume_def_ = {
   id       : id_t;
-  location : location option;
+  location : location;
   level    : level option;
   name     : string;
   body     : expr;
@@ -210,14 +210,14 @@ and assume_def_ = {
 (* the definition statement of a theorem *)
 and theorem_def_ = {
   id       : id_t;
-  location : location option;
+  location : location;
   level : level option;
   name  : string;
   body  : node;
 }
 
 and theorem_def =
-  | TDef of theorem_def_
+  (*  | TDef of theorem_def_ *)
   | TDef_ref of int
 
 
@@ -235,7 +235,6 @@ and theorem_ = {
   location          : location;
   level             : level option;
   definition        : theorem_def option;
-  body              : node;
   statement         : statement;
   proof             : proof;
 }
@@ -250,7 +249,7 @@ and statement = (* TODO: check if the types in here fit *)
   (* these don't have proofs but are represented as theorems in SANY
   *)
   | ST_HAVE of expr
-  | ST_TAKE of expr
+  | ST_TAKE of bound_symbol list
   | ST_WITNESS of expr
 
 and pick = {
@@ -532,7 +531,7 @@ and label = {
   level             : level option;
   name              : string;
   arity             : int;
-  body              : assume_prove;
+  body              : node;
   params            : formal_param list
 }
 

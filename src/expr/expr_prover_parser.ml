@@ -86,7 +86,6 @@ let extract_mixfix_args arity name params =
   in
   match name, arity with
   | "$FcnApply", n when n > 0 ->
-    
     Some ("" :: "[" :: (gen_commas ["]"] n))
   | _ -> None
 

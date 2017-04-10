@@ -23,9 +23,11 @@ type anyExpr =
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_assume_def of assume_def
+  | Any_assume_def_ of assume_def_
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
   | Any_theorem_def of theorem_def
+  | Any_theorem_def_ of theorem_def_
   | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
@@ -86,6 +88,7 @@ class ['a] any_extractor : object
   method ap_subst_in : 'a -> ap_subst_in
   method assume : 'a -> assume
   method assume_def : 'a -> assume_def
+  method assume_def_ : 'a -> assume_def_
   method assume_prove : 'a -> assume_prove
   method at : 'a -> at
   method binder : 'a -> binder
@@ -131,6 +134,7 @@ class ['a] any_extractor : object
   method instantiation : 'a -> instantiation
   method theorem : 'a -> theorem
   method theorem_def : 'a -> theorem_def
+  method theorem_def_ : 'a -> theorem_def_
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol
   method use_or_hide : 'a -> use_or_hide
   method user_defined_op : 'a -> user_defined_op

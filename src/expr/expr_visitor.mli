@@ -36,6 +36,8 @@ class ['a] visitor :
     method op_def          : 'a -> op_def -> 'a
     method theorem         : 'a -> theorem -> 'a
     method statement       : 'a -> statement -> 'a
+    method theorem_def     : 'a -> theorem_def -> 'a
+    method assume_def      : 'a -> assume_def -> 'a
     method assume          : 'a -> assume -> 'a
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
@@ -66,8 +68,9 @@ class ['a] visitor :
     method assume_def_     : 'a -> assume_def_ -> 'a
     method theorem_        : 'a -> theorem_ -> 'a
     method assume_         : 'a -> assume_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
 
-    
     method entry           : 'a -> (int * entry) -> 'a
     method context         : 'a -> context -> 'a
 

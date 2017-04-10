@@ -8,6 +8,8 @@ open Expr_dereference
 module Tdb = IntMap
 type tdb = entry Tdb.t
 
+let error_id = -42 
+
 (* ---------------- not exposed in the module interface ----------------  *)
 let to_list set = IntSet.fold (fun x y -> x::y) set []
 

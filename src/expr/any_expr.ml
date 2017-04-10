@@ -18,9 +18,11 @@ type anyExpr =
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_assume_def of assume_def
+  | Any_assume_def_ of assume_def_
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
   | Any_theorem_def of theorem_def
+  | Any_theorem_def_ of theorem_def_
   | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
@@ -86,9 +88,11 @@ let format_anyexpr = function
   | Any_assume _ -> "assume"
   | Any_assume_ _ -> "assume_"
   | Any_assume_def _ -> "assume_def"
+  | Any_assume_def_ _ -> "assume_def_"
   | Any_theorem _ -> "theorem"
   | Any_theorem_ _ -> "theorem_"
   | Any_theorem_def _ -> "theorem_def"
+  | Any_theorem_def_ _ -> "theorem_def_"
   | Any_statement _ -> "statement"
   | Any_assume_prove _ -> "assume_prove"
   | Any_new_symb _ -> "new_symb"
@@ -131,9 +135,10 @@ let format_anyexpr = function
   | Any_unbounded_bound_symbol _ -> "unbounded_bound_symbol"
   | Any_bounded_bound_symbol _ -> "bounded_bound_symbol"
   | Any_mule _ -> "mule"
-  | Any_mule_ _ -> " mule_"
+  | Any_mule_ _ -> "mule_"
+  | Any_mule_entry _ -> "mule_entry"
+  | Any_entry _ -> "context entry"
   | Any_context _ -> "context"
-  | Any_entry _ -> "(int * entry)"
 
 
 class ['a] any_extractor = object(self)
@@ -150,6 +155,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method assume_def acc =
     match self#extract acc with Any_assume_def x -> x
+                              | _ -> failwith (self#fmt acc)
+  method assume_def_ acc =
+    match self#extract acc with Any_assume_def_ x -> x
                               | _ -> failwith (self#fmt acc)
   method assume_prove acc =
     match self#extract acc with Any_assume_prove x -> x
@@ -171,7 +179,7 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method builtin_op_ acc =
     match self#extract acc with Any_builtin_op_ x -> x
-
+                              | _ -> failwith (self#fmt acc)
   method context acc =
     match self#extract acc with Any_context x -> x
                               | _ -> failwith (self#fmt acc)
@@ -285,6 +293,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method theorem_def acc =
     match self#extract acc with Any_theorem_def x -> x
+                              | _ -> failwith (self#fmt acc)
+  method theorem_def_ acc =
+    match self#extract acc with Any_theorem_def_ x -> x
                               | _ -> failwith (self#fmt acc)
   method unbounded_bound_symbol acc =
     match self#extract acc with Any_unbounded_bound_symbol x -> x

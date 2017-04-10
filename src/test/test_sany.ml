@@ -16,34 +16,36 @@ let name_visitor =
     method name acc n = StringSet.add n acc
   end
 
-(*
 let internal_ds_names =
   object
     inherit [StringSet.t] Expr_visitor.visitor as super
     method name acc n = StringSet.add n acc
   end
-  
+
 (* extractor counting suffices in expr tree *)
 class expr_suffices_scanner =
   object
     inherit [int * int * location list] Expr_visitor.visitor as super
 
     method statement (flags, constrs, locs) = function
-      | Expr_ds.ST_FORMULA f ->
+      | Expr_ds.ST_FORMULA (Expr_ds.N_assume_prove f) ->
         let flags = if f.Expr_ds.suffices then flags+1 else flags in
-        let locs = if f.Expr_ds.suffices then f.Expr_ds.location::locs else locs in
-        super#statement (flags, constrs, locs) (Expr_ds.ST_FORMULA f)
-      | Expr_ds.ST_SUFFICES f ->
+        let locs =
+          if f.Expr_ds.suffices
+          then f.Expr_ds.location::locs
+          else locs
+        in
+        super#statement (flags, constrs, locs)
+          (Expr_ds.ST_FORMULA (Expr_ds.N_assume_prove f))
+      | Expr_ds.ST_SUFFICES (Expr_ds.N_assume_prove f) ->
         if (not f.Expr_ds.suffices)
         then failwith "Suffices constructor without flag inside!";
         super#statement (flags+1, constrs+1, f.Expr_ds.location::locs)
-          (Expr_ds.ST_SUFFICES f)
+          (Expr_ds.ST_SUFFICES (Expr_ds.N_assume_prove f))
+      (* TODO check ab_subst_in and expr *)
       | _ as st ->
         super#statement (flags, constrs, locs) st
   end
-
-
-*)
 
 
 let dr_bop entries = function
@@ -133,9 +135,8 @@ let test_sany record () =
   let sany_names = StringSet.filter ((<>) "LAMBDA") sany_ns
   in
   (* Printf.printf "%s\n" (Util.mkString (fun x->x) sany_names); *)
-  let builtins = Sany_builtin_extractor.extract_from_context tree in
-  (*
-  let etree = Sany_expr.convert_context tree ~builtins:builtins in
+  (*  let builtins = Sany_builtin_extractor.extract_from_context tree in *)
+  let etree = Sany_expr.convert_context tree ~builtins:[] in
   let internal_ns = internal_ds_names#context emptyset etree in
   let internal_names = StringSet.filter ((<>) "LAMBDA") internal_ns in
   let diff1 = StringSet.diff sany_names internal_names in
@@ -154,7 +155,6 @@ let test_sany record () =
   (* update test result record *)
   record.sany_context <- Some tree;
   record.expr_context <- Some etree;
-*)
   tree
 (*
 let test_suffices {sany_context; expr_context; _ } () =

@@ -61,6 +61,9 @@ let format_location {filename; column; line} =
   ^ (string_of_int line.rend) ^ ","
   ^ (string_of_int column.rend)
 
+let fmt_location fmt l =
+  Format.fprintf fmt "%s" (format_location l)
+
 let fmt_int_range f { rbegin; rend; } =
   fprintf f "@[%d-%d@]" rbegin rend;
   ()
