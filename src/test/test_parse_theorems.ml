@@ -7,17 +7,29 @@ open Util
 open Test_common
 open Expr_visitor
 
-
 class suffices_scanner =
   object
     inherit [int * int] visitor as super
 
-    method statement (flags, constrs) = function
+    method statement (flags, constrs) =
+      let rec aux f = function
+        | N_assume_prove {suffices = true; _} ->
+          f+1
+        | N_assume_prove _
+        | N_expr _ ->
+          f
+        | N_ap_subst_in {body; _} ->
+          (* should we also count the instantiated ones? in theory
+             there should be no assume prove possible in there but who knows
+          *)
+          aux f body
+      in
+      function
       | ST_FORMULA f ->
-        let flags = if f.suffices then flags+1 else flags in
-        super#statement (flags, constrs) (ST_FORMULA f)
+        let flags = aux flags f in
+        super#statement (flags, constrs) (ST_SUFFICES f)
       | ST_SUFFICES f ->
-        let flags = if f.suffices then flags+1 else flags in
+        let flags = aux flags f in
         super#statement (flags, constrs+1) (ST_SUFFICES f)
       | _ as st ->
         super#statement (flags, constrs) st

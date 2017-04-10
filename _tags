@@ -52,3 +52,4 @@ true: annot, bin_annot
 <src/nunchaku/*.ml{,i,y}>: pkg_sexplib
 <src/nunchaku/*.ml{,i,y}>: pkg_containers
 <src/sany/*.ml{,i,y}>: pkg_xmlm, pkg_containers
+<src/expr/*.ml{,i,y}>: pkg_containers

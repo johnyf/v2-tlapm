@@ -13,6 +13,10 @@ module Deref : sig
       term_db. Otherwise, its content is directly extracted. *)
   val user_defined_op : term_db -> user_defined_op -> user_defined_op_
 
+  (** If the passed operator is a reference, it will be retrieved from the
+      term_db. Otherwise, its content is directly extracted. *)
+  val builtin_op : term_db -> builtin_op -> builtin_op_
+
   (** If the passed formal parameter is a reference, it will be retrieved from the
       term_db. Otherwise, its content is directly extracted. *)
   val formal_param : term_db -> formal_param -> formal_param_

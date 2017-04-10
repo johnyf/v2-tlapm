@@ -2,7 +2,7 @@ open Expr_ds
 open Expr_utils
 open List
 
-module Dereferemce = struct
+module Deref = struct
   let find_entry unpack entries i =
     let elem = try
         assoc i entries
@@ -12,6 +12,10 @@ module Dereferemce = struct
                   (string_of_int i) ^ "!")
     in
     unpack elem
+
+  let builtin_op term_db = function
+    | BOP_ref r ->
+      find_entry Unpack.builtin_op_entry term_db r
 
   let user_defined_op term_db = function
     | UOP_ref r ->
@@ -31,18 +35,17 @@ module Dereferemce = struct
 
   let theorem_def term_db = function
     | TDef_ref x ->
-      find_entry Unpack.module_instance_entry term_db x
+      find_entry Unpack.thm_def_entry term_db x
 
   let assume_def term_db = function
     | ADef_ref x ->
-      find_entry Unpack.module_instance_entry term_db x
+      find_entry Unpack.assume_def_entry term_db x
 
   let theorem term_db =  function
     | THM_ref x ->
       find_entry Unpack.thm_entry term_db x
 
   let assume term_db =  function
-    | ASSUME t -> t
     | ASSUME_ref x ->
       find_entry Unpack.assume_entry term_db x
 

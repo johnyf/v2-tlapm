@@ -81,6 +81,14 @@ let ppf_ident ppf x = fprintf ppf "%s" x
 (** extracts the ppf from the given accumulator and outputs a newline *)
 let ppf_newline acc = fprintf (ppf acc) "@\n"
 
+(* pretty prints a definition name, if it should be unfolded *)
+let pp_def_name acc0 fmt s =
+  match undef acc0 with
+  | true ->
+    CCFormat.fprintf fmt "%s == " s
+  | false ->
+    ()
+
 
 (** checks if a user defined operator is defined in a standard module
     (TLAPS, Naturals etc.) *)
@@ -246,7 +254,7 @@ class formatter =
 
     method formal_param acc0 fp =
       let { location; level; name; arity; } : formal_param_ =
-        dereference_formal_param (tdb acc0) fp in
+        Deref.formal_param (tdb acc0) fp in
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
@@ -256,8 +264,11 @@ class formatter =
 
     method mule acc0 = function
       | MOD_ref i ->
-        failwith "Implementation error: cannot dereference modules!"
-      | MOD {name; location; module_entries } ->
+        let db = tdb acc0 in
+        let inst = Deref.mule db (MOD_ref i) in
+        self#mule_ acc0 inst
+
+    method mule_ acc0 {name; location; module_entries } =
         match undef acc0 with
         | false -> (* don't expand module name *)
           fprintf (ppf acc0) "%s" name;
@@ -286,8 +297,10 @@ class formatter =
 
 
     method op_decl acc0 opdec =
-      let { location ; level ; name ; arity ; kind ; } =
-        dereference_op_decl (tdb acc0) opdec in
+      let instance = Deref.op_decl (tdb acc0) opdec in
+      self#op_decl_ acc0 instance
+
+    method op_decl_ acc0 { location ; level ; name ; arity ; kind ; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       (* let acc3 = self#name acc2 name in *)
@@ -319,8 +332,12 @@ class formatter =
         self#module_instance acc x
       | O_builtin_op x      ->
         self#builtin_op acc x
+      | O_thm_def x ->
+        self#theorem_def acc x
+      | O_assume_def x ->
+        self#assume_def acc x
       | O_user_defined_op x ->
-        let op = dereference_user_defined_op (tdb acc) x
+        let op = Deref.user_defined_op (tdb acc) x
         in
         match nesting acc, undef acc, is_standard_location op.location with
         | Module, _, true ->
@@ -360,31 +377,38 @@ class formatter =
           failwith ("TODO: implement printing of op definitions in " ^
                     "proof step environments.")
    *)
+    method theorem_def acc0 thm =
+      let instance = Deref.theorem_def (tdb acc0) thm in
+      self#theorem_def_ acc0 instance
+
+    method theorem_def_ acc0 {id; location; level; name; body} =
+      CCFormat.fprintf (ppf acc0) "%a" (pp_def_name acc0) name;
+      self#node acc0 body
 
     method theorem acc0 thm =
-      let { location; level; name; statement; proof; } =
-        dereference_theorem (tdb acc0) thm in
-      match undef acc0, name, is_standard_location location with
-      | true, _, true ->
+      let instance = Deref.theorem (tdb acc0) thm in
+      self#theorem_ acc0 instance
+
+    method theorem_ acc0 { id; location; level; definition; statement; proof; } =
+      match undef acc0, is_standard_location location with
+      | true, true ->
         (* skip standard theorems TODO: check if we don't skip too much *)
         acc0
-      | true, _, _ ->
+      | true, _ ->
         let thmstr = match nesting acc0 with
           | Module -> "THEOREM "
           | _ -> ""
         in
         pp_open_vbox (ppf acc0) 2;
         fprintf (ppf acc0) "%s" thmstr;
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let named = match nesting acc2, name with
-          | Module, Some name -> name ^ " == "
-          | _ -> ""
+        let acc1 = match definition with
+          | Some d ->
+            self#theorem_def acc0 d
+          | None ->
+            acc0
         in
-        (* let s = if suffices then "SUFFICES " else "" in *)
-        fprintf (ppf acc2) "%s" named;
-        let acc2a = nest_expr acc2 in
-        let acc3 = self#statement acc2a statement in
+        let acc2 = nest_expr acc1 in
+        let acc3 = self#statement acc2 statement in
         ppf_newline acc3;
         let acc3a = match nesting acc3 with
           | ProofStep i -> nest_proof acc3 (i+1)
@@ -395,20 +419,16 @@ class formatter =
         pp_close_box (ppf acc0) ();
         ppf_newline acc4a;
         acc4a
-      | false, Some name, _ ->
-        fprintf (ppf acc0) "%s" name;
-        acc0
-      | _ -> failwith
-               ("Implementation error! Trying to pretty print a theorem's " ^
-                "name without expanding, but the theorem does not have one.")
+      | false, _ ->
+        failwith "Implementation error: theorems are only on the module level";
 
     (*TODO: check *)
     method statement acc0 = function
       | ST_FORMULA f ->
-        self#assume_prove acc0 f
+        self#node acc0 f
       | ST_SUFFICES f ->
         fprintf (ppf acc0) "SUFFICES ";
-        self#assume_prove acc0 f
+        self#node acc0 f
       | ST_CASE f ->
         fprintf (ppf acc0) "CASE ";
         self#expr acc0 f
@@ -421,9 +441,15 @@ class formatter =
       | ST_HAVE f ->
         fprintf (ppf acc0) "HAVE ";
         self#expr acc0 f
-      | ST_TAKE f ->
-        fprintf (ppf acc0) "TAKE ";
-        self#expr acc0 f
+      | ST_TAKE bound_symbols ->
+        let pp_bs =
+          fprintf (ppf acc0) "TAKE \\A ";
+          CCFormat.list ~sep:(CCFormat.return ", \\A ")
+            (fun fmt bs ->
+               ignore (self#bound_symbol acc0 bs)
+            )
+        in CCFormat.fprintf (ppf acc0) "%a" pp_bs bound_symbols;
+        acc0
       | ST_WITNESS f ->
         fprintf (ppf acc0) "WITNESS ";
         self#expr acc0 f
@@ -431,10 +457,10 @@ class formatter =
         fprintf (ppf acc0) "QED ";
         acc0
 
-    method assume acc0  = function
-      | ASSUME_ref x ->
-        self#reference acc0 x
-      | ASSUME {location; level; expr; } ->
+    method assume acc0 x =
+        self#assume_ acc0 (Deref.assume (tdb acc0) x)
+
+    method assume_ acc0 {location; level; expr; } =
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         fprintf (ppf acc2) "ASSUME " ;
@@ -489,9 +515,11 @@ class formatter =
       | S_instance i -> self#instance acc0 i
       | S_theorem t ->
         (* dereference theorem *)
-        let thm = dereference_theorem (tdb acc0) t  in
-        let stepname = match thm.name with
-          | Some name -> name
+        let thm = Deref.theorem (tdb acc0) t  in
+        let stepname = match thm.definition with
+          | Some tdr ->
+            let td = Deref.theorem_def (tdb acc0) tdr in
+            td.name
           | None ->
             (* failwith "A theorem as proofstep needs a name!" *)
             "<" ^ (string_of_int (ndepth acc0)) ^ ">."
@@ -562,7 +590,7 @@ class formatter =
       let sep = if (new_symbols <> []) then ", " else "" in
       fprintf (ppf acc3) "%s" sep;
       let acc4 = ppf_fold_with
-          self#assume_prove acc3 assumes in
+          self#node acc3 assumes in
       fprintf (ppf acc2) "%s" s_prove;
       let acc = self#expr acc4 prove in
       (* ppf_newline acc; *)
@@ -572,7 +600,7 @@ class formatter =
     method new_symb acc0 { location; level; op_decl; set } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      let od = dereference_op_decl (tdb acc0) op_decl in
+      let od = Deref.op_decl (tdb acc0) op_decl in
       let new_decl = match od.kind with
         | NewConstant -> "" (* default is constant "CONSTANT " *)
         | NewVariable -> "VARIABLE "
@@ -616,7 +644,7 @@ class formatter =
       let acc3 = self#name acc2 name in
       (* skip arity *)
       fprintf (ppf acc3) "(label)";
-      let acc4 = self#assume_prove acc3 body in
+      let acc4 = self#node acc3 body in
       let acc = List.fold_left self#formal_param acc4 params in
       acc
 
@@ -645,19 +673,21 @@ class formatter =
       let acc = reset_expand acc4 acc0 in
       acc
 
+    method module_instance acc0 mi =
+      let instance = Deref.module_instance (tdb acc0) mi in
+      self#module_instance_ acc0 instance
+
     (* TODO *)
-    method module_instance acc0 = function
-      | MI_ref x ->
-        self#reference acc0 x
-      | MI {location; level; name} ->
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        fprintf (ppf acc2) "(module instance %s )" name;
-        let acc = self#name acc2 name in
+    method module_instance_ acc0 {location; level; name} =
+        fprintf (ppf acc0) "(module instance %s )" name;
+        let acc = self#name acc0 name in
         acc
 
-    method builtin_op acc0 = function
-      | { level; name; arity; params } ->
+    method builtin_op acc0 b =
+      let instance = Deref.builtin_op (tdb acc0) b in
+      self#builtin_op_ acc0 instance
+
+    method builtin_op_ acc0 { level; name; arity; params } =
         let acc1 = self#level acc0 level in
         let acc2 = self#name acc1 name in
         fprintf (ppf acc0) "%s" (self#translate_builtin_name name);
@@ -666,7 +696,7 @@ class formatter =
     method user_defined_op acc0 op =
       let { location; level ; name ; arity ;
             body ; params ; recursive } =
-        dereference_user_defined_op (tdb acc0) op in
+        Deref.user_defined_op (tdb acc0) op in
       match nesting acc0, undef acc0, recursive with
       | _, true, false -> (* expand the definition *)
         let acc1 = self#location acc0 location in
@@ -700,7 +730,7 @@ class formatter =
 
     method context acc { root_module; entries; modules } =
       let ms = List.filter (fun x ->
-          let m = dereference_module entries x in
+          let m = Deref.mule entries x in
           m.name = root_module
         ) modules in
       let acc1 = List.fold_left self#mule acc ms in
@@ -779,4 +809,3 @@ let fmt_op_decl  = mk_fmt (expr_formatter#op_decl)
 let fmt_expr_or_op_arg  = mk_fmt (expr_formatter#expr_or_op_arg)
 
 let fmt_formal_param  = mk_fmt (expr_formatter#formal_param)
-
