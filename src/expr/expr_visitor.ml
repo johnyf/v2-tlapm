@@ -391,7 +391,7 @@ class ['a] visitor :
 
     method entry acc (id, e) = match e with
       | FP_entry x -> self#formal_param_ acc x
-      | BI_entry x -> self#builtin_op_ acc x
+      | BOP_entry x -> self#builtin_op_ acc x
       | MOD_entry x -> self#mule_ acc x
       | OPDec_entry x -> self#op_decl_ acc x
       | MI_entry x -> self#module_instance_ acc x
@@ -445,11 +445,11 @@ class ['a] visitor :
 
     method operator acc = function
       | FMOTA_formal_param x -> self#formal_param acc x
-      | FMOTA_module  x -> self#mule acc x
+      (*      | FMOTA_module  x -> self#mule acc x *)
       | FMOTA_op_decl x -> self#op_decl acc x
       | FMOTA_op_def  x -> self#op_def acc x
-      | FMOTA_theorem x -> self#theorem acc x
-      | FMOTA_assume  x -> self#assume acc x
+      (*      | FMOTA_theorem x -> self#theorem acc x *)
+      (*      | FMOTA_assume  x -> self#assume acc x *)
       | FMOTA_ap_subst_in x -> self#ap_subst_in acc x
       | FMOTA_lambda x    -> self#lambda acc x
 

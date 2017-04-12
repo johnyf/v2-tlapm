@@ -153,6 +153,9 @@ class ['a] any_extractor = object(self)
   method assume acc =
     match self#extract acc with Any_assume x -> x
                               | _ -> failwith (self#fmt acc)
+  method assume_ acc =
+    match self#extract acc with Any_assume_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method assume_def acc =
     match self#extract acc with Any_assume_def x -> x
                               | _ -> failwith (self#fmt acc)
@@ -207,6 +210,9 @@ class ['a] any_extractor = object(self)
   method formal_param acc =
     match self#extract acc with Any_formal_param x -> x
                               | _ -> failwith (self#fmt acc)
+  method formal_param_ acc =
+    match self#extract acc with Any_formal_param_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method instance acc =
     match self#extract acc with Any_instance x -> x
                               | _ -> failwith (self#fmt acc)
@@ -228,8 +234,14 @@ class ['a] any_extractor = object(self)
   method module_instance acc =
     match self#extract acc with Any_module_instance x -> x
                               | _ -> failwith (self#fmt acc)
+  method module_instance_ acc =
+    match self#extract acc with Any_module_instance_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method mule acc =
     match self#extract acc with Any_mule x -> x
+                              | _ -> failwith (self#fmt acc)
+  method mule_ acc =
+    match self#extract acc with Any_mule_ x -> x
                               | _ -> failwith (self#fmt acc)
   method mule_entry acc =
     match self#extract acc with Any_mule_entry x -> x
@@ -257,6 +269,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method op_decl acc =
     match self#extract acc with Any_op_decl x -> x
+                              | _ -> failwith (self#fmt acc)
+  method op_decl_ acc =
+    match self#extract acc with Any_op_decl_ x -> x
                               | _ -> failwith (self#fmt acc)
   method op_def acc =
     match self#extract acc with Any_op_def x -> x
@@ -291,6 +306,9 @@ class ['a] any_extractor = object(self)
   method theorem acc =
     match self#extract acc with Any_theorem x -> x
                               | _ -> failwith (self#fmt acc)
+  method theorem_ acc =
+    match self#extract acc with Any_theorem_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method theorem_def acc =
     match self#extract acc with Any_theorem_def x -> x
                               | _ -> failwith (self#fmt acc)
@@ -305,5 +323,8 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method user_defined_op acc =
     match self#extract acc with Any_user_defined_op x -> x
+                              | _ -> failwith (self#fmt acc)
+  method user_defined_op_ acc =
+    match self#extract acc with Any_user_defined_op_ x -> x
                               | _ -> failwith (self#fmt acc)
 end

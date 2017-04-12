@@ -28,7 +28,7 @@ type current_context = {
   goal : assume_prove option;
 
   (* the facts which should be used as assumptions *)
-  usable_facts : assume_prove list;
+  usable_facts : node list;
 
   (* the expanded definitions *)
   expanded_defs : op_def list;
@@ -44,7 +44,7 @@ type current_context = {
   theorems          : theorem list ;
 
   (* the own step has to be treated differently, so we keep it seperate *)
-  thm_statements : (theorem_ * assume_prove list) list;
+  thm_statements : (theorem_ * node list) list;
 }
 
 let emptyCurrentContext term_db = {
@@ -195,30 +195,38 @@ let rec split_provers term_db = function
     let (provers, exprs) = split_provers term_db xs in
     (provers,x::exprs)
 
-(* split facts into list of theorem_ and rest *)
-let split_theorem_expr_facts term_db facts =
-  let split_theorem_expr_facts_ term_db =
-    fold_left (fun r fact ->
-        let (thms, exprs, rest) = r in
-        match fact with
-        | EMM_expr ((E_op_appl appl) as e)->
-          (
-            match appl.operator, appl.operands with
-            | FMOTA_theorem thm, [] ->
-              (dereference_theorem term_db thm :: thms, exprs, rest)
-            | _ ->
-              (thms, e::exprs, rest)
-          )
-        | EMM_expr e ->
-          (thms, e::exprs, rest)
-        | _ ->
-          (thms, exprs, fact::rest)
-      )
-      ([], [], [])
+(* replaces assume / theorem definition references by the actual statements *)
+let expand_theorem_bodies term_db visible_defs facts =
+  let rec aux term_db =
+    List.fold_left (fun acc -> function
+        | EMM_expr (E_op_appl { location;
+                                operator = FMOTA_op_def ((O_thm_def td) as o);
+                                operands; _ }) ->
+          let tdi = Deref.theorem_def term_db td in
+          if (not (List.mem o visible_defs)) then
+            let msg = CCFormat.sprintf "Theorem def %s not visible!" tdi.name in
+            failwith_msg location msg
+          else
+            tdi.body::acc
+        | EMM_expr (E_op_appl { location;
+                                operator = FMOTA_op_def ((O_assume_def ad) as o);
+                                operands; _ }) ->
+          let adi = Deref.assume_def term_db ad in
+          if (not (List.mem o visible_defs)) then
+            let msg = CCFormat.sprintf "Assume def %s not visible!" adi.name in
+            failwith_msg location msg
+          else
+            (N_expr adi.body)::acc
+        | EMM_expr exp ->
+          (N_expr exp) :: acc
+        | EMM_module m ->
+          failwith "don't know what to do with BY M, where M is a module"
+        | EMM_module_instance m ->
+          failwith "don't know what to do with BY M, where M is a module instance"
+      ) []
   in
   (* during fold we prepended, reverse lists to preserve order *)
-  let (thms, exprs, facts) = split_theorem_expr_facts_ term_db facts in
-  (rev thms, rev exprs, rev facts)
+  aux term_db facts |> List.rev
 
 
 (* the actual visitor subclass *)
@@ -233,7 +241,7 @@ class ['a] extract_obligations =
 
     method op_decl acc opdecl =
       let cc = cc_peek acc in
-      let decl_instance = dereference_op_decl cc.term_db opdecl in
+      let decl_instance = Deref.op_decl cc.term_db opdecl in
       let ccnew = match decl_instance.kind with
         | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
         | VariableDecl -> { cc with variables = opdecl :: cc.variables }
@@ -249,17 +257,13 @@ class ['a] extract_obligations =
       | UMTA_user_defined_op uop ->
         [O_user_defined_op uop]
       | UMTA_module_instance mi ->
-        let mii = dereference_module_instance term_db mi in
+        let mii = Deref.module_instance term_db mi in
         failwith_msg mii.location
           "don't know what to do with module instance in BY DEF!"
-      | UMTA_theorem thm ->
-        let thmi = dereference_theorem term_db thm in
-        failwith_msg thmi.location
-          "don't know what to do with theorem in BY DEF!"
-      | UMTA_assume assume ->
-        let assi = dereference_assume term_db assume in
-        failwith_msg assi.location
-          "don't know what to do with assume in BY DEF!"
+      | UMTA_theorem_def thm ->
+        [O_thm_def thm]
+      | UMTA_assume_def assume_def ->
+        [O_assume_def assume_def]
 
     method private by acc (by : by) =
       let cc = cc_peek acc in
@@ -275,33 +279,11 @@ class ['a] extract_obligations =
         flat_map (self#parse_by_def cc.term_db) by.defs in
       let expanded_defs = append cc.expanded_defs additional_defs in
       (* parse by references to theorems *)
-      let thm_bys, expr_bys, other_bys =
-        split_theorem_expr_facts cc.term_db other_bys in
-      let extract_name ((thmi:theorem_),lst) = (thmi.name, lst) in
-      let cc_thm_stmts = map extract_name cc.thm_statements in
-      let thm_by_stmts =
-        map (fun (x : theorem_) ->
-            match mem_assoc x.name cc_thm_stmts with
-            | true -> assoc x.name cc_thm_stmts
-            | false -> (
-                let name = match x.name with
-                  | Some n -> n
-                  | None -> "(unknown)"
-                in
-                let tnames = mkString (function
-                    | (Some x,_) -> x
-                    | (None, _) -> "(none)"
-                  ) cc_thm_stmts in
-                let msg = sprintf "Could not find by theorem %s in %s"
-                    name tnames in
-                failwith_msg by.location msg
-              )
-          ) thm_bys
-      in
-      let thm_assumptions = flatten thm_by_stmts in
+      let by_facts_expanded =
+        expand_theorem_bodies cc.term_db cc.definitions other_bys in
       (* extend assumptions with usable facts *)
       let assumes = concat [
-          thm_assumptions;
+          by_facts_expanded;
           cc.usable_facts;
         ] in
       match cc.goal with
@@ -336,7 +318,7 @@ class ['a] extract_obligations =
       let (vs, cs, acs, ss, ts) =
         fold_left (fun (vs,cs,acs,ss,ts) sym ->
             let decl = sym.op_decl  in
-            let decli = dereference_op_decl cc.term_db decl in
+            let decli = Deref.op_decl cc.term_db decl in
             match decli.kind with
             | NewVariable -> (decl::vs,cs,acs,ss,ts)
             | NewConstant -> (vs,decl::cs,acs,ss,ts)
@@ -359,9 +341,9 @@ class ['a] extract_obligations =
                      }
       in
       let outer_stmt = (thmi, [assume_prove]) in
-      let theorems = match thmi.name with
+      let theorems = match thmi.definition with
         | None -> cc.theorems
-        | _ -> (THM thmi) :: cc.theorems
+        | _ -> (THM_ref thmi.id) :: cc.theorems
       in
       (* move this to the use/hide statement
          let usable_facts =  match (thmi.name, get_nesting acc) with
@@ -394,7 +376,7 @@ class ['a] extract_obligations =
         | None,   Some f (* only f *) -> None
         | None,   None -> None
       in
-      let assumes = append toprove.assumes [assume_prove_from_expr false formula] in
+      let assumes = append toprove.assumes [N_expr formula] in
       let suffices = false in
       let boxed = false in (* TODO: need to recompute boxed flag *)
       let ap = { toprove with location; level; assumes; suffices; boxed; } in
@@ -497,7 +479,7 @@ class ['a] extract_obligations =
 
     method theorem acc thm =
       let cc = cc_peek acc in
-      let thmi  = dereference_theorem cc.term_db thm in
+      let thmi  = Deref.theorem cc.term_db thm in
       (* we prepare one context for proving the statement and one for continuing *)
       let step_ccs = match thmi.statement with
         | ST_FORMULA f ->
@@ -638,7 +620,7 @@ class ['a] extract_obligations =
       (*    let acc1 = fold_left self#mule acc0 modules in *)
       let tdb = (get_cc acc0 |> hd).term_db in
       let root_ms = List.filter
-          (fun x -> (dereference_module tdb x).name = root_module )
+          (fun x -> (Deref.mule tdb x).name = root_module )
           modules
       in
       let acc1 = match root_ms with
@@ -653,7 +635,7 @@ class ['a] extract_obligations =
     fold_left (fun i cc ->
                Printf.printf "(%d) known theorems:\n" i;
                map (fun (t : theorem) ->
-                    let thmi = dereference_theorem cc.term_db t in
+                    let thmi = Deref.theorem cc.term_db t in
                     let name = match thmi.name with
                       | None -> "(none)"
                       | Some x -> x

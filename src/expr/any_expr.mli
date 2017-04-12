@@ -87,6 +87,7 @@ class ['a] any_extractor : object
 
   method ap_subst_in : 'a -> ap_subst_in
   method assume : 'a -> assume
+  method assume_ : 'a -> assume_
   method assume_def : 'a -> assume_def
   method assume_def_ : 'a -> assume_def_
   method assume_prove : 'a -> assume_prove
@@ -105,6 +106,7 @@ class ['a] any_extractor : object
   method expr_or_op_arg : 'a -> expr_or_op_arg
   method expr_or_module_or_module_instance : 'a -> expr_or_module_or_module_instance
   method formal_param : 'a -> formal_param
+  method formal_param_ : 'a -> formal_param_
   method instance : 'a -> instance
   method label : 'a -> label
   method lambda : 'a -> lambda
@@ -112,7 +114,9 @@ class ['a] any_extractor : object
   method level : 'a -> level option
   method location : 'a -> location
   method module_instance : 'a -> module_instance
+  method module_instance_ : 'a -> module_instance_
   method mule : 'a -> mule
+  method mule_ : 'a -> mule_
   method mule_entry : 'a -> mule_entry
   method name : 'a -> string
   method new_symb : 'a -> new_symb
@@ -122,6 +126,7 @@ class ['a] any_extractor : object
   method op_appl_or_binder : 'a -> op_appl_or_binder
   method op_arg : 'a -> op_arg
   method op_decl : 'a -> op_decl
+  method op_decl_ : 'a -> op_decl_
   method op_def : 'a -> op_def
   method op_def_or_theorem_or_assume : 'a -> op_def_or_theorem_or_assume
   method operator : 'a -> operator
@@ -133,9 +138,11 @@ class ['a] any_extractor : object
   method subst_in : 'a -> subst_in
   method instantiation : 'a -> instantiation
   method theorem : 'a -> theorem
+  method theorem_ : 'a -> theorem_
   method theorem_def : 'a -> theorem_def
   method theorem_def_ : 'a -> theorem_def_
   method unbounded_bound_symbol : 'a -> unbounded_bound_symbol
   method use_or_hide : 'a -> use_or_hide
   method user_defined_op : 'a -> user_defined_op
+  method user_defined_op_ : 'a -> user_defined_op_
 end

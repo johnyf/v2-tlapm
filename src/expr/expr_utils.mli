@@ -23,7 +23,7 @@ module Unpack : sig
 
   (** Extracts the operator definition from an entry *)
 
-  val thm_def_entry : entry ->  theorem_def_
+  val theorem_def_entry : entry ->  theorem_def_
 
   (** Extracts the operator definition from an entry *)
   val assume_def_entry : entry -> assume_def_

@@ -11,6 +11,18 @@ module Unpack = struct
     | FP_entry x -> x
     | _ -> failwith (entry_error "fp")
 
+  let builtin_op_entry = function
+    | BOP_entry x -> x
+    | _ -> failwith (entry_error "bop")
+
+  let user_defined_op_entry = function
+    | UOP_entry x -> x
+    | _ -> failwith (entry_error "uop")
+
+  let module_instance_entry = function
+    | MI_entry x -> x
+    | _ -> failwith (entry_error "mi")
+
   let mod_entry = function
     | MOD_entry x -> x
     | _ -> failwith (entry_error "mod")
@@ -83,4 +95,3 @@ let assume_prove_from_expr suffices expr =  {
   suffices;
   boxed = false; (* TODO: check if this is true *)
 }
-

@@ -573,11 +573,11 @@ and strng = {
 *)
 and operator =
   | FMOTA_formal_param of formal_param (* has any arity *)
-  | FMOTA_module of mule               (* has arity 0 *)
+  (*  | FMOTA_module of mule               (* has arity 0 *) *)
   | FMOTA_op_decl of op_decl           (* has any arity *)
   | FMOTA_op_def of op_def             (* has any arity *)
-  | FMOTA_theorem of theorem           (* has arity 0 *)
-  | FMOTA_assume of assume             (* has arity 0 *)
+  (*  | FMOTA_theorem of theorem           (* has arity 0 *) *)
+  (*  | FMOTA_assume of assume             (* has arity 0 *) *)
   | FMOTA_ap_subst_in of ap_subst_in   (* has arity 0 *)
   | FMOTA_lambda of lambda             (* has arity >0 *)
 
@@ -640,7 +640,6 @@ and mule_ = {
 
 type entry =
   | FP_entry of formal_param_
-  | BI_entry of builtin_op_
   | MOD_entry of mule_
   | OPDec_entry of op_decl_
   | MI_entry of module_instance_

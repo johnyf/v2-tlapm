@@ -35,7 +35,7 @@ module Deref = struct
 
   let theorem_def term_db = function
     | TDef_ref x ->
-      find_entry Unpack.thm_def_entry term_db x
+      find_entry Unpack.theorem_def_entry term_db x
 
   let assume_def term_db = function
     | ADef_ref x ->

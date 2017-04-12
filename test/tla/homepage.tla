@@ -1,7 +1,6 @@
 ------------------------------ MODULE homepage ------------------------------
 EXTENDS Naturals, Integers 
 
-
 THEOREM ~ \E x \in Nat : x + 1 = 0 
 <1>1. SUFFICES ASSUME \E x \in Nat : x + 1 = 0 PROVE FALSE OBVIOUS (* new facts: \E x \in Nat : x + 1 = 0 *) (* goal: FALSE *) 
 <1>2. PICK u \in Nat : u = -1 (* goal: \E u \in Nat : u = -1 *) 
@@ -44,5 +43,5 @@ THEOREM Inv /\ Next => Inv'
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Mar 16 14:59:41 CET 2015 by marty
+\* Last modified Wed Apr 12 15:54:09 CEST 2017 by marty
 \* Created Mon Mar 16 14:18:20 CET 2015 by marty

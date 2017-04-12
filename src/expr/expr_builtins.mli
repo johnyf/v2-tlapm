@@ -1,12 +1,39 @@
 open Expr_ds
 
-val builtin_true  : builtin_op_
-val builtin_false : builtin_op_
+module Predefined : sig
+end
 
-val tuple            : builtin_op_
-val set_in           : builtin_op_
-val bounded_exists   : builtin_op_
-val unbounded_exists : builtin_op_
-val bounded_forall   : builtin_op_
-val unbounded_forall : builtin_op_
-val if_then_else     : builtin_op_
+module Builtin : sig
+  exception BuiltinNotFound of string * string
+
+  type builtin_symbol =
+    | TRUE
+    | FALSE
+    | NOT
+    | AND
+    | OR
+    | IMPLIES
+    | FORALL
+    | EXISTS
+    | BFORALL
+    | BEXISTS
+    | EQ
+    | NEQ
+    | PRIME
+    | TFORALL
+    | TEXISTS
+    | BOX
+    | DIAMOND
+    | WF
+    | SF
+    | FUNAPP
+    | SET_ENUM
+    | SQ_BRACK
+    | ANG_BRACK
+
+  val get : term_db -> builtin_symbol -> builtin_op
+  (** Fetches a builtin symbol from the term db. Raises BuiltinNotFound if it is
+      not in the db. *)
+  val complete_builtins : term_db -> term_db
+  (** Extends the given term db by all missing builtins. *)
+end

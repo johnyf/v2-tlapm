@@ -9,10 +9,11 @@ let match_function term_db = function
       let args = appl.operands in
       match appl.operator with
       | FMOTA_op_def (O_user_defined_op uop) ->
-        let uopi = dereference_user_defined_op term_db uop in
+        let uopi = Deref.user_defined_op term_db uop in
         Some (uopi.name, args)
       | FMOTA_op_def (O_builtin_op bop) ->
-        Some (bop.name, args)
+        let bopi = Deref.builtin_op term_db bop in
+        Some (bopi.name, args)
       | FMOTA_op_def (O_module_instance _) ->
         None (* TODO: decide what to do in this case *)
       | _ ->  None
@@ -91,42 +92,48 @@ let extract_mixfix_args arity name params =
 
 let match_infix_op term_db = function
   | FMOTA_formal_param fp -> false
-  | FMOTA_module m -> false
+  (*  | FMOTA_module m -> false *)
   | FMOTA_op_def (O_user_defined_op uop) ->
-    let uopi = dereference_user_defined_op term_db uop in
+    let uopi = Deref.user_defined_op term_db uop in
     extract_binary_args uopi.arity uopi.name uopi.params
   | FMOTA_op_def (O_builtin_op op) ->
-    extract_binary_args op.arity op.name op.params
+    let opi = Deref.builtin_op term_db op in
+    extract_binary_args opi.arity opi.name opi.params
   | FMOTA_op_def _ -> false
   | FMOTA_op_decl opdecl -> false
-  | FMOTA_theorem thm -> false
-  | FMOTA_assume assume -> false
+  (*  | FMOTA_theorem thm -> false *)
+  (*  | FMOTA_assume assume -> false *)
   | FMOTA_ap_subst_in _ -> false
+  | FMOTA_lambda _ -> false
 
 let match_ternary_op term_db = function
   | FMOTA_formal_param fp -> None
-  | FMOTA_module m -> None
+  (*  | FMOTA_module m -> None *)
   | FMOTA_op_def (O_user_defined_op uop) ->
-    let uopi = dereference_user_defined_op term_db uop in
+    let uopi = Deref.user_defined_op term_db uop in
     extract_ternary_args uopi.arity uopi.name uopi.params
   | FMOTA_op_def (O_builtin_op op) ->
-    extract_ternary_args op.arity op.name op.params
+    let bopi = Deref.builtin_op term_db op in
+    extract_ternary_args bopi.arity bopi.name bopi.params
   | FMOTA_op_def _ -> None
   | FMOTA_op_decl opdecl -> None
-  | FMOTA_theorem thm -> None
-  | FMOTA_assume assume -> None
+  (*  | FMOTA_theorem thm -> None *)
+  (*  | FMOTA_assume assume -> None *)
   | FMOTA_ap_subst_in _ -> None
+  | FMOTA_lambda _ -> None
 
 let match_mixfix_op term_db = function
   | FMOTA_formal_param fp -> None
-  | FMOTA_module m -> None
+  (*  | FMOTA_module m -> None *)
   | FMOTA_op_def (O_user_defined_op uop) ->
-    let uopi = dereference_user_defined_op term_db uop in
+    let uopi = Deref.user_defined_op term_db uop in
     extract_mixfix_args uopi.arity uopi.name uopi.params
   | FMOTA_op_def (O_builtin_op op) ->
-    extract_mixfix_args op.arity op.name op.params
+    let opi = Deref.builtin_op term_db op in
+    extract_mixfix_args opi.arity opi.name opi.params
   | FMOTA_op_def _ -> None
   | FMOTA_op_decl opdecl -> None
-  | FMOTA_theorem thm -> None
-  | FMOTA_assume assume -> None
+  (*  | FMOTA_theorem thm -> None *)
+  (*  | FMOTA_assume assume -> None *)
   | FMOTA_ap_subst_in _ -> None
+  | FMOTA_lambda _ -> None

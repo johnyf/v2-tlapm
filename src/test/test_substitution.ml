@@ -2,6 +2,7 @@ open Kaputt.Abbreviations
 open Commons
 open Any_expr
 open Expr_ds
+open Expr_builtins
 open Expr_map
 open Expr_formatter
 open Expr_builtins
@@ -16,7 +17,8 @@ open Format
 
 let location = mkDummyLocation
 
-let term_db : term_db = [
+let term_db : term_db =
+  let db = [
     (* op declarations *)
     (  1, OPDec_entry { id=1; location; level = Some ConstantLevel; name = "x";
                       arity = 0; kind = ConstantDecl } );
@@ -35,7 +37,7 @@ let term_db : term_db = [
                      arity = 0  });
     (103, FP_entry { id=103; location; level = Some ConstantLevel; name = "z";
                      arity = 0  });
-  ]
+  ] in Builtin.complete_builtins db
 
 let builtin_ref ({id; _}:builtin_op_) = BOP_ref id
 
@@ -61,10 +63,10 @@ let applyPxy pref xref yref =
     }
 
 (* Corresponds to \A y : P(y,z)*)
-let domain = E_binder {
+let domain tdb = E_binder {
                  location; level = Some ConstantLevel;
                  operator = FMOTA_op_def (O_builtin_op
-                                            (builtin_ref unbounded_forall));
+                                            (Builtin.get tdb Builtin.FORALL));
                  operand = EO_expr (applyPxy 3 102 103);
                  bound_symbols = [
                      B_unbounded_bound_symbol {
@@ -75,16 +77,16 @@ let domain = E_binder {
                }
 
 (* Corresponds to \A x \in (\A y \in P(y,z)) : Q(x,z) *)
-let formula = E_binder {
+let formula tdb = E_binder {
                   location; level = Some ConstantLevel;
                   operator = FMOTA_op_def (O_builtin_op
-                                             (builtin_ref bounded_forall));
+                                             (Builtin.get tdb Builtin.FORALL));
                   operand = EO_expr (applyPxy 4 101 103);
                   bound_symbols = [
                       B_bounded_bound_symbol {
                           params = [FP_ref 101];
                           tuple  = false;
-                          domain;
+                          domain = domain tdb;
                         }
                     ];
                 }
@@ -130,7 +132,7 @@ let intersect list1 list2 =
   filter (fun x -> mem x list2) list1
 
 let intersect_free_bound tdb exp =
-  let ( bound_vars, free_vars, all_fp) = free_bound_lists term_db formula in
+  let ( bound_vars, free_vars, all_fp) = free_bound_lists term_db (formula tdb) in
   let free_names = map (fun x ->
       let opdi = Deref.op_decl tdb x in
       opdi.name
@@ -160,13 +162,13 @@ let test_subst substs =
        fprintf std_formatter "@[Subst: %a@]@,"
          (SubFormat.fmt_substs term_db) substs;
        fprintf std_formatter "@[Input:  %a@]@,"
-         (fmt_expr term_db) formula;
+         (fmt_expr term_db) (formula term_db);
        let fb = intersect_free_bound term_db formula in
        let fbstring = asprintf "%a" (fmt_list pp_print_string) fb in
        Assert.equal
          ~msg:"Free and bound variable names don't intersect in input."
          fbstring "[]";
-       let (t1, term_db1) = subst_expr term_db substs formula in
+       let (t1, term_db1) = subst_expr term_db substs (formula term_db) in
        fprintf std_formatter "@[Output: %a@]@," (fmt_expr term_db1) t1;
        Assert.equal_bool ~msg:"Termdb after sub is inconsistent!"
          (is_consistent term_db1) true;
