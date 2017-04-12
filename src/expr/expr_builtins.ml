@@ -76,7 +76,7 @@ module Builtin = struct
 
     let builtin_true tdb = mk_builtin tdb ConstantLevel "TRUE" 0 []
 
-    let builtin_false tdb = mk_builtin tdb ConstantLevel "TRUE" 0 []
+    let builtin_false tdb = mk_builtin tdb ConstantLevel "FALSE" 0 []
 
     (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
     let bounded_exists tdb =
@@ -122,9 +122,9 @@ module Builtin = struct
     function
     | TRUE -> lookup "TRUE"
     | FALSE -> lookup "FALSE"
-    | NOT -> lookup "\lnot"
-    | AND -> lookup "\land"
-    | OR -> lookup "\lor"
+    | NOT -> lookup "\\lnot"
+    | AND -> lookup "\\land"
+    | OR -> lookup "\\lor"
     | IMPLIES -> lookup "=>"
     | FORALL -> lookup "$UnboundedForall"
     | EXISTS -> lookup "$UnboundedExists"
