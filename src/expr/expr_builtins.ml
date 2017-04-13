@@ -164,6 +164,7 @@ module Builtin = struct
     | EXISTS -> ce Make.unbounded_exists
     | BFORALL -> ce Make.bounded_forall
     | BEXISTS -> ce Make.bounded_exists
+    | _ -> failwith "builtin symbol not yet supported"
 
   let complete_builtins tdb =
     (* TODO: add builtins for all the operators here *)

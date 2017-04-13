@@ -13,7 +13,7 @@ type current_context = {
   goal : assume_prove option;
 
   (* the facts currently known *)
-  usable_facts : assume_prove list;
+  usable_facts : node list;
 
   (* the expanded definitions *)
   expanded_defs : op_def list;
@@ -30,7 +30,7 @@ type current_context = {
 
   (* we keep a list of the actual assume proves a theorem provides, because they
      may be different from the actual statement *)
-  thm_statements : (theorem_ * assume_prove list) list;
+  thm_statements : (theorem_ * node list) list;
 }
 
 type 'a eoacc =

@@ -17,128 +17,108 @@ let tdb macc =
 let set_tdb macc db =
   let (_, rest) = get_acc macc in
   set_acc macc (db, rest)
-
+(* TODO: this only rewrites theorem statements, not the definitions! *)
 class ['a] expr_parse_theorems =
   object(self)
     inherit ['a ptacc] expr_map as super
 
-    method private parse_formula acc ({ location; level; new_symbols;
-                                        assumes; prove; suffices; boxed; }) thm =
-      match assumes, prove, match_function (tdb acc) prove with
-      |  _::_, _, _ ->
-        (* nonempty assumptions are a normal formula, don't change *)
-        super#theorem acc thm
-      |  _, _, Some ("$Pfcase", args) ->
-        (* CASE proof step *)
-        (* Printf.printf "Case!"; *)
-        (* recurse on subterms *)
-        let acc1 = super#theorem acc thm in
+    (* Because TAKE x \in Nat is a SANY op appl with bound variable x but no
+       body, it is rewritten in sany_exp *)
+    method private parse_formula acc thm = function
+      | N_assume_prove _
+      | N_ap_subst_in _ ->
+        (* proof step symbols are only explicit expressions *)
+        super#theorem_ acc thm
+      | N_expr expr ->
+        (* recurse on subterms (for the subproofs) *)
+        let acc1 = super#theorem_ acc thm in
         let extract = self#get_macc_extractor in
-        let {location; level; name; statement; proof } =
-          match extract#theorem acc1 with
-          | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
-          | THM x -> x
+        let {id; location; level; definition; statement; proof } =
+          extract#theorem_ acc1
         in
-        (* create new theorem and update accumulator *)
-        let statement = match args with
-          | [EO_expr expr] -> ST_CASE expr
-          | [EO_op_arg _] ->
-            failwith "Don't know what to do with op arg passed to case step!"
-          | _ ->
-            failwith "Step case operator expects exactly one argument!"
+        let term_db = tdb acc1 in
+        match expr, match_function (tdb acc) expr with
+        |  _, Some ("$Pfcase", args) ->
+          (* CASE proof step *)
+          (* Printf.printf "Case!"; *)
+          (* create new theorem and update accumulator *)
+          let statement = match args with
+            | [EO_expr expr] -> ST_CASE expr
+            | [EO_op_arg _] ->
+              failwith "Don't know what to do with op arg passed to case step!"
+            | _ ->
+              failwith "Step case operator expects exactly one argument!"
         in
-        let thm = THM {location; level; name; statement; proof } in
-        set_anyexpr acc1 (Any_theorem thm)
-      |  _, _, Some ("$Have", args) ->
-        (* HAVE proof step *)
-        (* recurse on subterms *)
-        let acc1 = super#theorem acc thm in
-        let extract = self#get_macc_extractor in
-        let {location; level; name; statement; proof } =
-          match extract#theorem acc1 with
-          | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
-          | THM x -> x
-        in
-        (* create new theorem and update accumulator *)
-        let statement = match args with
-          | [EO_expr expr] -> ST_HAVE expr
-          | [EO_op_arg _] ->
-            failwith "Don't know what to do with op arg passed to case step!"
-          | _ ->
-            failwith "Step case operator expects exactly one argument!"
-        in
-        let thm = THM {id; location; level; name; statement; proof } in
-        set_anyexpr acc1 (Any_theorem thm)
-      |  _, E_binder { operator = FMOTA_op_def opd ;
-                       operand;
-                       bound_symbols; _ }, None ->
-        (* pick proof step *)
-        (
-          match opd with
-          | O_builtin_op { name = "$Pick";  _  } ->
-            (
-              (* Printf.printf "Pick! %s" (format_location location); *)
-              (* recurse on subterms *)
-              let acc1 = super#theorem acc thm in
-              let extract = self#get_macc_extractor in
-              let {location; level; name; statement; proof } =
-                match extract#theorem acc1 with
-                | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
-                | THM x -> x
-              in
-              (* change formula to pick version *)
+        let thm = {id; location; level; definition; statement; proof } in
+        set_anyexpr acc1 (Any_theorem_ thm)
+        |  _, Some ("$Have", args) ->
+          (* HAVE proof step *)
+          (* create new theorem and update accumulator *)
+          let statement = match args with
+            | [EO_expr expr] -> ST_HAVE expr
+            | [EO_op_arg _] ->
+              failwith "Don't know what to do with op arg passed to case step!"
+            | _ ->
+              failwith "Step case operator expects exactly one argument!"
+          in
+          let thm = {id; location; level; definition; statement; proof } in
+          set_anyexpr acc1 (Any_theorem_ thm)
+        |  E_binder { operator = FMOTA_op_def opd ;
+                      operand;
+                      bound_symbols; _ }, None ->
+          (* pick proof step *)
+          (
+            match opd with
+            | O_builtin_op bop
+              when (Deref.builtin_op term_db bop).name ="$Pick" ->
+              (
+                (* Printf.printf "Pick! %s" (format_location location); *)
+                (* change formula to pick version *)
               let formula = match operand with
                 | EO_expr expr -> expr
                 | EO_op_arg _ ->
                   failwith ("Don't know what to do with an op_arg as" ^
                             " parameter for PICK!")
-              in
-              let statement = ST_PICK { variables = bound_symbols;
-                                        formula; } in
-              (* create new theorem and update accumulator *)
-              let thm = THM { location; level; name; statement; proof;}  in
-              set_anyexpr acc1 (Any_theorem thm)
-            )
-          | _ -> super#theorem acc thm
-        )
-      |  _, _, Some("$Qed", []) ->
-        (* Qed proof step *)
-        (* Printf.printf "Qed!"; *)
-        (* recurse on subterms *)
-        let acc1 = super#theorem acc thm in
-        let extract = self#get_macc_extractor in
-        (* create new theorem and update accumulator *)
-        let thmi =
-          match extract#theorem acc1 with
-          | THM_ref  _ -> failwith "Expected theorem, not theorem ref!"
-          | THM x -> x
-        in
-        let thm = THM { thmi with statement = ST_QED }  in
-        set_anyexpr acc1 (Any_theorem thm)
-      | _ ->
-        super#theorem acc thm
+                in
+                let statement = ST_PICK { variables = bound_symbols;
+                                          formula; } in
+                (* create new theorem and update accumulator *)
+                let thm = { id; location; level; definition; statement; proof;}  in
+                set_anyexpr acc1 (Any_theorem_ thm)
+              )
+            | _ -> super#theorem_ acc thm
+          )
+        |  _, Some("$Qed", []) ->
+          (* Qed proof step *)
+          (* Printf.printf "Qed!"; *)
+          (* create new theorem and update accumulator *)
+          let thm = {id; level; location; definition;
+                     statement = ST_QED; proof }  in
+          set_anyexpr acc1 (Any_theorem_ thm)
+        | _ ->
+          super#theorem_ acc thm
 
-    method private parse_suffices acc {location; level; new_symbols;
-                                       assumes; prove; suffices; boxed;} t =
-      match assumes, prove with
-      | _::_, _ ->
-        (* SUFFICES ASSUME ... PROVE ... should already be handled *)
-        super#theorem acc (THM t)
-      | [], exp ->
+    method private parse_suffices acc t = function
+      | N_ap_subst_in _
+      | N_assume_prove _ ->
+        (* SUFFICES ASSUME ... PROVE should already be handled in sany_expr *)
+        super#theorem_ acc t
+      | N_expr expr ->
+        (* recurse on subterms (for the subproofs) *)
+        let acc1 = super#theorem_ acc t in
+        let extract = self#get_macc_extractor in
+        let {id; location; level; definition; statement; proof } =
+          extract#theorem_ acc1
+        in
         (* SUFFICES F still has the operator we need to strip *)
-        match match_function (tdb acc) exp with
+        match match_function (tdb acc) expr with
         | None -> failwith "Expected suffices as prove operator!"
         | Some ("$Suffices", [EO_expr expr]) ->
-          let acc1 = self#expr acc expr in
-          let extract = self#get_macc_extractor in
-          let prove = extract#expr acc1 in
-          let ap = { location; level; new_symbols; assumes;
-                     prove; boxed; suffices; } in
-          let acc2 = self#proof acc1 t.proof in
-          let proof = extract#proof acc2 in
-          let thm = THM {location = t.location; level = t.level; name = t.name;
-                         statement = ST_SUFFICES ap; proof; } in
-          set_anyexpr acc (Any_theorem thm)
+          let acc2= self#expr acc expr in
+          let statement = ST_SUFFICES (N_expr (extract#expr acc2)) in
+          let thm = {id; location; level; definition;
+                     statement; proof; } in
+          set_anyexpr acc (Any_theorem_ thm)
         | Some ("$Suffices", [EO_op_arg oa]) ->
           failwith "suffices found, but has an op arg, not an expr as argument!";
         | Some ("$Suffices", args) ->
@@ -146,21 +126,18 @@ class ['a] expr_parse_theorems =
         | Some (name, _ ) ->
           failwith ("Expected application of suffices, but found " ^ name)
 
-    method theorem acc thm = match thm with
-      | THM_ref i -> super#theorem acc thm
-      | THM ({ location; level; name; statement; proof; } as thmi) ->
-        (
-          match statement with
+    method theorem_ acc
+        ({ id; location; level; definition; statement; proof; } as thmi) =
+      match statement with
           | ST_FORMULA f ->
-            self#parse_formula acc f thm
+            self#parse_formula acc thmi f
           | ST_SUFFICES f ->
             (* Printf.printf "ghg %s\n" (Commons.format_location location); *)
             (* remove suffices constant *)
-            self#parse_suffices acc f thmi
+            self#parse_suffices acc thmi f
           | _ ->
             (* skip other proof step *)
-            super#theorem acc thm
-        )
+            super#theorem_ acc thmi
 
     method context acc { root_module; entries; modules } =
       let acc1 = set_tdb acc (Some entries) in

@@ -157,28 +157,6 @@ let cc_replace cc acc =
 let generate_id acc =
   (length (get_obligations acc)) + 1
 
-(* that doesn't work in general anymore, because builtins are expanded and
-    may not be present in the term db anymore *)
-(*
-let find_builtin term_db opname =
-  let check_bopname = function
-    | OPDef_entry (O_builtin_op bop) ->
-       bop.name = opname
-    | _ ->
-       false
-  in
-  match filter (fun x -> check_bopname (snd x) ) term_db with
-  | [] ->
-     let msg = sprintf "Could not find built in %s in term db!" opname in
-     failwith msg
-  | [(_,x)] ->
-     x
-  | _ ->
-     let msg = sprintf "Found multiple built ins of %s in term db!" opname in
-     failwith msg
- *)
-
-
 (* extracts prover tags from by list *)
 let rec split_provers term_db = function
   | [] -> ([],[])
@@ -312,51 +290,56 @@ class ['a] extract_obligations =
 
     (* this method is reused for the suffices and case steps. thmi may not be
        changed for that reason. *)
-    method private update_cc_formula acc (thmi:theorem_) assume_prove =
-      let cc = cc_peek acc in
-      (* TODO: boxed flag might be wrong *)
-      let (vs, cs, acs, ss, ts) =
-        fold_left (fun (vs,cs,acs,ss,ts) sym ->
-            let decl = sym.op_decl  in
-            let decli = Deref.op_decl cc.term_db decl in
-            match decli.kind with
-            | NewVariable -> (decl::vs,cs,acs,ss,ts)
-            | NewConstant -> (vs,decl::cs,acs,ss,ts)
-            | NewAction   -> (vs,cs,decl::acs,ss,ts)
-            | NewState    -> (vs,cs,acs,decl::ss,ts)
-            | NewTemporal -> (vs,cs,acs,ss,decl::ts)
-            | _ ->
-              let msg = "Unexpected operator kind in ASSUME NEW construct!"
-              in failwith_msg decli.location msg
-          ) ([],[],[],[],[]) assume_prove.new_symbols in
-      let constants = append cc.constants (rev cs) in
-      (* TODO: should we extend the context by action and temporal variables? *)
-      let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
-      (*    let goal = {assume_prove with assumes = []; } in *)
-      let inner_stmt =  (thmi, assume_prove.assumes) in
-      let inner_cc = { cc with goal = Some assume_prove;
-                               constants;
-                               variables;
-                               thm_statements = inner_stmt :: cc.thm_statements;
-                     }
-      in
-      let outer_stmt = (thmi, [assume_prove]) in
-      let theorems = match thmi.definition with
-        | None -> cc.theorems
-        | _ -> (THM_ref thmi.id) :: cc.theorems
-      in
-      (* move this to the use/hide statement
+    method private update_cc_formula acc (thmi:theorem_) = function
+      | N_assume_prove assume_prove ->
+        let cc = cc_peek acc in
+        (* TODO: boxed flag might be wrong *)
+        let (vs, cs, acs, ss, ts) =
+          fold_left (fun (vs,cs,acs,ss,ts) sym ->
+              let decl = sym.op_decl  in
+              let decli = Deref.op_decl cc.term_db decl in
+              match decli.kind with
+              | NewVariable -> (decl::vs,cs,acs,ss,ts)
+              | NewConstant -> (vs,decl::cs,acs,ss,ts)
+              | NewAction   -> (vs,cs,decl::acs,ss,ts)
+              | NewState    -> (vs,cs,acs,decl::ss,ts)
+              | NewTemporal -> (vs,cs,acs,ss,decl::ts)
+              | _ ->
+                let msg = "Unexpected operator kind in ASSUME NEW construct!"
+                in failwith_msg decli.location msg
+            ) ([],[],[],[],[]) assume_prove.new_symbols in
+        let constants = append cc.constants (rev cs) in
+        (* TODO: should we extend the context by action and temporal variables? *)
+        let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
+        (*    let goal = {assume_prove with assumes = []; } in *)
+        let inner_stmt =  (thmi, assume_prove.assumes) in
+        let inner_cc = { cc with goal = Some assume_prove;
+                                 constants;
+                                 variables;
+                                 thm_statements = inner_stmt :: cc.thm_statements;
+                       }
+        in
+        let outer_stmt = (thmi, [N_assume_prove assume_prove]) in
+        let theorems = match thmi.definition with
+          | None -> cc.theorems
+          | _ -> (THM_ref thmi.id) :: cc.theorems
+        in
+        (* move this to the use/hide statement
          let usable_facts =  match (thmi.name, get_nesting acc) with
-         | None, InProof _ -> assume_prove :: cc.usable_facts
-         (* a lemma without name does not add its statement to the context *)
-         | None, Module -> cc.usable_facts
-         | Some _, _ -> cc.usable_facts
-         in *)
-      let outer_cc = { cc with theorems;
-                               thm_statements = outer_stmt :: cc.thm_statements;
-                     }
-      in
-      OuterInner (outer_cc, inner_cc)
+           | None, InProof _ -> assume_prove :: cc.usable_facts
+           (* a lemma without name does not add its statement to the context *)
+           | None, Module -> cc.usable_facts
+           | Some _, _ -> cc.usable_facts
+           in *)
+        let outer_cc = { cc with theorems;
+                                 thm_statements = outer_stmt :: cc.thm_statements;
+                       }
+        in
+        OuterInner (outer_cc, inner_cc)
+      | N_expr e ->
+        failwith "expressions are not yet handled"
+      | N_ap_subst_in n ->
+        failwith "ap subst in node is not yet handled"
 
     method private update_cc_case acc (thmi:theorem_) formula =
       let cc = cc_peek acc in
@@ -380,7 +363,7 @@ class ['a] extract_obligations =
       let suffices = false in
       let boxed = false in (* TODO: need to recompute boxed flag *)
       let ap = { toprove with location; level; assumes; suffices; boxed; } in
-      self#update_cc_formula acc thmi ap
+      self#update_cc_formula acc thmi (N_assume_prove ap)
 
     (* \sigma pick vars : F(vars) is translated into two steps:
        \rho \E vars : F(vars)
@@ -420,11 +403,12 @@ class ['a] extract_obligations =
           in
           failwith_msg thmi.location msg
       in
+      let tdb = (get_cc acc |> hd).term_db in
       let (bounds, quantifier) =
         match qs with
-        | ([], uqs) -> ([], unbounded_exists)
+        | ([], uqs) -> ([], Builtin.get tdb Builtin.EXISTS)
         | (bqs, []) ->
-          (map get_bounds bqs, bounded_exists)
+          (map get_bounds bqs, Builtin.get tdb Builtin.BEXISTS)
         | _ -> failwith_msg thmi.location
                  "Pick mixes bounded and unbounded quantifiers!"
       in
@@ -469,7 +453,7 @@ class ['a] extract_obligations =
         {cc with
          goal = Some outer_statement;
          (* check this *)
-         thm_statements = (thmi, [outer_statement]) :: cc.thm_statements;
+         thm_statements = (thmi, [N_assume_prove outer_statement]) :: cc.thm_statements;
         } in
       OuterInner (outer_cc, inner_cc)
 
@@ -582,36 +566,51 @@ class ['a] extract_obligations =
 
     method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
       let cc = cc_peek acc0 in
-      (* extract new facts *)
-      let (thm_facts, expr_facts, rest) =
-        split_theorem_expr_facts cc.term_db facts in
-      let ap_facts = map (assume_prove_from_expr false) expr_facts in
-      match hide with
-      | false -> (* USE *)
-        (* create obligations proving new facts *)
-        (* TODO *)
-        (* update context *)
-        let new_cc = { cc with usable_facts = concat [cc.usable_facts;
-                                                      ap_facts;
-                                                     ]} in
-        cc_replace new_cc acc0
-      | true -> (* HIDE *)
-        (* you cannot hide an asserted fact, i.e. expr_facts must be empty *)
-        (* TODO: hide theorem/step references and defs*)
-        acc0
+      let expr_facts = List.fold_left (fun acc -> function
+          | EMM_expr e -> (N_expr e)::acc
+          | EMM_module_instance mi ->
+            failwith_msg location "don't know how to handle USE module instance!"
+          | EMM_module m ->
+            failwith_msg location "don't know how to handle USE module!"
+        ) [] facts |> List.rev
+      in
+      let opdef_defs = List.fold_left (fun acc -> function
+          | UMTA_assume_def a -> (O_assume_def a) :: acc
+          | UMTA_theorem_def a -> (O_thm_def a) :: acc
+          | UMTA_user_defined_op a -> (O_user_defined_op a) :: acc
+          | UMTA_module_instance a -> (O_module_instance a) :: acc
+        ) [] defs |> List.rev
+      in
+      let usable_facts = match hide,only with
+        | false,true  -> expr_facts
+        | false,false -> List.append cc.usable_facts expr_facts
+        | true, false ->
+          List.filter (fun x -> List.mem x expr_facts) cc.usable_facts
+        | true, true -> failwith_msg location "HIDE ONLY does not make sense."
+      in
+      let expanded_defs = match hide,only with
+        | false,true  -> opdef_defs
+        | false,false -> List.append cc.expanded_defs opdef_defs
+        | true, false -> filter (fun x -> List.mem x opdef_defs) cc.expanded_defs
+        | true, true -> failwith_msg location "HIDE ONLY does not make sense."
+      in
+      let new_cc = { cc with usable_facts; expanded_defs } in
+      cc_replace new_cc acc0
 
     method instance acc _ =
       (* TODO *)
       acc
 
-    method mule acc0 = function
-      | MOD_ref i -> self#reference acc0 i
-      | MOD {name; location; module_entries } ->
-        let acc0a = self#name acc0 name in
-        let acc1 = self#location acc0a location in
-        let acc = List.fold_left self#mule_entry acc1 module_entries in
-        acc
+    method mule acc0 (mi:mule) =
+      let tdb = (get_cc acc0 |> List.hd).term_db in
+      let m = Deref.mule tdb mi in
+      self#mule_ acc0 m
 
+    method mule_ acc0 {name; location; module_entries } =
+      let acc0a = self#name acc0 name in
+      let acc1 = self#location acc0a location in
+      let acc = List.fold_left self#mule_entry acc1 module_entries in
+      acc
 
     method context acc { entries; modules; root_module; } =
       let old_cc = cc_peek acc in

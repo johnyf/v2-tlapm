@@ -86,8 +86,7 @@ vars == <<x>>
 THEOREM ASSUME Invariant, [Next]_vars PROVE Invariant'
 <1> QED BY PTL
 
-
 =============================================================================
 \* Modification History
-\* Last modified Tue Aug 23 15:24:02 CEST 2016 by marty
+\* Last modified Thu Apr 13 17:14:37 CEST 2017 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty

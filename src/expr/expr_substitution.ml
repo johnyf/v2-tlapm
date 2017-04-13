@@ -37,7 +37,7 @@ struct
   let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) =
     function
     | (FP_ref x) as fp ->
-      let fpi = dereference_formal_param term_db fp in
+      let fpi = Deref.formal_param term_db fp in
       rename term_db ~free ~bound (FP fpi)
     | FP { location; level; name; arity; } ->
       let free_names =
@@ -297,11 +297,8 @@ class ['a] expr_substitution = object(self)
         | Some (EO_expr e) ->
           failwith "Tried to replace an expression by an operator."
       end
-    | FMOTA_module mule             as op -> super#operator acc op
     | FMOTA_op_decl op_decl         as op -> super#operator acc op
     | FMOTA_op_def op_def           as op -> super#operator acc op
-    | FMOTA_theorem theorem         as op -> super#operator acc op
-    | FMOTA_assume assume           as op -> super#operator acc op
     | FMOTA_ap_subst_in ap_subst_in as op -> super#operator acc op
     | FMOTA_lambda lambda           as op -> super#operator acc op
 

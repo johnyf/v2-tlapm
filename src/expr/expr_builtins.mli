@@ -1,8 +1,5 @@
 open Expr_ds
 
-module Predefined : sig
-end
-
 module Builtin : sig
   exception BuiltinNotFound of string * string
 

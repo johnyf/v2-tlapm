@@ -761,7 +761,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       (Any_entry (uid, (MI_entry mi)), acc)
     | Sany_ds.E_builtin_op x      ->
       let Any_builtin_op_ bi, acc = self#builtin_op_ acc0 x in
-      (Any_entry (uid, BI_entry bi), acc)
+      (Any_entry (uid, BOP_entry bi), acc)
     | Sany_ds.E_user_defined_op x ->
       let Any_user_defined_op_ op, acc = self#user_defined_op_ acc0 x in
       (Any_entry (uid, UOP_entry op), acc)
@@ -927,7 +927,8 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       (Any_operator (FMOTA_formal_param y), acc0)
     | Sany_ds.FMOTA_module  x ->
       let Any_mule y, acc0 = self#mule acc x in
-      (Any_operator (FMOTA_module y), acc0)
+      failwith "modules shouldnt be operators"
+    (* (Any_operator (FMOTA_module y), acc0) *)
     | Sany_ds.FMOTA_op_decl x ->
       let Any_op_decl y, acc0 = self#op_decl acc x in
       (Any_operator (FMOTA_op_decl y), acc0)
