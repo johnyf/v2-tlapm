@@ -1,3 +1,4 @@
+open Util
 open Commons
 open Expr_ds
 open Expr_map
@@ -6,18 +7,35 @@ open Expr_prover_parser
 open Expr_dereference
 open Any_expr
 
-type 'a ptacc = term_db option * 'a
+let step_names = ["$Pfcase"; "$Have"; "$Pick"; "$Suffices"; "$Witness"]
 
-let get_ptacc_tdb (db,_) = db
+type 'a ptacc = PTacc of term_db option * (node * theorem_def) IntMap.t * 'a
+
+let get_ptacc_tdb (PTacc (db,_,_)) = db
+let get_ptacc_thm_map (PTacc (_,map,_)) = map
+
 let tdb macc =
   match get_ptacc_tdb (get_acc macc) with
   | Some db -> db
   | _ -> failwith "Accumulator does not contain the term database!"
 
+let get_thm_map macc = get_acc macc |> get_ptacc_thm_map
+
+
 let set_tdb macc db =
-  let (_, rest) = get_acc macc in
-  set_acc macc (db, rest)
-(* TODO: this only rewrites theorem statements, not the definitions! *)
+  let PTacc (_, map, rest) = get_acc macc in
+  set_acc macc (PTacc (db, map, rest))
+
+let set_thm_map macc map =
+  let PTacc (db, _, rest) = get_acc macc in
+  set_acc macc (PTacc (db, map, rest))
+
+let add_statement  acc id node def =
+  let map = get_thm_map acc in
+  let map0 = IntMap.add id (node, def) map in
+  set_thm_map acc map0
+
+(* TODO: check if theorem and def rewriting agrees, handle WITNESS *)
 class ['a] expr_parse_theorems =
   object(self)
     inherit ['a ptacc] expr_map as super
@@ -42,27 +60,33 @@ class ['a] expr_parse_theorems =
           (* CASE proof step *)
           (* Printf.printf "Case!"; *)
           (* create new theorem and update accumulator *)
-          let statement = match args with
-            | [EO_expr expr] -> ST_CASE expr
+          let statement, acc2 = match args with
+            | [EO_expr expr] ->
+              let acc2 = CCOpt.map_or ~default:acc1
+                  (add_statement acc1 id (N_expr expr)) definition in
+              ST_CASE expr, acc2
             | [EO_op_arg _] ->
               failwith "Don't know what to do with op arg passed to case step!"
             | _ ->
               failwith "Step case operator expects exactly one argument!"
         in
         let thm = {id; location; level; definition; statement; proof } in
-        set_anyexpr acc1 (Any_theorem_ thm)
+        set_anyexpr acc2 (Any_theorem_ thm)
         |  _, Some ("$Have", args) ->
           (* HAVE proof step *)
           (* create new theorem and update accumulator *)
-          let statement = match args with
-            | [EO_expr expr] -> ST_HAVE expr
+          let statement, acc2 = match args with
+            | [EO_expr expr] ->
+              let acc2 = CCOpt.map_or ~default:acc1
+              (add_statement acc1 id (N_expr expr)) definition in
+              ST_HAVE expr, acc2
             | [EO_op_arg _] ->
               failwith "Don't know what to do with op arg passed to case step!"
             | _ ->
               failwith "Step case operator expects exactly one argument!"
           in
           let thm = {id; location; level; definition; statement; proof } in
-          set_anyexpr acc1 (Any_theorem_ thm)
+          set_anyexpr acc2 (Any_theorem_ thm)
         |  E_binder { operator = FMOTA_op_def opd ;
                       operand;
                       bound_symbols; _ }, None ->
@@ -84,7 +108,10 @@ class ['a] expr_parse_theorems =
                                           formula; } in
                 (* create new theorem and update accumulator *)
                 let thm = { id; location; level; definition; statement; proof;}  in
-                set_anyexpr acc1 (Any_theorem_ thm)
+                let acc2 = CCOpt.map_or
+                    ~default:acc1
+                    (add_statement acc1 id (N_expr expr)) definition in
+                set_anyexpr acc2 (Any_theorem_ thm)
               )
             | _ -> super#theorem_ acc thm
           )
@@ -94,7 +121,10 @@ class ['a] expr_parse_theorems =
           (* create new theorem and update accumulator *)
           let thm = {id; level; location; definition;
                      statement = ST_QED; proof }  in
-          set_anyexpr acc1 (Any_theorem_ thm)
+          let acc2 = CCOpt.map_or
+              ~default:acc1
+              (add_statement acc1 id (N_expr expr)) definition in
+          set_anyexpr acc2 (Any_theorem_ thm)
         | _ ->
           super#theorem_ acc thm
 
@@ -139,6 +169,29 @@ class ['a] expr_parse_theorems =
             (* skip other proof step *)
             super#theorem_ acc thmi
 
+    method theorem_def_ acc ({id; location; level; name; body} as td)=
+      match body with
+      | N_expr (E_op_appl {operator = FMOTA_op_def (O_builtin_op bop); operands;_}) ->
+        begin
+          match (Deref.builtin_op (tdb acc) bop).name, operands with
+          | "$Pfcase", [EO_expr e]
+          | "$Have", [EO_expr e]
+          | "$Pick", [EO_expr e]
+          | "$Suffices", [EO_expr e] ->
+            let acc1 = super#theorem_def_ acc td in
+            let td1 = self#get_macc_extractor#theorem_def_ acc1 in
+            let body = N_expr e in
+            set_anyexpr acc1 (Any_theorem_def_ {td1 with body})
+          | name, _ when List.mem name step_names ->
+            let msg = CCFormat.sprintf "Unhandled proof step %s at %a"
+                name Commons.fmt_location location in
+            failwith msg
+          | _, _ ->
+            super#theorem_def_ acc td
+        end;
+      | _ ->
+        super#theorem_def_ acc td
+
     method context acc { root_module; entries; modules } =
       let acc1 = set_tdb acc (Some entries) in
       super#context acc1 {root_module; entries; modules }
@@ -148,7 +201,8 @@ let instance = new expr_parse_theorems
 
 let expr_parse_theorems_context context =
   let me = instance#get_macc_extractor in
-  let init_acc = (Any_context context, (Some context.entries,[])) in
+  let init_acc = (Any_context context,
+                  PTacc (Some context.entries,IntMap.empty,())) in
   let acc = instance#context init_acc context in
   let context = me#context acc in
   context
