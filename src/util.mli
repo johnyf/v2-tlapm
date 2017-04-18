@@ -30,6 +30,8 @@ val line_wrap : ?cols:int -> string -> string
 
 module IntMap : CCMap.S with type key = int
 module IntSet : CCSet.S with type elt = int
+module StringMap : CCMap.S with type key = string
+module StringSet : CCSet.S with type elt = string
 
 (** A map with integer keys and default comparison. *)
 

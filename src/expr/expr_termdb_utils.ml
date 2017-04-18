@@ -8,10 +8,8 @@ open Expr_dereference
 module Tdb = IntMap
 type tdb = entry Tdb.t
 
-let error_id = -42 
 
 (* ---------------- not exposed in the module interface ----------------  *)
-let to_list set = IntSet.fold (fun x y -> x::y) set []
 
 type acc = MentionedEntry of IntSet.t * IntSet.t
 let empty_acc = MentionedEntry (IntSet.empty, IntSet.empty)
@@ -25,31 +23,24 @@ class ref_ids = object
 
   method formal_param acc = function
     | FP_ref id -> add_mentioned id acc
-    | f -> super#formal_param acc f
 
   method mule acc = function
     | MOD_ref id -> add_mentioned id acc
-    | m -> super#mule acc m
 
   method op_decl acc = function
     | OPD_ref id -> add_mentioned id acc
-    | o -> super#op_decl acc o
 
   method user_defined_op acc = function
     | UOP_ref id -> add_mentioned id acc
-    | o -> super#user_defined_op acc o
 
   method module_instance acc = function
     | MI_ref id -> add_mentioned id acc
-    | m -> super#module_instance acc m
 
   method theorem acc = function
     | THM_ref id -> add_mentioned id acc
-    | t -> super#theorem acc t
 
   method assume acc = function
     | ASSUME_ref id -> add_mentioned id acc
-    | a -> super#assume acc a
 
   method entry acc = function
     | (id, _) as e -> add_entry id (super#entry acc e)
@@ -72,13 +63,13 @@ let map_term_db f term_db =
 (* --------------- public interface --------------- *)
 
 let mentioned_ids =
-  map_term_db (fun m _ -> to_list m)
+  map_term_db (fun m _ -> IntSet.to_list m)
 
 let entry_ids =
-  map_term_db (fun _ e -> to_list e)
+  map_term_db (fun _ e -> IntSet.to_list e)
 
 let get_ids =
-  map_term_db (fun m e -> to_list (IntSet.union m e))
+  map_term_db (fun m e -> IntSet.to_list (IntSet.union m e))
 
 
 let inconsistent_entries term_db =
@@ -166,13 +157,13 @@ let mkref_opdec ?compare:(cmp=(=)) =
 (* creates a reference to a user defined operator and enters into the term_db,
    if necessary *)
 let mkref_user_defined_op ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> OPDef_entry (O_user_defined_op (UOP x)))
+  mkref_entry cmp (fun x -> UOP_entry x)
     (fun x -> UOP_ref x)
 
 (* creates a reference to a module instance and enters into the term_db,
    if necessary *)
 let mkref_module_instance  ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> OPDef_entry (O_module_instance (MI x)))
+  mkref_entry cmp (fun x -> MI_entry x)
     (fun x -> MI_ref x)
 
 let termdb_of_tdb tdb =
@@ -183,16 +174,67 @@ let tdb_of_termdb = List.fold_left
 
 
 module DeepTraversal = struct
+  type 'a dtacc = DTAcc of term_db * IntSet.t * 'a
   (* visitor with added term db and dereferencing *)
-  class ['a] tdb_visitor = object
-    inherit ['a * term_db] visitor as super
-    method user_defined_op (vs, tdb) uop =
-      let opdefi = dereference_user_defined_op tdb uop in
-      super#user_defined_op (vs, tdb) (UOP opdefi)
+  class ['a] tdb_visitor = object(self)
+    inherit ['a dtacc] visitor as super
 
-    method theorem (vs, tdb) thm =
-      let thmi = dereference_theorem tdb thm in
-      super#theorem (vs, tdb) (THM thmi)
+    method dtacc_term_db : 'a dtacc -> term_db = function
+      | DTAcc (tdb, _, _) -> tdb
+
+    method dtacc_set_term_db : 'a dtacc -> term_db -> 'a dtacc =
+      function
+      | DTAcc (_, v, a) -> fun tdb -> DTAcc (tdb, v, a)
+
+    method dtacc_visited : 'a dtacc -> IntSet.t = function
+      | DTAcc (_, v, _) -> v
+
+    method dtacc_add_visited : 'a dtacc -> IntSet.elt -> 'a dtacc =
+       function
+       | DTAcc (t, v, a) -> fun e ->
+         let v0 = IntSet.add e v in
+         DTAcc (t, v0, a)
+
+    method dtacc_inner_acc : 'a dtacc -> 'a = function
+      | DTAcc (_, _, a) -> a
+
+    method dtacc_set_inner_acc : 'a dtacc -> 'a -> 'a dtacc = function
+      | DTAcc (t, v, _) -> fun x -> DTAcc (t,v,x)
+
+    method user_defined_op acc uop =
+      let tdb = self#dtacc_term_db acc in
+      let opd = Deref.user_defined_op tdb uop in
+      super#user_defined_op_ acc opd
+
+    method builtin_op acc uop =
+      let tdb = self#dtacc_term_db acc in
+      let opd = Deref.builtin_op tdb uop in
+      super#builtin_op_ acc opd
+
+    method module_instance acc uop =
+      let tdb = self#dtacc_term_db acc in
+      let opd = Deref.module_instance tdb uop in
+      super#module_instance_ acc opd
+
+    method theorem_def acc uop =
+      let tdb = self#dtacc_term_db acc in
+      let opd = Deref.theorem_def tdb uop in
+      super#theorem_def_ acc opd
+
+    method assume_def acc uop =
+      let tdb = self#dtacc_term_db acc in
+      let opd = Deref.assume_def tdb uop in
+      super#assume_def_ acc opd
+
+    method theorem acc thm =
+      let tdb = self#dtacc_term_db acc in
+      let thmi = Deref.theorem tdb thm in
+      super#theorem_ acc thmi
+
+    method assume acc ass =
+      let tdb = self#dtacc_term_db acc in
+      let assi = Deref.assume tdb ass in
+      super#assume_ acc assi
   end
 
   (* free variables *)
@@ -203,17 +245,21 @@ module DeepTraversal = struct
   module OPD_Set = Set.Make( OPD_comparable )
 
 
-  class free_variables_visitor = object
+  class free_variables_visitor = object(self)
     inherit [OPD_Set.t] tdb_visitor as super
 
-    method op_decl (vs, tdb) opd =
-      super#op_decl ((OPD_Set.add opd vs), tdb) opd
+    method op_decl acc opd =
+      let fvset = self#dtacc_inner_acc acc in
+      let fvset0 = OPD_Set.add opd fvset in
+      let acc0 = self#dtacc_set_inner_acc acc fvset0 in
+      super#op_decl acc0 opd
   end
 
   let fv_object = new free_variables_visitor
 
   let free_variables tdb expr =
-    let vs, _ = fv_object#expr (OPD_Set.empty, tdb) expr in
+    let acc = DTAcc (tdb,IntSet.empty, OPD_Set.empty) in
+    let vs = fv_object#expr acc expr |> fv_object#dtacc_inner_acc in
     OPD_Set.fold (fun x xs -> x::xs) vs []
 
   (* formal parapemeters *)
@@ -223,18 +269,23 @@ module DeepTraversal = struct
   end
   module FP_Set = Set.Make( FP_comparable )
 
-  class formal_param_visitor = object
+  class formal_param_visitor = object(self)
     inherit [FP_Set.t] tdb_visitor as super
 
-    method formal_param (vs, tdb) fp =
-      let vs1 = FP_Set.add fp vs in
-      super#formal_param (vs1, tdb) fp
+    method formal_param acc fp =
+      let acc0 = self#dtacc_inner_acc acc
+                 |> FP_Set.add fp
+                 |> self#dtacc_set_inner_acc acc
+      in
+      super#formal_param acc0 fp
   end
 
   let formal_param_visitor_obj = new formal_param_visitor
 
   let formal_params tdb expr =
-    let vs, _ = formal_param_visitor_obj#expr (FP_Set.empty, tdb) expr in
+    let acc = DTAcc (tdb, IntSet.empty, FP_Set.empty) in
+    let vs = formal_param_visitor_obj#expr acc expr |>
+             formal_param_visitor_obj#dtacc_inner_acc in
     FP_Set.elements vs
 
   (* binders *)
@@ -252,16 +303,19 @@ module DeepTraversal = struct
   end
   module B_Set = Set.Make( B_comparable )
 
-  class binder_finder = object
+  class binder_finder = object(self)
     inherit [B_Set.t] tdb_visitor as super
-    method binder (vs, tdb) b =
-      super#binder ((B_Set.add b vs), tdb) b
+    method binder acc b =
+      let vs = self#dtacc_inner_acc acc in
+      let acc0 = self#dtacc_set_inner_acc acc (B_Set.add b vs) in
+      super#binder acc0 b
   end
 
   let bv_object = new binder_finder
 
   let bound_variables tdb expr =
-    let vs, _ = bv_object#expr (B_Set.empty, tdb) expr in
+    let acc = DTAcc (tdb, IntSet.empty, B_Set.empty) in
+    let vs = bv_object#expr acc expr |> bv_object#dtacc_inner_acc in
     let bs = B_Set.fold (fun x xs -> (formal_params_from_binder tdb x)::xs) vs []
     in List.concat bs
 

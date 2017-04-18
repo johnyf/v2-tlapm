@@ -234,3 +234,6 @@ module IntOrdering =
 
 module IntMap = CCMap.Make(IntOrdering)
 module IntSet = CCSet.Make(IntOrdering)
+
+module StringMap = CCMap.Make(String)
+module StringSet = CCSet.Make(String)

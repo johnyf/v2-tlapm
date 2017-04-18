@@ -12,6 +12,17 @@ open Format
 
 let debug f = () (* ignore(f ()) *)
 
+(* TODO: check if this is really the equality we want (including location) *)
+let compare_modulo_deref_formal_param term_db f1 f2 =
+  match f1, f2 with
+  | FP_ref i, FP_ref j when i = j -> true
+  | _,_ (* when i <> j *) ->
+    match Deref.formal_param term_db f1 with
+    | {id; location; level; name; arity } ->
+      let fp = Deref.formal_param term_db f2 in
+      (location = fp.location) && (level = fp.level)
+      && (name = fp.name) && (arity = fp.arity)
+
 module Subst =
 struct
   (** substitution of formal parameter by an expression *)
@@ -29,76 +40,84 @@ struct
   let formal_params_in_range tdb =
     flat_map (function
         | Subst (_, eo) ->
-          let acc = (FP_Set.empty, tdb) in
-          let set, _ = (new formal_param_visitor)#expr_or_op_arg acc eo in
+          let acc = DTAcc (tdb, IntSet.empty, FP_Set.empty) in
+          let v= new formal_param_visitor in
+          let set = v#expr_or_op_arg acc eo |> v#dtacc_inner_acc in
           FP_Set.elements set
       )
 
   let rec rename term_db ?free:(free=[]) ?bound:(bound=[]) ?defs:(defs=[]) =
     function
     | (FP_ref x) as fp ->
-      let fpi = Deref.formal_param term_db fp in
-      rename term_db ~free ~bound (FP fpi)
-    | FP { location; level; name; arity; } ->
-      let free_names =
-        fold_left (fun x y ->
-            let opdeci = dereference_op_decl term_db y in
-            opdeci.name :: x
-          ) [] free
-      in
-      let fbound_names =
-        fold_left (fun x y ->
-            let fpi = dereference_formal_param term_db y in
-            fpi.name :: x
-          ) free_names bound
-      in
-      let fbdef_names =
-        fold_left
-          (fun x ->
-             function
-             | O_module_instance mi -> x
-             | O_builtin_op op -> op.name :: x
-             | O_user_defined_op op ->
-               let opi = dereference_user_defined_op term_db op in
-               opi.name :: x
-          ) fbound_names defs
-      in
-      let find_name blacklist =
-        let rec find_name_ blacklist n =
-          let new_name = name ^ (string_of_int n) in
-          if mem new_name fbdef_names then
-            find_name_ blacklist (n+1)
+      match Deref.formal_param term_db fp with
+      | { id; location; level; name; arity; } ->
+        let free_names =
+          fold_left (fun x y ->
+              let opdeci = Deref.op_decl term_db y in
+              StringSet.add opdeci.name x
+            ) StringSet.empty free
+        in
+        let fbound_names =
+          fold_left (fun x y ->
+              let fpi = Deref.formal_param term_db y in
+              StringSet.add fpi.name x
+            ) free_names bound
+        in
+        let fbdef_names =
+          fold_left
+            (fun x ->
+               function
+               | O_module_instance mi -> x
+               | O_builtin_op op ->
+                 let opi = Deref.builtin_op term_db op in
+                 StringSet.add opi.name x
+               | O_user_defined_op op ->
+                 let opi = Deref.user_defined_op term_db op in
+                 StringSet.add opi.name x
+               | O_thm_def op ->
+                 let opi = Deref.theorem_def term_db op in
+                 StringSet.add opi.name x
+               | O_assume_def op ->
+                 let opi = Deref.assume_def term_db op in
+                 StringSet.add opi.name x
+            ) fbound_names defs
+        in
+        let find_name blacklist =
+          let rec find_name_ blacklist n =
+            let new_name = name ^ (string_of_int n) in
+            if StringSet.mem new_name fbdef_names then
+              find_name_ blacklist (n+1)
           else
             new_name
+          in
+          if StringSet.mem name blacklist then find_name_ blacklist 0 else name
         in
-        if mem name blacklist then find_name_ blacklist 0 else name
-      in
-      debug (fun () ->
-          fprintf std_formatter "@[Renaming blacklist %a@,@]"
-            (fmt_list ~front:"[" ~back:"]" (function f -> fprintf f "%s"))
-            fbdef_names);
-      let fp_ = { location; level; name = find_name fbdef_names; arity } in
-      debug (fun () ->
-          fprintf std_formatter "@.mapped %s <- %s@." name fp_.name);
-      mkref_formal_param term_db fp_
-
+        debug (fun () ->
+            fprintf std_formatter "@[Renaming blacklist %a@,@]"
+              (StringSet.pp ~start:"[" ~stop:"]" ~sep:"; " CCFormat.string)
+              fbdef_names);
+        let fp_ = { id; location; level; name = find_name fbdef_names; arity } in
+        debug (fun () ->
+            fprintf std_formatter "@.mapped %s <- %s@." name fp_.name);
+        mkref_formal_param term_db fp_
+          
   (* removes formal params in fps from substition domain *)
   let remove_from_subst termdb fps =
     let remove_from_subst_ termdb fps =
       filter (function Subst (fp, expr) ->
-          mem (dereference_formal_param termdb fp) fps
+          mem (Deref.formal_param termdb fp) fps
         )
-    in remove_from_subst_ termdb (map (dereference_formal_param termdb) fps)
+    in remove_from_subst_ termdb (map (Deref.formal_param termdb) fps)
 
   (* looks for mapping of fp in substs *)
   let find_subst ?cmp:(cmp=(=))  term_db fp =
-    let fpi = dereference_formal_param term_db fp in
+    let fpi = Deref.formal_param term_db fp in
     fold_left (function
         | None ->
           begin
             function
             | Subst (v, exp) ->
-              let vi = dereference_formal_param term_db v in
+              let vi = Deref.formal_param term_db v in
               if cmp fpi vi then
                 Some exp
               else
@@ -152,7 +171,6 @@ module SubFormat = struct
 
   let fmt_formal_param_ref term_db formatter = function
     | FP_ref id -> fprintf formatter "%d" id
-    | _ as fp -> fmt_formal_param term_db formatter fp
 
   let print_acc ?text:(text="acc:") sacc () =
     fprintf std_formatter "@[<v>%s@,%a@,@]" text fmt_sacc sacc
@@ -379,11 +397,12 @@ class ['a] expr_substitution = object(self)
   method user_defined_op acc = function
     | UOP_ref uid as uop ->
       set_anyexpr acc (Any_user_defined_op uop)
-    | UOP uopi as uop ->
+
+  method user_defined_op_ acc uop =
       (* Don't recurse into the body, any substitution is applied
          to the arguments as soon as the operator is applied.
       *)
-      set_anyexpr acc (Any_user_defined_op uop)
+      set_anyexpr acc (Any_user_defined_op_ uop)
 
   method bound_symbol acc b =
     SubFormat.print_acc ~text:"Bound symbol before:" (get_acc acc) |> debug;

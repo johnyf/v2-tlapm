@@ -101,31 +101,37 @@ let sub2 = [Subst.Subst
                            argument = FMOTA_formal_param (FP_ref 102) })]
 
 (* helpers *)
-class free_bound_lists_visitor = object
+class free_bound_lists_visitor = object(self)
   inherit [(formal_param list) * (op_decl list) * (formal_param list)]
       DeepTraversal.tdb_visitor as super
 
-  method unbounded_bound_symbol ((bs, fs, allfps), tdb) ({ param; _ } as sym ) =
-    let acc = ((append bs [param], fs, allfps), tdb) in
-    super#unbounded_bound_symbol acc sym
+  method unbounded_bound_symbol acc ({ param; _ } as sym ) =
+    let (bs, fs, allfps) = self#dtacc_inner_acc acc in
+    let acc0 = self#dtacc_set_inner_acc acc (append bs [param], fs, allfps) in
+    super#unbounded_bound_symbol acc0 sym
 
-  method bounded_bound_symbol ((bs, fs, allfps), tdb) ({ params; _ } as sym ) =
-    let acc = ((append bs params, fs, allfps), tdb) in
-    super#bounded_bound_symbol acc sym
+  method bounded_bound_symbol acc ({ params; _ } as sym ) =
+    let (bs, fs, allfps) = self#dtacc_inner_acc acc in
+    let acc0 = self#dtacc_set_inner_acc acc (append bs params, fs, allfps) in
+    super#bounded_bound_symbol acc0 sym
 
-  method op_decl ((bs, fs, allfps), tdb) opd =
-    let acc = ((bs, append fs [opd], allfps), tdb) in
-    super#op_decl acc opd
+  method op_decl acc opd =
+    let (bs, fs, allfps) = self#dtacc_inner_acc acc in
+    let acc0 = self#dtacc_set_inner_acc acc (bs, append fs [opd], allfps) in
+    super#op_decl acc0 opd
 
-  method formal_param ((bs, fs, allfps), tdb) fp =
-    let acc = ((bs, fs, append allfps [fp]), tdb) in
-    super#formal_param acc fp
+  method formal_param acc fp =
+    let (bs, fs, allfps) = self#dtacc_inner_acc acc in
+    let acc0 = self#dtacc_set_inner_acc acc (bs, fs, append allfps [fp]) in
+    super#formal_param acc0 fp
 end
 
 (* extracts bound variables, free variables and all formal parameters from an
    expression. preserves duplications. *)
 let free_bound_lists tdb expr =
-  let r, _ = (new free_bound_lists_visitor)#expr (([],[],[]), tdb) expr in
+  let acc = DeepTraversal.DTAcc (tdb, IntSet.empty, ([],[],[])) in
+  let v = new free_bound_lists_visitor in
+  let r = v#dtacc_inner_acc (v#expr acc expr) in
   r
 
 let intersect list1 list2 =

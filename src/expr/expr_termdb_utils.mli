@@ -78,9 +78,20 @@ module DeepTraversal : sig
   (** Extracts the formal parameter of the bound variable from a binder *)
   val formal_params_from_binder : term_db -> binder -> formal_param list
 
+  (** DTacc provides the global term database, the set of visited ids and an
+      inner accumulator for tdb_visitor *)
+  type 'a dtacc = DTAcc of term_db * IntSet.t * 'a
+
   (* visitor with added term db and dereferencing *)
   class ['a] tdb_visitor : object
-    inherit ['a * term_db] visitor
+    inherit ['a dtacc] visitor
+
+    method dtacc_add_visited   : 'a dtacc -> IntSet.elt -> 'a dtacc
+    method dtacc_inner_acc     : 'a dtacc -> 'a
+    method dtacc_set_inner_acc : 'a dtacc -> 'a -> 'a dtacc
+    method dtacc_set_term_db   : 'a dtacc -> term_db -> 'a dtacc
+    method dtacc_term_db       : 'a dtacc -> term_db
+    method dtacc_visited       : 'a dtacc -> IntSet.t
   end
 
   module FP_comparable : sig
