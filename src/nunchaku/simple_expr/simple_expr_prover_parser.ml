@@ -82,6 +82,7 @@ let match_infix_op term_db = function
     extract_binary_args op.arity op.name op.params
   (*  | FMOTA_op_def _ -> false *)
   | FMOTA_op_decl opdecl -> false
+  | FMOTA_lambda _ -> false
 
 let match_ternary_op term_db = function
   | FMOTA_formal_param fp -> None
@@ -92,3 +93,4 @@ let match_ternary_op term_db = function
     extract_ternary_args op.arity op.name op.params
   (*| FMOTA_op_def _ -> None *)
   | FMOTA_op_decl opdecl -> None
+  | FMOTA_lambda _ -> None

@@ -3,7 +3,7 @@ open Simple_expr
 open Tla_pb
 
 (** Definition **)
-
+(* this is defined in Simple_expr_ds
 type tla_simple_pb = {
   (* actual obligation, without expansion *)
   goal : simple_assume_prove;
@@ -11,12 +11,12 @@ type tla_simple_pb = {
   (* the term database *)
   term_db : simple_term_db;
 }
-
+*)
 
 (** Translation **)
 
 let tla_pb_to_tla_simple_pb (tla_pb:tla_pb) =
-  let (stermdb, ap) = parse_expr tla_pb.term_db tla_pb.goal in
+  let (stermdb, ap) = parse_expr tla_pb.Obligation.term_db tla_pb.Obligation.goal in
   {goal = ap; term_db = stermdb;}
 
 

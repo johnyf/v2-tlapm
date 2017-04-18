@@ -9,7 +9,7 @@ open Toolbox
 type ppacc = term_db * op_def list * formal_param list * unit printer
 
 let unsupported msg =
-   raise (ExternalToolFailed (Isabelle, "Unsupported element", msg) )
+   raise (ExternalToolFailed (Commons.Isabelle, "Unsupported element", msg) )
 
 class ['a] term_visitor = object
   inherit ['a] visitor

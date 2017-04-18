@@ -5,18 +5,14 @@ open Format
 open Settings
 open Arg_handler
 open Result
-
-(*
 open Obligation
 open Extract_obligations
-open Nunchaku
 open Expr_substitution
 open Expr_termdb_utils
 open Toolbox
 open Scheduler
 open Backend_exceptions
 open Isabelle
-*)
 
 let  global_settings = ref default_settings
 
@@ -92,15 +88,10 @@ let load_sany settings =
     failwith msg
 
 
-(*
-
 let compute_obligations settings sany_context =
-  (* extract builtins from file *)
-  let sany_builtins =
-    Sany_builtin_extractor.extract_from_context sany_context in
   (* convert sany ast to internal ast (expr_ds) *)
   let exprds =
-    Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+    Sany_expr.convert_context ~builtins:[] sany_context in
   (* replace definitions of name LAMBDA by lambda constructors *)
   let fixed_lambda =
     Expr_correct_lambda.correct_lambda_context exprds in
@@ -152,7 +143,6 @@ let announce_all_failed settings formatter obligations =
 let prepare_backends settings () =
   let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
   ignore(Sys.command clear_tmp)
-*)
 type exit_status = Exit_status of int
 
 
@@ -162,14 +152,13 @@ let init () =
     let settings = handle_arguments Sys.argv in
     global_settings := settings;
     let sany_context = load_sany settings in
-    (* TODO: put stuff back in
     let obligations = compute_obligations settings sany_context in
     announce_obligations settings err_formatter obligations;
     (* here goes the calling of backends *)
     prepare_backends settings (); (*TODO refactor *)
     let messages = scheduler settings obligations in
     announce_results messages;
-*)
+
     Exit_status 0
   end
   with

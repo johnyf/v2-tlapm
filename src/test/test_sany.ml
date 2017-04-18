@@ -66,6 +66,9 @@ let dr_opd entries = function
     dr_bop entries (BOP_ref r)
   | Sany_ds.OPDef (O_builtin_op bop) ->
     dr_bop entries bop
+  | _ ->
+    None
+    
 
 (* extractor counting suffices in sany tree *)
 class sany_suffices_scanner =
