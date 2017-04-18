@@ -64,3 +64,5 @@ val fmt_int_range : formatter -> int_range -> unit
 val format_prover : prover -> string
 
 val fmt_prover : formatter -> prover -> unit
+
+val format_op_decl_kind : op_decl_kind -> string

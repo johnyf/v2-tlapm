@@ -308,23 +308,30 @@ class formatter =
         | Module ->
           (* terminal node *)
           let declaration_string = match kind with
-            | ConstantDecl -> "CONSTANT"
-            | VariableDecl -> "VARIABLE"
+            | ConstantDecl
+            | NewConstant
+              -> "CONSTANT"
+            | VariableDecl
+            | NewVariable
+              -> "VARIABLE"
             | _ ->
-              failwith "Global declaration can only be CONSTANT or VARIABLE."
+              let msg =
+                CCFormat.sprintf
+                  "Global declaration %s can only be CONSTANT or VARIABLE."
+                  (Commons.format_op_decl_kind kind)
+              in
+              failwith msg
           in
           fprintf (ppf acc2) "%s %s" declaration_string name ;
           ppf_newline acc2;
           acc2
+        | ProofStep _
+        | By
         | Expression ->
           (* the kind is only relevant in the new_symb rule *)
           (* terminal node *)
           fprintf (ppf acc2) "%s" name ;
           acc2
-        | ProofStep _ ->
-          failwith "Operator declarations don't happen as a proof step!"
-        | By ->
-          failwith "Operator declarations don't happen in a BY statement!"
       in acc3
 
     method op_def acc = function

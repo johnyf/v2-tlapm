@@ -87,6 +87,21 @@ class ['a] expr_parse_theorems =
           in
           let thm = {id; location; level; definition; statement; proof } in
           set_anyexpr acc2 (Any_theorem_ thm)
+        |  _, Some ("$Witness", args) ->
+          (* HAVE proof step *)
+          (* create new theorem and update accumulator *)
+          let statement, acc2 = match args with
+            | [EO_expr expr] ->
+              let acc2 = CCOpt.map_or ~default:acc1
+              (add_statement acc1 id (N_expr expr)) definition in
+              ST_WITNESS expr, acc2
+            | [EO_op_arg _] ->
+              failwith "Don't know what to do with op arg passed to case step!"
+            | _ ->
+              failwith "Step case operator expects exactly one argument!"
+          in
+          let thm = {id; location; level; definition; statement; proof } in
+          set_anyexpr acc2 (Any_theorem_ thm)
         |  E_binder { operator = FMOTA_op_def opd ;
                       operand;
                       bound_symbols; _ }, None ->
@@ -177,6 +192,7 @@ class ['a] expr_parse_theorems =
           | "$Pfcase", [EO_expr e]
           | "$Have", [EO_expr e]
           | "$Pick", [EO_expr e]
+          | "$Witness", [EO_expr e]
           | "$Suffices", [EO_expr e] ->
             let acc1 = super#theorem_def_ acc td in
             let td1 = self#get_macc_extractor#theorem_def_ acc1 in

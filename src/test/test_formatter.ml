@@ -15,10 +15,15 @@ let test_sany record () =
     in
     (* let fmt = new formatter in *)
     (*      pp_set_margin std_formatter 80; *)
-    fprintf std_formatter "@[<v 0>%s:@\n" record.filename;
-    let init = (std_formatter, context.entries, true, Module, 0) in
+    fprintf str_formatter "@[<v 0>%s:@\n" record.filename;
+    let init = (str_formatter, context.entries, true, Module, 0) in
     ignore ( expr_formatter#context init context );
-    fprintf std_formatter "@]@.";
+    fprintf str_formatter "@]@.";
+    let text = flush_str_formatter () in
+    if (String.length text) < 1000 then (* only print to screen if it is not too big*)
+      Format.printf "%s@." text
+    else
+      Format.printf "skipping too large pretty printing of test %s@." record.filename;
     ()
   )
 

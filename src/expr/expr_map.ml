@@ -949,19 +949,8 @@ class ['a] expr_map = object(self)
       let acc0 = self#expr acc x in
       let r = N_expr (macc_extract#expr acc0) in
       set_anyexpr acc0 (Any_node r)
-    | _ -> failwith "AP_subst_in nodes should only be expr or assume_prove."
-    (*  | N_ap_subst_in x -> self#ap_subst_in acc x
-        | N_def_step x     -> self#def_step acc x
-        | N_op_arg x       -> self#op_arg acc x
-        | N_instance x     -> self#instance acc x
-        | N_new_symb x     -> self#new_symb acc x
-        | N_proof x        -> self#proof acc x
-        | N_formal_param x -> self#formal_param acc x
-        | N_module x       -> self#mule acc x
-        | N_op_decl x      -> self#op_decl acc x
-        | N_op_def x       -> self#op_def acc x
-        | N_assume x       -> self#assume acc x
-        | N_theorem x      -> self#theorem acc x
-        | N_use_or_hide x  -> self#use_or_hide acc x
-    *)
+    | N_ap_subst_in aps ->
+      let acc0 = self#ap_subst_in acc aps in
+      let r = N_ap_subst_in (macc_extract#ap_subst_in acc0) in
+      set_anyexpr acc0 (Any_node r)
 end

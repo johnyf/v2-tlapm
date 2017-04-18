@@ -86,3 +86,13 @@ let format_prover = function
 
 let fmt_prover f p =
   fprintf f "%s" (format_prover p)
+
+let format_op_decl_kind = function
+  | ConstantDecl -> "constant"
+  | VariableDecl -> "variable"
+  | BoundSymbol -> "bound symbol"
+  | NewConstant -> "new constant"
+  | NewVariable -> "new variable"
+  | NewState -> "new state"
+  | NewAction -> "new action"
+  | NewTemporal -> "new temporal"
