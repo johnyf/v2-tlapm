@@ -123,7 +123,10 @@ let increase_nesting acc =
 let decrease_nesting acc =
   match get_nesting acc with
   | Module -> failwith "Cannot decrease nesting level below module!"
-  | InProof n -> update_nesting acc (InProof (n-1))
+  | InProof 1 -> update_nesting acc Module
+  | InProof n when n > 1 -> update_nesting acc (InProof (n-1))
+  | InProof n (* when n <= 0 *) ->
+    failwith "Nesting may not go below 1!"
 
 let cc_empty acc =
   match get_cc acc with
@@ -213,18 +216,30 @@ class ['a] extract_obligations =
     inherit ['a eoacc] visitor
 
     method assume acc a =
-      let cc = cc_peek acc in
-      let assumptions = a :: cc.assumptions in
-      cc_replace { cc with assumptions } acc
+      match get_nesting acc with
+      | Module ->
+        let cc = cc_peek acc in
+        let assumptions = a :: cc.assumptions in
+        let ai = Deref.assume cc.term_db a in
+        let definitions = CCOpt.map_or ~default:cc.definitions
+            (fun x -> (O_assume_def x)::cc.definitions) ai.definition in
+        cc_replace { cc with assumptions; definitions } acc
+      | InProof n ->
+        let msg = CCFormat.sprintf "assume at nesting %d!" n in
+        failwith msg;
 
     method op_decl acc opdecl =
-      let cc = cc_peek acc in
-      let decl_instance = Deref.op_decl cc.term_db opdecl in
-      let ccnew = match decl_instance.kind with
-        | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
-        | VariableDecl -> { cc with variables = opdecl :: cc.variables }
-        | _ -> cc in
-      cc_replace ccnew acc
+      match get_nesting acc with
+      | Module ->
+        let cc = cc_peek acc in
+        let decl_instance = Deref.op_decl cc.term_db opdecl in
+        let ccnew = match decl_instance.kind with
+          | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
+          | VariableDecl -> { cc with variables = opdecl :: cc.variables }
+          | _ -> cc in
+        cc_replace ccnew acc
+      | _ ->
+        acc
 
     method op_def acc opdef =
       let cc = cc_peek acc in
@@ -320,10 +335,12 @@ class ['a] extract_obligations =
                        }
         in
         let outer_stmt = (thmi, [N_assume_prove assume_prove]) in
-        let theorems = match thmi.definition with
-          | None -> cc.theorems
-          | _ -> (THM_ref thmi.id) :: cc.theorems
+        let (theorems, definitions) = match thmi.definition with
+          | None -> (cc.theorems, cc.definitions)
+          | Some d -> ((THM_ref thmi.id) :: cc.theorems,
+                       (O_thm_def d) :: cc.definitions)
         in
+        let thm_statements = outer_stmt :: cc.thm_statements in
         (* move this to the use/hide statement
          let usable_facts =  match (thmi.name, get_nesting acc) with
            | None, InProof _ -> assume_prove :: cc.usable_facts
@@ -332,12 +349,33 @@ class ['a] extract_obligations =
            | Some _, _ -> cc.usable_facts
            in *)
         let outer_cc = { cc with theorems;
-                                 thm_statements = outer_stmt :: cc.thm_statements;
+                                 definitions;
+                                 thm_statements;
                        }
         in
         OuterInner (outer_cc, inner_cc)
       | N_expr e ->
-        failwith "expressions are not yet handled"
+        let cc = cc_peek acc in
+        let location = extract_location e in
+        let level = extract_level e in
+        (* TODO: check boxed flag in ap *)
+        let ap = {location; level; new_symbols = []; assumes = [];
+                  prove = e; suffices = false; boxed = true; } in
+        let inner_cc = { cc with goal = Some ap;
+                       }
+        in
+        let outer_stmt = (thmi, [N_assume_prove ap]) in
+        let (theorems, definitions) = match thmi.definition with
+          | None -> (cc.theorems, cc.definitions)
+          | Some d -> ((THM_ref thmi.id) :: cc.theorems,
+                       (O_thm_def d) :: cc.definitions)
+        in
+        let thm_statements = outer_stmt :: cc.thm_statements in
+        let outer_cc = { cc with theorems;
+                                 definitions;
+                                 thm_statements;
+                       } in
+        OuterInner (outer_cc, inner_cc)
       | N_ap_subst_in n ->
         failwith "ap subst in node is not yet handled"
 
@@ -492,15 +530,16 @@ class ['a] extract_obligations =
         | Inner inner_cc ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
-          let acc2 = self#proof acc1 thmi.proof in
+          let acc2 = increase_nesting acc1 in
+          let acc3 = self#proof acc2 thmi.proof in
           (* we need to reset the current context, usable facts etc are not
              visible outside the sub-proof *)
           (* let inner_obs = get_obligations acc2 in
              (* we add the inner obligations to the outer context, but don't
              take over anything else *)
              update_obligations acc0 inner_obs *)
-          let (_, acc3) = cc_pop acc2 in
-          acc3
+          let (_, acc4) = cc_pop acc3 in
+          acc4
         | OuterInner (outer_cc, inner_cc) ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
