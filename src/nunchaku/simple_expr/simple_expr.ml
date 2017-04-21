@@ -32,6 +32,32 @@ class extractor = object
   method extract x = x
 end
 
+let translate_builtin_name = function
+      | "$BoundedExists" -> `Exists
+      | "$BoundedForall" -> `Forall
+      | "$ConjList" -> `And
+      | "$DisjList" -> `Or
+      | "$UnboundedExists" -> `Exists
+      | "$UnboundedForall" -> `Forall
+      (* manual additions *)
+      | "\\land" -> `And
+      | "\\lor" -> `Or
+      | "TRUE" -> `True
+      | "FALSE" -> `False
+      | "=" -> `Eq
+      | "=>" -> `Imply
+      | "/=" -> `Neq
+      | "\\lnot" -> `Not
+      | "$FcnApply" -> `Apply
+      | "\\intersect" -> `Intersect
+      | "\\union" -> `Union
+      | x -> `Undefined x (* catchall case *)
+
+let supported_builtin x = match translate_builtin_name x with
+  | `Undefined x when List.mem x ["$SetEnumerate"] -> true (* some builtins are translated to special terms *)
+  | `Undefined _ -> false
+  | _ -> true
+
 
 (** ----------------------------------------------**)
 (** Class definition **)
@@ -364,6 +390,8 @@ class expr_to_simple_expr = object(self)
     in
     let tdb = get_term_db acc in
     let x = Deref.builtin_op tdb bi in
+    if (not (supported_builtin x.name)) then
+      raise (UnhandledLanguageElement (Nunchaku, "builtin op '"^x.name^"'"));
     let (acc1,sparams) = f acc x.params
     in
     let sx:simple_builtin_op = {

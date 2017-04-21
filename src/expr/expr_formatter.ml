@@ -1,5 +1,6 @@
 open Commons
 open Expr_ds
+open Expr_builtins
 open Expr_visitor
 open Expr_utils
 open Expr_dereference
@@ -47,13 +48,13 @@ let reset_ndepth x (_,_,_,_,d) = set_ndepth x d
 let inc_ndepth x = set_ndepth x ((ndepth x) + 1)
 
 
-let comma_formatter channel _ =
+let comma_formatter channel () =
   fprintf channel ", ";
   ()
-let newline_formatter channel _ =
-  fprintf channel "@, ";
+let newline_formatter channel () =
+  fprintf channel "@,";
   ()
-let empty_formatter channel _ =
+let empty_formatter channel () =
   fprintf channel "";
   ()
 
@@ -87,8 +88,7 @@ let pp_def_name acc0 fmt s =
   | true ->
     CCFormat.fprintf fmt "%s == " s
   | false ->
-    ()
-
+    CCFormat.fprintf fmt "%s" s
 
 (** checks if a user defined operator is defined in a standard module
     (TLAPS, Naturals etc.) *)
@@ -158,51 +158,69 @@ class formatter =
     method op_appl acc0 {location; level; operator; operands} =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      let acc = match match_infix_op (tdb acc2) operator with
-        | true ->
-          (* infix binary operators *)
-          fprintf (ppf acc2) "(";
-          let left, right = match operands with
-            | [l;r] -> l,r
-            | _ -> failwith "Binary operator does not have 2 arguments!"
-          in
-          let acc3 = self#expr_or_op_arg acc2 left in
-          fprintf (ppf acc3) " ";
-          let acc4 = self#operator acc3 operator in
-          fprintf (ppf acc4) " ";
-          let acc5 = self#expr_or_op_arg acc4 right in
-          fprintf (ppf acc5) ")";
-          acc5
-        | false -> (
-            match match_ternary_op (tdb acc2) operator with
-            | Some name ->
-              (* ternary binary operators *)
-              let str_begin,str_middle,str_end = expand_ternary_name name in
-              fprintf (ppf acc2) "(";
-              let op1, op2, op3 = match operands with
-                | [o1;o2;o3] -> o1,o2,o3
-                | _ -> failwith "Ternary operator does not have 3 arguments!"
-              in
-              fprintf (ppf acc2) "(%s " str_begin;
-              let acc3 = self#expr_or_op_arg acc2 op1 in
-              fprintf (ppf acc3) " %s " str_middle;
-              let acc4 = self#expr_or_op_arg acc3 op2 in
-              fprintf (ppf acc4) " %s " str_end;
-              let acc5 = self#expr_or_op_arg acc4 op3 in
-              fprintf (ppf acc5) ")";
-              acc5
-            | _ ->
-              (* other operators *)
-              let acc3 = self#operator acc2 operator in
-              let oparens, cparens =
-                if (operands <> []) then ("(",")") else ("","") in
-              fprintf (ppf acc3) "%s" oparens;
-              let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
-              fprintf (ppf acc4) "%s" cparens;
-              acc4
-          )
-      in
-      acc
+      match match_fixity_op (tdb acc2) operator with
+      | BinaryInfix ->
+        (* infix binary operators *)
+        fprintf (ppf acc2) "(";
+        let left, right = match operands with
+          | [l;r] -> l,r
+          | _ -> failwith "Binary operator does not have 2 arguments!"
+        in
+        let acc3 = self#expr_or_op_arg acc2 left in
+        fprintf (ppf acc3) " ";
+        let acc4 = self#operator acc3 operator in
+        fprintf (ppf acc4) " ";
+        let acc5 = self#expr_or_op_arg acc4 right in
+        fprintf (ppf acc5) ")";
+        acc5
+      | Special Builtin.IF_THEN_ELSE ->
+        fprintf (ppf acc2) "(";
+        let op1, op2, op3 = match operands with
+          | [o1;o2;o3] -> o1,o2,o3
+          | _ -> failwith "if-then-else operator does not have 3 arguments!"
+        in
+        fprintf (ppf acc2) "(IF ";
+        let acc3 = self#expr_or_op_arg acc2 op1 in
+        fprintf (ppf acc3) " THEN ";
+        let acc4 = self#expr_or_op_arg acc3 op2 in
+        fprintf (ppf acc4) " ELSE ";
+        let acc5 = self#expr_or_op_arg acc4 op3 in
+        fprintf (ppf acc5) ")";
+        acc5
+      | Special Builtin.FUN_APP ->
+        (* TODO: not sure if the args need to be wrapped in prenthesis sometimes *)
+        let f, args = match operands with
+          | x::y::xs -> x, y::xs
+          | _ -> failwith "Function application needs at least 2 arguments!"
+        in
+        let acc3 = self#expr_or_op_arg acc2 f in
+        fprintf (ppf acc3) "[";
+        let acc4 = ppf_fold_with self#expr_or_op_arg acc3 args in
+        fprintf (ppf acc4) "]";
+        acc4
+      | Special Builtin.SET_ENUM ->
+        fprintf (ppf acc2) "{";
+        (* TODO: not sure if the args need to be wrapped in prenthesis sometimes *)
+        let acc3 = ppf_fold_with self#expr_or_op_arg acc2 operands in
+        fprintf (ppf acc3) "}";
+        acc3
+      | Special Builtin.TUPLE ->
+        fprintf (ppf acc2) "<<";
+        (* TODO: not sure if the args need to be wrapped in prenthesis sometimes *)
+        let acc3 = ppf_fold_with self#expr_or_op_arg acc2 operands in
+        fprintf (ppf acc3) ">>";
+        acc3
+      | Special _
+      | UnaryPrefix|UnaryPostfix
+      | Standard ->
+        (* other operators *)
+        let acc3 = self#operator acc2 operator in
+        let oparens, cparens =
+          if (operands <> []) then ("(",")") else ("","") in
+        fprintf (ppf acc3) "%s" oparens;
+        let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
+        fprintf (ppf acc4) "%s" cparens;
+        acc4
 
     method lambda acc0 {level; arity; body; params} =
       let acc1 = self#level acc0 level in
@@ -262,6 +280,12 @@ class formatter =
       (* arity skipped *)
       acc3
 
+    method mule_entry acc me =
+      (*      pp_open_vbox (ppf acc) 0; *)
+      let acc0 = super#mule_entry (nest_module acc) me in
+      (* pp_close_box (ppf acc0); *)
+      acc0
+
     method mule acc0 = function
       | MOD_ref i ->
         let db = tdb acc0 in
@@ -276,7 +300,7 @@ class formatter =
         | true -> (* expand module name *)
           let acc0a = nest_module acc0 in
           pp_open_vbox (ppf acc0a) 0;
-          fprintf (ppf acc0a) "==== %s ====@\n" name;
+          fprintf (ppf acc0a) "==== MODULE %s ====@\n" name;
           ppf_newline acc0a;
           (*
           let print_block acc list_string sep handler list =  match list with
@@ -289,7 +313,8 @@ class formatter =
              racc
           in
            *)
-          let acc = ppf_fold_with ~str:newline_formatter self#mule_entry
+          let acc = ppf_fold_with ~str:empty_formatter
+              self#mule_entry
               acc0a module_entries in
           pp_close_box (ppf acc) ();
           fprintf (ppf acc) "@\n------------@\n";
@@ -344,53 +369,25 @@ class formatter =
       | O_assume_def x ->
         self#assume_def acc x
       | O_user_defined_op x ->
-        let op = Deref.user_defined_op (tdb acc) x
-        in
-        match nesting acc, undef acc, is_standard_location op.location with
-        | Module, _, true ->
-          (* skip standard libraries *)
-          acc
-        | Module, _, _ ->
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = enable_expand acc0a in
-          fprintf (ppf acc0b) " == ";
-          let acc1 = nest_expr acc0b in
-          let acc2 = self#user_defined_op acc1 x in
-          let acc3 = reset_nesting acc2 acc in
-          let acc4 = reset_expand acc3 acc in
-          ppf_newline acc4;
-          acc4
-        | Expression, true, _ ->
-          let acc1 = nest_expr acc in
-          let acc2 = self#user_defined_op acc1 x in
-          let acc3 = reset_nesting acc2 acc in
-          acc3
-        | Expression, false, _ ->
-          fprintf (ppf acc) "%s" op.name;
-          acc
-        | By, _, _ ->
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = reset_expand acc0a acc in
-          acc0b
-        | ProofStep depth, _, _ ->
-          (* TODO: check if this is ok *)
-          let acc0 = disable_expand acc in
-          let acc0a = self#user_defined_op acc0 x in
-          let acc0b = reset_expand acc0a acc in
-          acc0b
-  (*
-          failwith ("TODO: implement printing of op definitions in " ^
-                    "proof step environments.")
-   *)
+        self#user_defined_op acc x
+
+    method assume_def acc0 asm =
+      let instance = Deref.assume_def (tdb acc0) asm in
+      self#assume_def_ acc0 instance
+
+    method assume_def_ acc0 {id; location; level; name; body} =
+      CCFormat.fprintf (ppf acc0) "%a" (pp_def_name acc0) name;
+      (* self#expr acc0 body *)
+      acc0
+
     method theorem_def acc0 thm =
       let instance = Deref.theorem_def (tdb acc0) thm in
       self#theorem_def_ acc0 instance
 
     method theorem_def_ acc0 {id; location; level; name; body} =
       CCFormat.fprintf (ppf acc0) "%a" (pp_def_name acc0) name;
-      self#node acc0 body
+      (* self#node acc0 body *)
+      acc0
 
     method theorem acc0 thm =
       let instance = Deref.theorem (tdb acc0) thm in
@@ -471,7 +468,10 @@ class formatter =
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         fprintf (ppf acc2) "ASSUME " ;
-        let acc = self#expr acc2 expr in
+        let acc3 = acc2 |> nest_expr |> disable_expand in
+        let acc4 = self#expr acc3 expr in
+        let acc = reset_nesting acc4 acc2
+                  |> fun x -> reset_expand x acc2 in
         ppf_newline acc;
         acc
 
@@ -560,20 +560,22 @@ class formatter =
       ppf_newline acc;
       acc
 
-    method instance acc0 {location; level; name; substs; params; } =
+    method instance acc0 {location; level; name; module_name; substs; params; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      fprintf (ppf acc2) "INSTANCE ";
-      let acc3 = match name with
+      let pp_name fmt = function
         | Some name ->
-          let acc3a = self#name acc2 name in
-          fprintf (ppf acc3a) " == ";
-          acc3a
+          fprintf (ppf acc2) "%s == " name;
+          ()
         | None ->
-          acc2
+          ()
       in
-      let acc4 = List.fold_left self#instantiation acc3 substs in
-      let acc = List.fold_left self#formal_param acc4 params in
+      fprintf (ppf acc2) "%aINSTANCE %s " pp_name name module_name;
+      if (substs <> []) then
+        fprintf (ppf acc2) "WITH ";
+      let acc4 = nest_expr acc2 in
+      let acc5 = List.fold_left self#instantiation acc4 substs in
+      let acc = List.fold_left self#formal_param acc5 params in
       ppf_newline acc;
       acc
 
@@ -704,31 +706,31 @@ class formatter =
       let { location; level ; name ; arity ;
             body ; params ; recursive } =
         Deref.user_defined_op (tdb acc0) op in
-      match nesting acc0, undef acc0, recursive with
-      | _, true, false -> (* expand the definition *)
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let acc4 = self#expr acc2 body in
-        acc4
-      | By, _, _ ->
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        fprintf (ppf acc2) "%s" name;
-        let acc3 = self#name acc2 name in
-        acc3
-      | _ -> (* don't expand the definition  *)
-        (* TODO: recursive definitions are never unfolded at the moment *)
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        fprintf (ppf acc2) "%s" name;
-        let acc3 = self#name acc2 name in
-        let fp_open, fp_close = if (params <> []) then "(",")" else "","" in
-        fprintf (ppf acc3) "%s" fp_open;
-        let acc = ppf_fold_with
-            (fun x (fp,_) -> self#formal_param x fp) acc3 params in
-        fprintf (ppf acc) "%s" fp_close;
-        acc
-
+        match nesting acc0, undef acc0, is_standard_location location with
+        | Module, _, true ->
+          (* skip standard libraries *)
+          (* fprintf (ppf acc0) "(* ignoring def of builtin %s *)" name; *)
+          (* ppf_newline acc0; *)
+          acc0
+        | Module, _, _ ->
+          fprintf (ppf acc0) "%s" name;
+          if (params <> []) then fprintf (ppf acc0) "(";
+          let fparams = List.map fst params in
+          if (params <> []) then fprintf (ppf acc0) ")";
+          let acc0a = ppf_fold_with self#formal_param acc0 fparams in
+          fprintf (ppf acc0) " == ";
+          let acc1 = nest_expr acc0a in
+          let acc2 = self#expr acc1 body in
+          let acc3 = reset_nesting acc2 acc0 in
+          let acc4 = reset_expand acc3 acc0 in
+          ppf_newline acc4;
+          ppf_newline acc4;
+          acc4
+        | By, _, _
+        | ProofStep _, _, _
+        | Expression, _, _ ->
+          fprintf (ppf acc0) "%s" name;
+          acc0
 
     method name acc x = acc
 

@@ -129,7 +129,7 @@ and instance = {
   location          : location;
   level             : level option;
   name              : string option;
-  module_name       : string;
+  module_name       : string; (* TODO: change type to mule*)
   substs            : instantiation list;
   params            : formal_param list
 }

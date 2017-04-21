@@ -6,29 +6,37 @@ module Builtin = struct
   exception BuiltinNotFound of string * string
 
   type builtin_symbol =
+    (* logical operators *)
     | TRUE
     | FALSE
+    | EQ
+    | NEQ
     | NOT
     | AND
     | OR
+    (* quantifiers *)
     | IMPLIES
     | FORALL
     | EXISTS
     | BFORALL
     | BEXISTS
-    | EQ
-    | NEQ
+    (* temporal operators *)
     | PRIME
     | TFORALL
     | TEXISTS
     | BOX
     | DIAMOND
-    | WF
-    | SF
-    | FUNAPP
-    | SET_ENUM
     | SQ_BRACK
     | ANG_BRACK
+    | WF
+    | SF
+    (* tuples, functions, records *)
+    | TUPLE
+    | FUN_APP
+    | FUN_CONSTR
+    | RCD_CONSTR
+    | SET_ENUM
+    | IF_THEN_ELSE
 
   let builtin_location = {
     line     = mkDummyRange;
@@ -101,9 +109,68 @@ module Builtin = struct
       mk_builtin tdb ConstantLevel "$IfThenElse" 3 [(0,true);(0,true);(0,true)]
   end
 
+  let string_of_builtin = function
+    | TRUE -> "TRUE"
+    | FALSE -> "FALSE"
+    | NOT -> "\\lnot"
+    | AND -> "\\land"
+    | OR -> "\\lor"
+    | IMPLIES -> "=>"
+    | FORALL -> "$UnboundedForall"
+    | EXISTS -> "$UnboundedExists"
+    | BFORALL -> "$BoundedForall"
+    | BEXISTS  -> "$BoundedExists"
+    | PRIME -> "'"
+    | TFORALL -> "$TemporalForall"
+    | TEXISTS -> "$TemporalExists"
+    | EQ -> "="
+    | NEQ -> "/="
+    | BOX -> "[]"
+    | DIAMOND -> "<>"
+    | WF -> "$WF"
+    | SF -> "$SF"
+    | FUN_APP -> ""
+    | SET_ENUM -> "$SetEnumerate"
+    | SQ_BRACK -> "$SquareAct"
+    | ANG_BRACK -> "$AngleAct"
+    | IF_THEN_ELSE -> "$IfThenElse"
+    | TUPLE -> "$Tuple"
+    | RCD_CONSTR -> "$RcdConstructor"
+    | FUN_CONSTR -> "$FcnConstructor"
+
+  let builtin_of_string = function
+    | "TRUE" -> TRUE
+    | "FALSE" -> FALSE
+    | "\\lnot" -> NOT
+    | "\\land" -> AND
+    | "\\lor" -> OR
+    | "=>" -> IMPLIES
+    | "$UnboundedForall" -> FORALL
+    | "$UnboundedExists" -> EXISTS
+    | "$BoundedForall" -> BFORALL
+    | "$BoundedExists" -> BEXISTS
+    | "'" ->              PRIME
+    | "$TemporalForall" ->TFORALL
+    | "$TemporalExists" ->TEXISTS
+    | "=" ->              EQ
+    | "/=" ->             NEQ
+    | "[]" ->             BOX
+    | "<>" ->             DIAMOND
+    | "$WF" ->            WF
+    | "$SF" ->            SF
+    | "$FcnApply" ->      FUN_APP
+    | "$FcnConstructor" -> FUN_CONSTR
+    | "$RcdConstructor" -> RCD_CONSTR
+    | "$Tuple"          -> TUPLE
+    | "$SetEnumerate" ->  SET_ENUM
+    | "$SquareAct" ->     SQ_BRACK
+    | "$AngleAct" ->      ANG_BRACK
+    | "$IfThenElse" ->    IF_THEN_ELSE
+    | str -> let msg = CCFormat.sprintf "Unknown builtin %s" str in
+      failwith msg
 
   (** get an entry *)
-  let get (tdb:term_db) =
+  let get (tdb:term_db) b =
     let lookup x =
       match List.fold_left
               (fun acc (id, e) ->
@@ -119,31 +186,7 @@ module Builtin = struct
         let msg = CCFormat.sprintf "Builtin %s not found in term db!" x in
         raise (BuiltinNotFound (msg, x))
     in
-    function
-    | TRUE -> lookup "TRUE"
-    | FALSE -> lookup "FALSE"
-    | NOT -> lookup "\\lnot"
-    | AND -> lookup "\\land"
-    | OR -> lookup "\\lor"
-    | IMPLIES -> lookup "=>"
-    | FORALL -> lookup "$UnboundedForall"
-    | EXISTS -> lookup "$UnboundedExists"
-    | BFORALL -> lookup "$BoundedForall"
-    | BEXISTS  -> lookup "$BoundedExists"
-    | PRIME -> lookup "'"
-    | TFORALL -> lookup "$TemporalForall"
-    | TEXISTS -> lookup "$TemporalExists"
-    | EQ -> lookup "="
-    | NEQ -> lookup "/="
-    | BOX -> lookup "[]"
-    | DIAMOND -> lookup "<>"
-    | WF -> lookup "$WF"
-    | SF -> lookup "$SF"
-    | FUNAPP -> lookup ""
-    | SET_ENUM -> lookup "$SetEnumerate"
-    | SQ_BRACK -> lookup "$SquareAct"
-    | ANG_BRACK -> lookup "$AngleAct"
-
+    lookup (string_of_builtin b)
 
   let create_entry (tdb:term_db) s f =
     try

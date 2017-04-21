@@ -43,7 +43,7 @@ let test_fun_positive obl =
   with
   | UnhandledLanguageElement (p, msg) ->
     Format.printf "Warning: skipped obligation %d because of unhandled \
-                   element %s@." obl.id msg;
+                   element %s.@." obl.id msg;
     Unhandled obl
 
 

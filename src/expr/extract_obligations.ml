@@ -539,7 +539,7 @@ class ['a] extract_obligations =
              take over anything else *)
              update_obligations acc0 inner_obs *)
           let (_, acc4) = cc_pop acc3 in
-          acc4
+          decrease_nesting acc4
         | OuterInner (outer_cc, inner_cc) ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
@@ -552,7 +552,7 @@ class ['a] extract_obligations =
           *)
           let (_, acc4) = cc_pop acc3 in
           (* extract outer proof *)
-          cc_replace outer_cc acc4
+          cc_replace outer_cc acc4 |> decrease_nesting 
       in
       (* assert that no obligations were lost*)
       let no_oldobs = length (get_obligations acc) in
@@ -563,7 +563,7 @@ class ['a] extract_obligations =
                         (length (cc_peek acc).usable_facts )
                         (length (cc_peek racc).usable_facts );
       *)
-      decrease_nesting racc
+      racc
 
 
     method proof acc0 = function

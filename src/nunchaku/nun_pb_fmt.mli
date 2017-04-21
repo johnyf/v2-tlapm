@@ -51,8 +51,6 @@ class formatter :
     method op_def_or_theorem_or_assume       :
       fc -> simple_op_def_or_theorem_or_assume -> fc
 
-    method translate_builtin_name : string -> Builtin.t
-
   end
 
 (** An instance of the expression formatter *)
