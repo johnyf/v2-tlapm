@@ -122,9 +122,6 @@ Next ==
           \/ Move1S(left_of,  n, base1, base2)
           \/ Move2S(left_of,  n, base1, base2)
 
-Spec == Init /\ [] [Next]_vars
-
-FairSpec == Spec /\ WF_vars (Next)
 
 \* The game stops if each base hase only members of their own team.
 \* Base one must have an empty spot.
@@ -133,11 +130,15 @@ Stops == /\ \A x \in 2 .. N : base1[x] = x /\ base2[x] = x
           \/ (base1[1] = 0 /\ base2[1] = 1)
           \/ (base1[1] = 1 /\ base2[1] = 0)
 
+Spec == Init /\ [] [Next]_vars
+
+FairSpec == Spec /\ WF_vars (Next)
+
 
 \* In each spec, the game eventually stops
 Prop == <> Stops
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Apr 06 20:57:53 CEST 2017 by marty
+\* Last modified Fri Apr 21 11:13:49 CEST 2017 by marty
 \* Created Thu Mar 30 21:33:35 CEST 2017 by marty

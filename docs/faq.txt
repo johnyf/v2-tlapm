@@ -6,6 +6,12 @@ Q: How do I build sany.jar:
 A: in tlatoolbox call:
    mvn -P exporter -pl tlatools package
 
+Q: How do I strip signatures from sany.jar?
+A:  Call:
+
+  zip -d tlatools/target/org.lamport.tlatools-1.0.0-SNAPSHOT.jar \
+  'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*SF'
+
 Q: Where can I get the toolbox after building?
 A: After mvn package, the directory ./org.lamport.tla.toolbox.product.product/
     target/products/org.lamport.tla.toolbox.product.product/ contains folders
