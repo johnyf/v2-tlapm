@@ -8,6 +8,7 @@
 \usepackage{parcolumns}
 \usepackage{graphicx}
 \usepackage{todonotes}
+\usepackage{tlaops}
 
 \title{An instantiation algorithm for TLA+ expressions}
 \author{}
@@ -23,6 +24,7 @@
 \newcommand{\tla}[1]{#1}
 
 \newcommand{\set}[1]{\{#1\}}
+\newcommand{\impl}[0]{\,\rightarrow\,}
 \newcommand{\dor}{\textbf{or}}
 \newcommand{\fpsubstin}[1]{\{#1\}}
 \newcommand{\fpscat}[0]{\circ}
@@ -33,6 +35,7 @@
 \newcommand{\iwith}{\leftarrow}
 \newcommand{\metavar}[1]{\mathbf{#1}}
 \newcommand{\rewrites}[0]{\;\rightarrow\;}
+\newcommand{\proofstep}[2]{\langle{#1}\rangle{#2}}
 
 \newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
@@ -47,9 +50,22 @@
   \end{minipage}
 }
 
+% \newcommand{\parsbs}[2]{
+% \begin{parcolumns}{2}
+%   \colchunk{
+%     {#1}
+%   }
+% 
+%   \colchunk{
+%     {#2}
+%   }
+% \end{parcolumns}
+% }
+
 \lstdefinelanguage{tlaplus}{
   morekeywords= { MODULE, LET, IN, VARIABLE, VARIABLES, CONSTANT, CONSTANTS,
-    ASSUME, NEW, PROVE, THEOREM, LEMMA, ENABLED, ==, INSTANCE, BY, DEF },
+    ASSUME, NEW, PROVE, THEOREM, LEMMA, ENABLED, ==, INSTANCE, BY, DEF, QED,
+    TAKE, HAVE, SUFFICES, PICK },
   sensitive=true,
   morecomment=[l]{\*},
   morecomment=[s]{(*}{*)},
@@ -78,8 +94,8 @@ argument which are in the context of the next state operator '.
 In the presence of unresolved instantiations or substitutions, it is often
 unclear, which operator binds the occurrence of a particular temporal variable:
 when we consider the expression
-\tla{$(\lambda\; fp : ENABLED\; (fp \# fp'))(x)$}, it seems that the variable
-$x$ is bound in the module. But in the beta-reduced form $ENABLED\; (x \# x')$
+\tla{$(\lambda\; fp : ENABLED\; (fp \dif fp'))(x)$}, it seems that the variable
+$x$ is bound in the module. But in the beta-reduced form $ENABLED\; (x \dif x')$
 of this expression, only the first occurrence of $x$ is bound by the
 module but its second (primed) occurrence is bound by ENABLED\footnote{To
   prevent complications from renaming, we will not assume alpha equivalence but
@@ -125,17 +141,17 @@ It looks like \tla{I!T1} and \tla{T2} talk about the same formula \tla{D(y)},
 but this is not the case: the first can be read as \tla{I!(D(y))}\footnote{This
   is not valid \tlaplus{} syntax.} and the second as \tla{(I!D)(y)}. In other
 words, it makes a difference if we beta-reduce first or if we instantiate
-first. Reducing D(x) first leads to \tla{ENABLED (x' \# x')}, which --
+first. Reducing D(x) first leads to \tla{ENABLED (x' \dif x')}, which --
 following the renaming instuctions in ``Specifying Systems'' -- becomes
-\tla{ENABLED (\$x' \# \$x')} by the instantiation of \tla{x} with \tla{y},
+\tla{ENABLED (\$x' \dif \$x')} by the instantiation of \tla{x} with \tla{y},
 because primed occurrences of \tla{\$x} are bound by their enclosing ENABLED,
 not by the instantiation.
 
 Instantiating first keeps the occurrence of the  formal parameter \tla{u} intact,
-leading to \tla{I!D(u) == ENABLED ( u \# \$x') } but reducing the application
-\tla{I!D(y)} leads to \tla{ENABLED (y' \# \$x')}. Now it is clear that
+leading to \tla{I!D(u) == ENABLED ( u \dif \$x') } but reducing the application
+\tla{I!D(y)} leads to \tla{ENABLED (y' \dif \$x')}. Now it is clear that
 \tla{I!(D(y))} is unsatisfiable while \tla{(I!D)(y)} is valid.\footnote{ Since
-  one of the axioms  of \tlaplus{} is that (TRUE \# FALSE), we can always find
+  one of the axioms  of \tlaplus{} is that (TRUE \dif FALSE), we can always find
   a domain element different from $x$. In fact, the axioms of set-theory even
   enforce denumerable models.}.
 
@@ -166,6 +182,7 @@ behavior\footnote{For instance, explicit substitution nodes are vital to the
 }.
 
 
+
 \subsection{Datastructures}
 \label{sec:ds}
 
@@ -179,15 +196,15 @@ behavior\footnote{For instance, explicit substitution nodes are vital to the
   (Formal )Parameter & name, arity & Set of Paramters FP \\
   Definition & name, arity, expression body & Set of Definitions DS,
                                               all FPs in body are bound \\
-  Expression  & constant & \\
-       & \dor{} variable & \\
-       & \dor{} parameter & \\
-       & \dor{} definition & \\
-       & \dor{} abstraction &\\
-       & \dor{} application &\\
-       & \dor{} substin & \\
-       & \dor{} fpsubstin & \\
-       % & \dor{} selector &\\
+  Expression  & constant    & \\
+       & \dor{} variable    & \\
+       & \dor{} parameter   & \\
+       & \dor{} definition  & \\
+       & \dor{} abstraction & \\
+       & \dor{} application & \\
+       & \dor{} substin     & \\
+       & \dor{} fpsubstin   & \\
+       % & \dor{} selector   &\\
   Application & head expression, argument expression list & head.arity == list length\\
   Abstraction & parameter, expression body & \\
   FPSubstIn  & list of pairs formal parameter, expression
@@ -517,6 +534,92 @@ introduction.
 
 \newpage
 \appendix
+\section{Motivational Aspects}
+The motivation for using a rewriting system is a higher flexibility in shifting
+ substitutions and instantiations down the term tree. There are two perceived
+ obstacles:
+
+\begin{itemize}
+\item Evaluation without full expansion of definitions:\\
+  assume a module:
+\begin{parcolumns}{2}
+  \colchunk{
+     \begin{lstlisting}
+       ---- MODULE Foo ----
+       VARIABLE x
+       D == ENABLED (x # x')
+       E == D => D
+       ====
+     \end{lstlisting}
+  }
+
+  \colchunk{
+     \begin{lstlisting}
+       ---- MODULE Bar ----
+       VARIABLE y
+       I == INSTANCE Foo WITH x <- y
+       LEMMA I!E BY DEF I!E
+       ====
+     \end{lstlisting}
+  }
+\end{parcolumns}
+The obligation proving the lemma is $(D => D)[x \mapsto y]$. Our current
+ understanding requires the unfolding of $D$ even though clearly,
+ the implication should be true whatever the instantiation is. We would
+ like to distribute the instantiation over the implication such that we
+ prove $D[x \mapsto y] => D[x \mapsto y]$ by coalescing $D[x \mapsto y]$
+ into a constant $C$.
+\item Verifying the applicability of proof rules requiring a certain form:\\
+  Consider the following modules:
+\begin{parcolumns}{2}
+  \colchunk{
+     \begin{lstlisting}
+       ---- MODULE Foo ----
+       VARIABLE x
+       A(u) == ENABLED (u # x')
+       D ==
+         \A u : \/ x = u
+                \/ A(x)
+       E == A(x) => A(x)
+       ====
+     \end{lstlisting}
+  }
+
+  \colchunk{
+     \begin{lstlisting}
+       ---- MODULE Bar ----
+       VARIABLE y
+       I == INSTANCE Foo WITH x <- y
+
+       LEMMA I!D
+       <1> USE DEF I!D
+       <1>a TAKE z
+       <1> QED OMITTED
+       ====
+     \end{lstlisting}
+  }
+
+\end{parcolumns}
+
+We expected that the proof step $\tla{\proofstep{1}{a}}$ unfolds \tla{I!D}
+ before checking the head of the expression against $\forall x : \ldots$ but
+ this is not even the case for ordinary definitions. Instead, the user is
+ responsible for unfolding the goal (e.g. via \tla{$\SUFFICES$}) themselves.
+ Since ENABLES binds primed occurrences of a variable $x$ to a fresh variable
+ $xp$, we need to give the user the possibility to specify those variables.
+ Suppose we want to prove $\tla{I!E}$, then unfolding the definitions $E$ and
+ $A$ and performing instantiation would lead to
+ $\tla{\ENABLED (y \dif a') \impl \ENABLED(y \dif b')}$ where $a,b$ are fresh
+ variables. This could be realized by binding them in an assume-prove statement
+ $$\tla{\ASSUME \NEW a, \NEW b \PROVE \ENABLED (y \dif a') \impl
+   \ENABLED(y \dif b')}$$. Keeping the new variables primed also keeps them
+ bound by \ENABLED even though the freshness condition would allow to drop
+ prime.
+
+
+\end{itemize}
+
+
 \section{Dropped Approach: Idempotence of Explicit Substitutions}
 \label{sec:idempotence}
 An important property of the rewriting system is that only introduces
