@@ -37,6 +37,12 @@
 \newcommand{\rewrites}[0]{\;\rightarrow\;}
 \newcommand{\proofstep}[2]{\langle{#1}\rangle{#2}}
 
+\newcommand{\stshift}{\mbox{\sc shift}}
+\newcommand{\stfresh}[1]{\mbox{\sc fresh$_{#1}$}}
+
+
+\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}[section]
 \newtheorem{lemma}{Lemma}
 \newtheorem{definition}{Definition}
 
@@ -55,7 +61,7 @@
 %   \colchunk{
 %     {#1}
 %   }
-% 
+%
 %   \colchunk{
 %     {#2}
 %   }
@@ -205,13 +211,16 @@ behavior\footnote{For instance, explicit substitution nodes are vital to the
        & \dor{} substin     & \\
        & \dor{} fpsubstin   & \\
        % & \dor{} selector   &\\
-  Application & head expression, argument expression list & head.arity == list length\\
+  Application & head expression, argument expression list
+                 & head.arity == list length\\
   Abstraction & parameter, expression body & \\
   FPSubstIn  & list of pairs formal parameter, expression
                  & explicit substitution node \\
   SubstIn     & module, instantiation, expression body
                  & the explicit instantiation node \\
-  Instantiation & list of assigments of variables/constants to expressions& \\
+  Instantiation & list of assigments of variables/constants to pairs
+                  of expressions & $x \iwith (s,t)$ interpreted as $x \iwith s$,
+                                   $x' \iwith t$ \\
   % Selector & instance, definition & the ! operator\\
 \end{tabular}
 
@@ -220,8 +229,12 @@ can always be rewritten in terms of abstractions: D(x) == F is equivalent to
 D == LAMBDA x : F and I(x)!D is equivalent to LAMBDA x : I!D. We write
 abstraction as $\lambda x : F$, explicit substitutions as
 $\sigma = \fpsubstin{x \fpwith t}$ and explicit instantiations as
-$\substin{M}{x_1 \iwith t_1,\ldots,x_n \iwith t_n}$ where the variables /
-constants $x_i$ are exactly those declared in the module $M$.
+$\substin{M}{x_1 \iwith s_1,x_1' \iwith t_1,\ldots,x_n \iwith s_n,
+  x_n' \iwith t_n}$ where the variables / constants $x_i$ are exactly those
+declared in the module $M$. The intention of $x \iwith s, x' \iwith t$ is
+that $x$ will be replaced by $s$ in the current state and by $t$ in the next
+ state. Instantiating into \ENABLED{} changes the next state assignments to
+ fresh variables.
 
 To allow for more flexibility, we state the algorithm as a set of rewrite
 rules. The goal is to permute explicit substitutions further inside the
@@ -236,9 +249,6 @@ Applications of abstractions directly convert into explicit
 substitutions, provided that there no name clashes (rule~\ref{r:fpabs}).
 Otherwise, we have to rename the bound variable accordingly
 (rule~\ref{r:fpalpha}).
-
-\todo[inline]{insert instantiation rules \ref{r:instapp}, \ref{r:insten}.
-  Problematic as long as ``inside enabled'' is not well defined.}
 
 We will neeed the notion of free variables which needs a little elaboration
  in the presence of explicit substitutions and instantiations.
@@ -255,35 +265,62 @@ We will neeed the notion of free variables which needs a little elaboration
    \end{itemize}
  \end{definition}
 
-A substitution $\sigma$ is a function which maps formal parameters
-to expression and which differs from the identity function $id$ only at a
-finite number of points. We write $\sigma=\fpsubstin{x \fpwith e}$ for the
-function
-\[\sigma(y)=\left\{
-    \begin{array}{ll}
-      e& \mbox{if }y = x\\
-      y & otherwise\\
-    \end{array}\right.
-\]. The composition $f \fpscat g$ of two substitutions is simply function
-composition $f(g(x))$. The removal operator $\sigma\fpwithout S$ is defined
-as:
-\[\sigma(y)\fpwithout S = \left\{
-    \begin{array}{ll}
-      y &\mbox{if }y \in S\\
-      \sigma(y) & otherwise\\
-    \end{array}\right.
-\]
-For a substitution $\sigma$, we define the domain $dom(\sigma)$ as the (finite)
-set of formal parameters which have non-trivial assignments and the range
-$rg(\sigma)$ as the terms in the image of $dom(\sigma)$.
+ \begin{definition}
+   A substitution $\sigma$ is a function which maps formal parameters
+   to expression and which differs from the identity function $id$
+   only at a finite number of points. We write
+   $\sigma=\fpsubstin{x \fpwith e}$ for the function
+   \[\sigma(y)=\left\{
+       \begin{array}{ll}
+         e& \mbox{if }y = x\\
+         y & otherwise\\
+       \end{array}\right.
+   \]. The composition $f \fpscat g$ of two substitutions is simply
+   function composition $f(g(x))$. The removal operator
+   $\sigma\fpwithout S$ is defined as:
+   \[\sigma(y)\fpwithout S = \left\{
+       \begin{array}{ll}
+         y &\mbox{if }y \in S\\
+         \sigma(y) & otherwise\\
+       \end{array}\right.
+   \]
 
-\todo[inline]{Describe instantiations.}
+   The domain $dom(\sigma)$ of a substitution $\sigma$ is defined as
+   the (finite) set of formal parameters which have non-trivial
+   assignments and the range $rg(\sigma)$ as the terms in the image of
+   $dom(\sigma)$.
+ \end{definition}
 
-We assume we have a set $Unfolded$ of definitions which are unfolded and
-a context tracing if we are inside ENABLED. When we denote meta-variables
-standing for any term in boldface, arbitrary FP substins as $\sigma$,
-and an assignment of $CS(M)\cup VS(M)$ to arbirary terms as $\rho_M$,
-then the rewrite rules are:\\
+\begin{definition}
+  An instantiation $\rho=\substin{M}{\inst{x_1}{(s_1,t_1)},
+  \ldots, \inst{x_n}{(s_n,t_n)}}$ is an assignment of constants and variables to
+  pairs of terms such that $\rho(x_i)=s_i$ for each $x_i$ ($0 \leq i \leq n$)
+  declared in the module $M$. If $x_i$ is a constant then $s_1 = t_1$.
+\end{definition}
+
+We define the following operations on an instantiation:
+
+\begin{definition}\mbox{ }\\
+Let $\rho$ be an instantiation $\substin{M}{\inst{x_1}{(s_1,t_1)}, \ldots,
+  \inst{x_n}{(s_n,t_n)}, \inst{c_1}{(u_1,u_1)},\ldots,\inst{c_m}{(u_m,u_m)} }$ of
+ variables $x_i$ and constants $c_i$.
+Then the fresh successor substitution of $\rho$ is defined as
+ $\stfresh{V}(\rho) = \substin{M}{\inst{x_1}{(s_1,y_1)}, \ldots,
+  \inst{x_n}{(s_n,y_n)}, \inst{c_1}{(u_1,u_1)},\ldots,\inst{c_m}{(u_m,u_m)} }$
+ where $y_1,\ldots,y_n$ do not occur in
+ in the set $V$.
+ We also define $\stfresh{}{\rho}=\stfresh{V}{\rho}$ where $V$ is the set
+ of constants, variables and formal parameters occurring in the domain or the
+ range of $\rho$.
+The successor shift substitution of $\rho$ is defined as  $\stshift(\rho) =
+ \substin{M}{ \inst{x_1}{ (t_1,t_1)}, \ldots, \inst{x_n}{(t_n,t_n)},
+   \inst{c_1}{(u_1,u_1), \ldots, \inst{c_m}{(u_m,u_m)} } }$.
+\end{definition}
+
+We assume we have a set $Unfolded$ of definitions which are unfolded. When we
+ denote meta-variables standing for any term in boldface, arbitrary FP substins
+ as $\sigma$, and an assignment of $CS(M)\cup VS(M)$ to arbirary terms as
+ $\rho_M$, then the rewrite rules are:\\
 
 \newcounter{rulescounter}
 \DeclareRobustCommand{\steprule}[1]{
@@ -319,20 +356,20 @@ then the rewrite rules are:\\
     \steprule{r:instd}&  \substin{M}{\rho_M}!D & \substin{M}{\rho_M}!(b)
                                   & D\in DS, D \in Unfolded, b = D.body&\\
     \steprule{r:instapp} &  \substin{M}{\rho_M}!(\metavar{f}(\metavar{g}))
-                      & \substin{M}{\rho_M}!(\metavar{f})(\\
-    \multicolumn{3}{r}{  \substin{M}{\rho_M}!(\metavar{g}) )}
- & \metavar{f} \neq '\mbox{ or }\metavar{f}\mbox{ outside of }EN  &\\
-    \steprule{r:insten}&  \substin{M}{\rho_M}!(\metavar{g}')
-                      & (\substin{M}{c \iwith \$c}!(\metavar{g}) )'
-                                  & '\mbox{ inside of }EN, \$c \not \in CS\cup VS  &*\\
+                      & \substin{M}{\rho_M}!(\metavar{f})(
+                         \substin{M}{\rho_M}!(\metavar{g}) )
+%    \multicolumn{3}{r}{  \substin{M}{\rho_M}!(\metavar{g}) )}
+ & \metavar{f} \not\in \set{',\ENABLED};\; \metavar{f}\mbox{ has Leibniz argument}  &\\
+    \steprule{r:instprime}&  \substin{M}{\rho_M}!(\metavar{g}')
+                      & (\stshift(\substin{M}{\rho_M})!\metavar{g}) '    &  & \\
+    \steprule{r:insten}&  \substin{M}{\rho_M}!(\ENABLED \metavar{g})
+                      & \ENABLED (\stfresh{}(\substin{M}{\rho_M})!\metavar{g}) )
+                                  &  & \\
   \end{array}
 \]
 
 Remarks:\\
 \begin{tabular}{ll}
-  * & this is unclean since it doesn't capture the difference between \\
-    &  $EN (x\neq x' \land x=x')$ and $EN (x\neq x') \land EN (x=x')$ well\\
-  \\
     & FP-substitution stops at folded definitions and CS/VS substitutions\\
     & CS/VS-substitution stops at folded definitions and FP-substitutions\\
 \end{tabular}
