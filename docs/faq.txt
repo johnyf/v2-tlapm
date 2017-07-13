@@ -156,6 +156,15 @@ Q: How can I see the input files, TLAPM v1 produces?
 A: Use the flag: --debug tempfiles
 
 
+Q: What is the semantics of: G BY A,B,C ?
+
+This leads to four obligations:
+1: A
+2: ASSUME A PROVE B
+3: ASSUME A,B PROVE C
+4: ASSUME A,B,C PROVE G
+
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet
@@ -167,6 +176,7 @@ Q: Which TLA constructs are syntactic sugar?
 A: incomplete list:
    1) records r.m translates to r["m"]
    2) f[x \in S] == e translates to f == CHOOSE f : f = [x \in S |-> e]
+      In SANY this is an application to $RecursiveFcnSpec
    3) things mentioned in chap 17.1.3 in the tla book
       3a) set union as successive union of singleton sets
       3b) multiple function assignments as composition of single assignment
