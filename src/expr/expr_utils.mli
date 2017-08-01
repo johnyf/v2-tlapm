@@ -43,3 +43,6 @@ val extract_level : expr -> level option
 
 (** Wraps an expression into an assume-prove with empty assumptions *)
 val assume_prove_from_expr : bool -> expr -> assume_prove
+
+(** gets the level of a node *)
+val node_level : node -> level option

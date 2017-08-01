@@ -95,3 +95,8 @@ let assume_prove_from_expr suffices expr =  {
   suffices;
   boxed = false; (* TODO: check if this is true *)
 }
+
+let node_level = function
+  | N_expr e -> extract_level e
+  | N_ap_subst_in ap -> ap.level
+  | N_assume_prove ap -> ap.level

@@ -12,6 +12,7 @@
  * Author: TL
 *)
 open Format
+open Result
 
 type int_range = {
   rbegin  : int;
@@ -26,8 +27,8 @@ type location = {
 
 type level =
   | ConstantLevel
-  | VariableLevel
-  | ActionLevel
+  | StateLevel
+  | TransitionLevel
   | TemporalLevel
 
 type op_decl_kind =
@@ -96,3 +97,32 @@ let format_op_decl_kind = function
   | NewState -> "new state"
   | NewAction -> "new action"
   | NewTemporal -> "new temporal"
+
+let lmax = function
+  | ConstantLevel ->
+    (function x -> x)
+  | StateLevel ->
+    (function
+      | ConstantLevel
+      | StateLevel -> StateLevel
+      | x -> x
+    )
+  | TransitionLevel ->
+    (function
+      | ConstantLevel
+      | StateLevel
+      | TransitionLevel -> TransitionLevel
+      | x -> x
+    )
+  | TemporalLevel ->
+    (function _ -> TemporalLevel)
+
+let level_of_op_decl_kind = function
+  | ConstantDecl -> Ok ConstantLevel
+  | VariableDecl -> Ok StateLevel
+  | NewConstant  -> Ok ConstantLevel
+  | NewVariable  -> Ok StateLevel
+  | NewState     -> Ok StateLevel
+  | NewAction    -> Ok TransitionLevel
+  | NewTemporal  -> Ok TemporalLevel
+  | BoundSymbol  -> Error "bound symbol"

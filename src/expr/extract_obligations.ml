@@ -25,7 +25,7 @@ type nesting =
 (* used to track the currently visible objects *)
 type current_context = {
   (* the current goal *)
-  goal : assume_prove option;
+  goal : node option;
 
   (* the facts which should be used as assumptions *)
   usable_facts : node list;
@@ -44,7 +44,7 @@ type current_context = {
   theorems          : theorem list ;
 
   (* the own step has to be treated differently, so we keep it seperate *)
-  thm_statements : (theorem_ * node list) list;
+  thm_statements : (theorem_def * node list) list;
 }
 
 let emptyCurrentContext term_db = {
@@ -84,22 +84,27 @@ type step_context_type =
     Outer of current_context |
     OuterInner of current_context * current_context
 
+type ofail = ObligationFail of string * location
 
 (* the accumulator type - containing an open parameter for derived classes *)
 type 'a eoacc =
-    EOAcc of current_context list * obligation list * nesting * string *'a
+    EOAcc of current_context list * obligation list * ofail list
+             * nesting * string *'a
 
 (* extractors for the constituents of the accumulator *)
-let get_cc (EOAcc (c, _, _, _, _)) = c
-let get_obligations (EOAcc (_, o, _, _, _)) = o
-let get_nesting (EOAcc (_, _, n, _, _)) = n
-let get_root_module (EOAcc (_, _, _, m, _)) = m
+let get_cc (EOAcc (c, _, _, _, _, _)) = c
+let get_obligations (EOAcc (_, o, _, _, _, _)) = o
+let get_failed_obligations (EOAcc (_, _, f, _, _, _)) = f
+let get_nesting (EOAcc (_, _, _, n, _, _)) = n
+let get_root_module (EOAcc (_, _, _, _, m, _)) = m
 
 (* accumulator updates *)
-let update_cc (EOAcc (_,o,n,m,a)) cc = EOAcc (cc,o,n,m,a)
-let update_obligations (EOAcc (cc,_,n,m,a)) o = EOAcc (cc,o,n,m,a)
-let update_nesting (EOAcc (cc,o,_,m,a)) n = EOAcc (cc,o,n,m,a)
-let update_root_module (EOAcc (cc,o,n,_,a)) m = EOAcc (cc,o,n,m,a)
+let update_cc (EOAcc (_,o,f,n,m,a)) cc = EOAcc (cc,o,f,n,m,a)
+let update_obligations (EOAcc (cc,_,f,n,m,a)) o = EOAcc (cc,o,f,n,m,a)
+let update_nesting (EOAcc (cc,o,f,_,m,a)) n = EOAcc (cc,o,f,n,m,a)
+let update_root_module (EOAcc (cc,o,f,n,_,a)) m = EOAcc (cc,o,f,n,m,a)
+
+let enqueue_failure (EOAcc (cc,o,f,n,m,a)) nf = (EOAcc (cc,o,nf::f,n,m,a))
 
 (* convenience function adding one obligation to the accumulator *)
 let enqueue_obligation acc newobs =
@@ -282,9 +287,23 @@ class ['a] extract_obligations =
       match cc.goal with
       | Some ccgoal ->
         (* printf "Obl %s" (format_location by.location); *)
+        (*
+        let goal = match ccgoal with
+          | N_expr e ->
+            let location = extract_location e in
+            let level = max (extract_level e) (extract_level e) in
+            let new_symbols = [] in
+            let suffices = false in
+            (* TODO: recompute boxed *)
+            let boxed = false in
+            { location; level; new_symbols; assumes;
+              prove = e; suffices; boxed; }
+        in
+        *)
+        let goal = ccgoal in
         let obligation = {
           id = generate_id acc;
-          goal = { ccgoal with assumes = append assumes ccgoal.assumes };
+          goal; (* = { ccgoal with assumes = append assumes ccgoal.assumes }; *)
           expanded_defs;
           location = by.location;
 
@@ -300,8 +319,7 @@ class ['a] extract_obligations =
         let acc0 = enqueue_obligation acc [obligation] in
         acc0
       | None ->
-        (* TODO : add error obligation *)
-        failwith_msg by.location "No goal for obligation!"
+        enqueue_failure acc (ObligationFail ("No goal for obligation!", by.location))
 
     (* this method is reused for the suffices and case steps. thmi may not be
        changed for that reason. *)
@@ -326,21 +344,26 @@ class ['a] extract_obligations =
         let constants = append cc.constants (rev cs) in
         (* TODO: should we extend the context by action and temporal variables? *)
         let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
-        (*    let goal = {assume_prove with assumes = []; } in *)
-        let inner_stmt =  (thmi, assume_prove.assumes) in
-        let inner_cc = { cc with goal = Some assume_prove;
+        let (inner_goal, inner_thm_statements) = match thmi.definition with
+          | Some td ->
+            (N_expr assume_prove.prove,  (td, assume_prove.assumes) :: cc.thm_statements)
+          | None ->
+            (N_assume_prove assume_prove, cc.thm_statements)
+        in
+        let inner_cc = { cc with goal = Some inner_goal;
                                  constants;
                                  variables;
-                                 thm_statements = inner_stmt :: cc.thm_statements;
+                                 thm_statements = inner_thm_statements;
                        }
         in
-        let outer_stmt = (thmi, [N_assume_prove assume_prove]) in
-        let (theorems, definitions) = match thmi.definition with
-          | None -> (cc.theorems, cc.definitions)
+        let (theorems, definitions, thm_statements) = match thmi.definition with
+          | None ->
+            (cc.theorems, cc.definitions, cc.thm_statements)
           | Some d -> ((THM_ref thmi.id) :: cc.theorems,
-                       (O_thm_def d) :: cc.definitions)
+                       (O_thm_def d) :: cc.definitions,
+                       (d, [N_assume_prove assume_prove]) :: cc.thm_statements
+                      )
         in
-        let thm_statements = outer_stmt :: cc.thm_statements in
         (* move this to the use/hide statement
          let usable_facts =  match (thmi.name, get_nesting acc) with
            | None, InProof _ -> assume_prove :: cc.usable_facts
@@ -361,16 +384,22 @@ class ['a] extract_obligations =
         (* TODO: check boxed flag in ap *)
         let ap = {location; level; new_symbols = []; assumes = [];
                   prove = e; suffices = false; boxed = true; } in
-        let inner_cc = { cc with goal = Some ap;
+        let (inner_goal, inner_thm_statements) = match thmi.definition with
+          | Some td ->
+            (N_expr ap.prove,  (td, ap.assumes) :: cc.thm_statements)
+          | None ->
+            (N_assume_prove ap, cc.thm_statements)
+        in
+        let inner_cc = { cc with goal = Some inner_goal;
                        }
         in
-        let outer_stmt = (thmi, [N_assume_prove ap]) in
-        let (theorems, definitions) = match thmi.definition with
-          | None -> (cc.theorems, cc.definitions)
+        let (theorems, definitions, thm_statements) = match thmi.definition with
+          | None -> (cc.theorems, cc.definitions, cc.thm_statements)
           | Some d -> ((THM_ref thmi.id) :: cc.theorems,
-                       (O_thm_def d) :: cc.definitions)
+                       (O_thm_def d) :: cc.definitions,
+                       (d, [N_assume_prove ap]) :: cc.thm_statements
+                      )
         in
-        let thm_statements = outer_stmt :: cc.thm_statements in
         let outer_cc = { cc with theorems;
                                  definitions;
                                  thm_statements;
@@ -380,28 +409,37 @@ class ['a] extract_obligations =
         failwith "ap subst in node is not yet handled"
 
     method private update_cc_case acc (thmi:theorem_) formula =
-      let cc = cc_peek acc in
-      (* TODO: boxed flag might be wrong *)
-      let toprove = match cc.goal with
-        | None -> failwith_msg thmi.location
-                    "Encountered case statement without active goal!"
-        | Some f -> f
-      in
-      let location = extract_location formula in
-      let flevel = extract_level formula in
-      let level = match toprove.level, flevel with
-        (* TODO: check if the level recomputation is correct *)
-        | Some l, Some f when l > f   -> Some l
-        | Some l, Some f (* l <= f *) -> Some f
-        | Some l, None   (* only l *) -> None
-        | None,   Some f (* only f *) -> None
-        | None,   None -> None
-      in
-      let assumes = append toprove.assumes [N_expr formula] in
-      let suffices = false in
-      let boxed = false in (* TODO: need to recompute boxed flag *)
-      let ap = { toprove with location; level; assumes; suffices; boxed; } in
-      self#update_cc_formula acc thmi (N_assume_prove ap)
+        let cc = cc_peek acc in
+        (* TODO: boxed flag might be wrong *)
+        let toprove = match cc.goal with
+          | None -> failwith_msg thmi.location
+                      "Encountered case statement without active goal!"
+          | Some f -> f
+        in
+        let location = extract_location formula in
+        let flevel = extract_level formula in
+        let level = match node_level toprove, flevel with
+          (* TODO: check if the level recomputation is correct *)
+          | Some l, Some f when l > f   -> Some l
+          | Some l, Some f (* l <= f *) -> Some f
+          | Some l, None   (* only l *) -> None
+          | None,   Some f (* only f *) -> None
+          | None,   None -> None
+        in
+        let suffices = false in
+        let boxed = false in (* TODO: need to recompute boxed flag *)
+        match toprove with
+        | N_expr prove ->
+          let new_symbols = [] in
+          let assumes = [N_expr formula] in
+          let ap = { location; level; new_symbols; assumes; suffices; boxed; prove; } in
+          self#update_cc_formula acc thmi (N_assume_prove ap)
+        | N_assume_prove tap ->
+          let assumes = append tap.assumes [N_expr formula] in
+          let ap = { tap with location; level; assumes; suffices; boxed; } in
+          self#update_cc_formula acc thmi (N_assume_prove ap)
+        | N_ap_subst_in _ ->
+          failwith "unhandled case node, where node is an ap subst"
 
     (* \sigma pick vars : F(vars) is translated into two steps:
        \rho \E vars : F(vars)
@@ -420,12 +458,12 @@ class ['a] extract_obligations =
     method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
       let cc = cc_peek acc in
     (*
-  let fmt = Expr_formatter.expr_formatter in
-  let state = (Format.str_formatter, cc.term_db, false,
-               Expr_formatter.Expression, 0) in
-  let str = fmt#expr state formula in
-  Printf.printf "Pick formula starts with: %s\n"
-                (Format.flush_str_formatter ());
+       let fmt = Expr_formatter.expr_formatter in
+       let state = (Format.str_formatter, cc.term_db, false,
+                    Expr_formatter.Expression, 0) in
+       let str = fmt#expr state formula in
+       Printf.printf "Pick formula starts with: %s\n"
+                     (Format.flush_str_formatter ());
      *)
       let location = extract_location formula in
       let level = extract_level formula in
@@ -465,33 +503,19 @@ class ['a] extract_obligations =
               ()
           )
           bounds in
-      let inner_statement =
-        { location;
-          level;
-          new_symbols = [];
-          assumes = [];
-          prove = ex_formula;
-          suffices = false;
-          boxed = true;
-        } in
-      let outer_statement =
-        { location;
-          level;
-          new_symbols = [];
-          assumes = [];
-          prove = formula;
-          suffices = true;
-          boxed = true;
-        } in
       let inner_cc =
         {cc with
-         goal = Some inner_statement;
+         goal = Some (N_expr ex_formula);
         } in
+      let thm_statements = match thmi.definition with
+        | Some td -> (td, [N_expr formula]) :: cc.thm_statements
+        | None -> cc.thm_statements;
+      in
       let outer_cc =
         {cc with
-         goal = Some outer_statement;
+         goal = Some (N_expr formula);
          (* check this *)
-         thm_statements = (thmi, [N_assume_prove outer_statement]) :: cc.thm_statements;
+         thm_statements;
         } in
       OuterInner (outer_cc, inner_cc)
 
@@ -693,7 +717,7 @@ class ['a] extract_obligations =
 
 let extract_obligations_context ({entries; root_module; _ } as context) =
   let instance = new extract_obligations in
-  let iacc = EOAcc ([emptyCurrentContext entries], [], Module, root_module, ())
+  let iacc = EOAcc ([emptyCurrentContext entries], [], [], Module, root_module, ())
   in
   let acc = instance#context iacc context in
   get_obligations acc

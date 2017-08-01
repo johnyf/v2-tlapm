@@ -26,8 +26,8 @@ type location = {
 
 type level =
   | ConstantLevel
-  | VariableLevel
-  | ActionLevel
+  | StateLevel
+  | TransitionLevel
   | TemporalLevel
 
 type op_decl_kind =
@@ -66,3 +66,7 @@ val format_prover : prover -> string
 val fmt_prover : formatter -> prover -> unit
 
 val format_op_decl_kind : op_decl_kind -> string
+
+val lmax : level -> level -> level
+
+val level_of_op_decl_kind : op_decl_kind -> (level, string) Result.result

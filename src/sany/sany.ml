@@ -17,8 +17,8 @@ let init_context_map ls = ContextMap.empty
 
 let mkLevel i = match i with
   | 0 -> ConstantLevel
-  | 1 -> VariableLevel
-  | 2 -> ActionLevel
+  | 1 -> StateLevel
+  | 2 -> TransitionLevel
   | 3 -> TemporalLevel
   | _ -> failwith ("XML Parser error: unknown level " ^
                    (string_of_int i) ^ " (expected 0-3).")

@@ -83,3 +83,7 @@ class ['a] visitor :
       : 'a -> op_def_or_theorem_or_assume -> 'a
 
   end
+
+class ['a] term_visitor : object
+  inherit ['a] visitor
+end

@@ -461,3 +461,31 @@ class ['a] visitor :
       | MODe_instance x    -> self#instance acc x
       | MODe_use_or_hide x -> self#use_or_hide acc x
   end
+
+let unsupported s =
+  let msg = CCFormat.sprintf "Term visitor forbids visiting of: %s" s in
+  failwith msg
+
+class ['a] term_visitor = object
+  inherit ['a] visitor
+      
+  method node _ = unsupported "node"
+  method proof _ = unsupported "proof"
+  method ap_subst_in _ = unsupported "ap_subst_in"
+  method subst_in _ = unsupported "subst_in"
+  method instance _ = unsupported "instance"
+  method instantiation _ = unsupported "instantiation"
+  method assume _ = unsupported "assume"
+  method theorem _ = unsupported "theorem"
+  method statement _ = unsupported "statement"
+  method use_or_hide _ = unsupported "use or hide"
+  method step _ = unsupported "step"
+  method def_step _ = unsupported "def step"
+  method label _ = unsupported "label"
+  method entry _ = unsupported "entry"
+  method context _ = unsupported "context"
+  method mule _ = unsupported "module"
+  method mule_entry _ = unsupported "module"
+  method let_in _ = unsupported "let in"
+  
+end

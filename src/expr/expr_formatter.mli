@@ -21,6 +21,7 @@ val mk_printer           : (fc -> 'a -> fc) ->
 
 val fmt_expr           : term_db -> Format.formatter -> expr -> unit
 val fmt_assume_prove   : term_db -> Format.formatter -> assume_prove -> unit
+val fmt_node           : term_db -> Format.formatter -> node -> unit
 val fmt_statement      : term_db -> Format.formatter -> statement -> unit
 val fmt_formal_param   : term_db -> Format.formatter -> formal_param -> unit
 val fmt_expr_or_op_arg : term_db -> Format.formatter -> expr_or_op_arg -> unit
