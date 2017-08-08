@@ -6,7 +6,7 @@ open Obligation
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
-  | InProof of int
+  | InProof of int * theorem_ list
 
 type current_context = {
   (* the current goal *)

@@ -20,7 +20,7 @@ let failwith_msg loc msg =
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
-  | InProof of int
+  | InProof of int * theorem_ list
 
 (* used to track the currently visible objects *)
 type current_context = {
@@ -120,18 +120,20 @@ let enqueue_obligation acc newobs =
     failwith msg
 
 (* convenience functions managing the nesting *)
-let increase_nesting acc =
+let increase_nesting acc thm =
   match get_nesting acc with
-  | Module -> update_nesting acc (InProof 1)
-  | InProof n -> update_nesting acc (InProof (n+1))
+  | Module -> update_nesting acc (InProof (1, [thm] ))
+  | InProof (n, thms) -> update_nesting acc (InProof ((n+1), thm::thms))
 
 let decrease_nesting acc =
   match get_nesting acc with
   | Module -> failwith "Cannot decrease nesting level below module!"
-  | InProof 1 -> update_nesting acc Module
-  | InProof n when n > 1 -> update_nesting acc (InProof (n-1))
-  | InProof n (* when n <= 0 *) ->
-    failwith "Nesting may not go below 1!"
+  | InProof (_, []) -> failwith "Decrease nesting on an empty stack!"
+  | InProof (1, [_]) -> update_nesting acc Module
+  | InProof (n, _::thms) when n > 1 -> update_nesting acc (InProof ((n-1), thms))
+  | InProof (n, l) (* when n <= 0 *) ->
+    let msg = Format.asprintf "Nesting may not go below 1, but is %d!" n in
+    failwith msg
 
 let cc_empty acc =
   match get_cc acc with
@@ -160,6 +162,14 @@ let cc_replace cc acc =
   let (_, acc0) = cc_pop acc in
   cc_push cc acc0
 
+let current_theorem acc =
+  match get_nesting acc with
+  | Module ->
+    failwith "Accessing current theorem at module level."
+  | InProof (_, []) ->
+    failwith "Implementation error: current theorem stack empty."
+  | InProof (_, t::_) ->
+    t
 
 (* generates an obligation id based on the current list of obligations *)
 let generate_id acc =
@@ -182,18 +192,41 @@ let rec split_provers term_db = function
     (provers,x::exprs)
 
 (* replaces assume / theorem definition references by the actual statements *)
-let expand_theorem_bodies term_db visible_defs facts =
+let expand_theorem_bodies term_db global_acc visible_defs facts =
   let rec aux term_db =
     List.fold_left (fun acc -> function
         | EMM_expr (E_op_appl { location;
                                 operator = FMOTA_op_def ((O_thm_def td) as o);
                                 operands; _ }) ->
           let tdi = Deref.theorem_def term_db td in
-          if (not (List.mem o visible_defs)) then
-            let msg = CCFormat.sprintf "Theorem def %s not visible!" tdi.name in
-            failwith_msg location msg
-          else
-            tdi.body::acc
+          ( match current_theorem global_acc, List.mem o visible_defs with
+            | { definition = Some cd; statement; _ } , _ when cd = td ->
+              (* reference to own assumptions *)
+              ( match statement with
+                | ST_FORMULA (N_assume_prove {assumes; _} )
+                | ST_SUFFICES (N_assume_prove {assumes; _} ) ->
+                  append acc assumes
+                | ST_CASE e ->
+                  (N_expr e) :: acc
+                | ST_HAVE _
+                | ST_WITNESS _ ->
+                  (* TODO: decide cases here *)
+                  failwith "have and witness self references not implemented"
+                | ST_QED ->
+                  failwith "no self references of QED steps allowed!"
+              )
+            | _, true ->
+              (* reference to theorem in context *)
+              tdi.body::acc
+            | { definition = Some cd; _ }, false ->
+              let cdi = Deref.theorem_def term_db cd in
+              let msg = CCFormat.sprintf
+                  "Theorem def %s not visible in %s!" tdi.name cdi.name in
+              failwith_msg location msg
+            | _, false ->
+              let msg = CCFormat.sprintf "Theorem def %s not visible!" tdi.name in
+              failwith_msg location msg
+          )
         | EMM_expr (E_op_appl { location;
                                 operator = FMOTA_op_def ((O_assume_def ad) as o);
                                 operands; _ }) ->
@@ -229,7 +262,7 @@ class ['a] extract_obligations =
         let definitions = CCOpt.map_or ~default:cc.definitions
             (fun x -> (O_assume_def x)::cc.definitions) ai.definition in
         cc_replace { cc with assumptions; definitions } acc
-      | InProof n ->
+      | InProof (n, _) ->
         let msg = CCFormat.sprintf "assume at nesting %d!" n in
         failwith msg;
 
@@ -278,7 +311,7 @@ class ['a] extract_obligations =
       let expanded_defs = append cc.expanded_defs additional_defs in
       (* parse by references to theorems *)
       let by_facts_expanded =
-        expand_theorem_bodies cc.term_db cc.definitions other_bys in
+        expand_theorem_bodies cc.term_db acc cc.definitions other_bys in
       (* extend assumptions with usable facts *)
       let assumes = concat [
           by_facts_expanded;
@@ -426,17 +459,21 @@ class ['a] extract_obligations =
           | None,   Some f (* only f *) -> None
           | None,   None -> None
         in
-        let suffices = false in
-        let boxed = false in (* TODO: need to recompute boxed flag *)
         match toprove with
         | N_expr prove ->
+          (*          
+          let suffices = false in
+          let boxed = false in (* TODO: need to recompute boxed flag *)
           let new_symbols = [] in
-          let assumes = [N_expr formula] in
+          let assumes = [] in
+          let assumes = [N_expr formula] in 
           let ap = { location; level; new_symbols; assumes; suffices; boxed; prove; } in
-          self#update_cc_formula acc thmi (N_assume_prove ap)
+          *)
+          (* TODO: add theorem def to context *)
+          self#update_cc_formula acc thmi (N_expr prove)
         | N_assume_prove tap ->
           let assumes = append tap.assumes [N_expr formula] in
-          let ap = { tap with location; level; assumes; suffices; boxed; } in
+          let ap = { tap with location; level; assumes; } in
           self#update_cc_formula acc thmi (N_assume_prove ap)
         | N_ap_subst_in _ ->
           failwith "unhandled case node, where node is an ap subst"
@@ -554,7 +591,7 @@ class ['a] extract_obligations =
         | Inner inner_cc ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
-          let acc2 = increase_nesting acc1 in
+          let acc2 = increase_nesting acc1 thmi in
           let acc3 = self#proof acc2 thmi.proof in
           (* we need to reset the current context, usable facts etc are not
              visible outside the sub-proof *)
@@ -567,7 +604,7 @@ class ['a] extract_obligations =
         | OuterInner (outer_cc, inner_cc) ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
-          let acc2 = increase_nesting acc1 in
+          let acc2 = increase_nesting acc1 thmi in
           let acc3 = self#proof acc2 thmi.proof in
           (* we need to reset the current context, usable facts etc are not
              visible outside the sub-proof *)
@@ -576,7 +613,7 @@ class ['a] extract_obligations =
           *)
           let (_, acc4) = cc_pop acc3 in
           (* extract outer proof *)
-          cc_replace outer_cc acc4 |> decrease_nesting 
+          cc_replace outer_cc acc4 |> decrease_nesting
       in
       (* assert that no obligations were lost*)
       let no_oldobs = length (get_obligations acc) in

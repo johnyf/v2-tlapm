@@ -634,6 +634,7 @@ class expr_to_simple_expr = object(self)
       (
         match e.operator with
         | FMOTA_op_def (O_thm_def thm) ->
+          (*
           let thm_:Expr_ds.theorem_def_  = Deref.theorem_def (get_term_db acc) thm
           in
           (
@@ -651,6 +652,8 @@ class expr_to_simple_expr = object(self)
               self#expr acc e
             | _ -> failwith "error with transforming theorem in simple_expr"
           )
+          *)
+          raise (UnhandledLanguageElement (Nunchaku, "theorem_def"))
         | _ ->
           let acc1 = self#op_appl acc e
           in
