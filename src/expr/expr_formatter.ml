@@ -579,12 +579,12 @@ class formatter =
       ppf_newline acc;
       acc
 
-    method instantiation acc0 { op; expr = (e1, e2) } =
+    method instantiation acc0 { op; expr; next } =
       let acc1 = self#op_decl acc0 op in
       fprintf (ppf acc1) " <- ";
       (* TODO: print the proper assignment based on if we are in- or outside of
          enabled *)
-      let acc = self#expr_or_op_arg acc1 e1 in
+      let acc = self#expr_or_op_arg acc1 expr in
       acc
 
     method fp_assignment acc0 { param; expr } =

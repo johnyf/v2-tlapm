@@ -576,7 +576,7 @@ class converter = object(self)
        and next state. Only permuting the subst with ENABLED changes the
        content of next.
     *)
-    let s = { op = op; expr = (expr, expr); } in
+    let s = { op = op; expr; next = [expr]; } in
     (Any_instantiation s, acc)
 
   method assume_prove acc0 { Sany_ds.location; level; assumes;

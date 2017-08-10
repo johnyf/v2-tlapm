@@ -191,7 +191,8 @@ and instance = {
 *)
 and instantiation = {
   op                : op_decl;
-  expr              : expr_or_op_arg * expr_or_op_arg
+  expr              : expr_or_op_arg;
+  next              : expr_or_op_arg list;
 }
 
 (** The assignment of a formal parameter to an expression or operator argument.

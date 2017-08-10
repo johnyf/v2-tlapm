@@ -289,10 +289,10 @@ class ['a] visitor :
       let acc = List.fold_left self#formal_param acc5 params in
       acc
 
-    method instantiation acc0 { op; expr = (e1, e2) } =
+    method instantiation acc0 { op; expr; next } =
       let acc1 = self#op_decl acc0 op in
-      let acc2 = self#expr_or_op_arg acc1 e1 in
-      let acc  = self#expr_or_op_arg acc1 e2 in
+      let acc2 = self#expr_or_op_arg acc0 expr in
+      let acc = List.fold_left self#expr_or_op_arg acc1 next in
       acc
 
     method fp_assignment acc0 ({ param; expr } : fp_assignment) =
