@@ -177,15 +177,21 @@ and instance = {
 
       ENABLED( u # u')
 
-    Remark: instantiations are used with instance, subst_in and ap_subst_in.
-            substitutions are used when reducing lambda expressions,
-            unfolding definitions and creating instances of quantifiers
-            (e.g. in universal elimination where from \A x:P(x) we deduce
+    Remark 1: instantiations are used with instance, subst_in and ap_subst_in.
+              substitutions are used when reducing lambda expressions,
+              unfolding definitions and creating instances of quantifiers
+              (e.g. in universal elimination where from \A x:P(x) we deduce
                   P(t) )
+    Remark 2: for each variable / constant, we save the assignment for the
+              current and next state. Originally, both are the same, but
+              permuting an instantiation over ENABLED introduces fresh
+              variables for primed expressions. This is justified by the
+              existential quantification on the next state in the semantics
+              of ENABLED.
 *)
 and instantiation = {
   op                : op_decl;
-  expr              : expr_or_op_arg
+  expr              : expr_or_op_arg * expr_or_op_arg
 }
 
 (** The assignment of a formal parameter to an expression or operator argument.

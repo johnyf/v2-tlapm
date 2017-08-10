@@ -572,7 +572,11 @@ class converter = object(self)
     let Any_op_decl op, acc1 = self#op_decl acc0 op in
     let Any_expr_or_op_arg expr, acc =
       self#expr_or_op_arg (Nothing, acc1) expr in
-    let s = { op = op; expr = expr; } in
+    (* initially, the assignment op <- expr is the same in the current
+       and next state. Only permuting the subst with ENABLED changes the
+       content of next.
+    *)
+    let s = { op = op; expr = (expr, expr); } in
     (Any_instantiation s, acc)
 
   method assume_prove acc0 { Sany_ds.location; level; assumes;

@@ -479,12 +479,15 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
-  method instantiation acc0 { op; expr } =
+  method instantiation acc0 { op; expr = (e1, e2) } =
     let acc1 = self#op_decl acc0 op in
-    let acc = self#expr_or_op_arg acc1 expr in
+    let acc2 = self#expr_or_op_arg acc1 e1 in
+    let acc = self#expr_or_op_arg acc2 e2 in
+    let expr = ( macc_extract#expr_or_op_arg acc2,
+                 macc_extract#expr_or_op_arg acc) in
     let r = Any_instantiation {
         op = macc_extract#op_decl acc1 ;
-        expr = macc_extract#expr_or_op_arg acc ;
+        expr;
       } in
     set_anyexpr acc r
 

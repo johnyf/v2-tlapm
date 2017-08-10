@@ -337,4 +337,5 @@ class ['a] any_extractor = object(self)
   method user_defined_op_ acc =
     match self#extract acc with Any_user_defined_op_ x -> x
                               | _ -> failwith (self#fmt acc)
+
 end

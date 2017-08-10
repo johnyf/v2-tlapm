@@ -671,6 +671,7 @@ class expr_to_simple_expr = object(self)
       let sx = E_binder se
       in set_any acc1 (Any_expr sx)
     | E_subst_in e -> raise (UnhandledLanguageElement (Nunchaku, "subst in"))
+    | E_fp_subst_in e -> raise (UnhandledLanguageElement (Nunchaku, "fp subst in"))
     | E_label _ -> raise (UnhandledLanguageElement (Nunchaku, "label"))
     | E_at _ -> raise (UnhandledLanguageElement (Nunchaku, "at"))
     | E_let_in _ -> raise (UnhandledLanguageElement (Nunchaku, "let in"))
