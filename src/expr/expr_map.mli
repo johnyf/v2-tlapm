@@ -75,6 +75,8 @@ class ['a] expr_map : object
   method mule_entry             : 'a macc -> mule_entry -> 'a macc
   method formal_param           : 'a macc -> formal_param -> 'a macc
   method formal_param_          : 'a macc -> formal_param_ -> 'a macc
+  method fp_subst_in            : 'a macc -> fp_subst_in -> 'a macc
+  method fp_assignment          : 'a macc -> fp_assignment -> 'a macc
   method op_decl                : 'a macc -> op_decl -> 'a macc
   method op_decl_               : 'a macc -> op_decl_ -> 'a macc
   method op_def                 : 'a macc -> op_def -> 'a macc
@@ -107,7 +109,6 @@ class ['a] expr_map : object
   method node                   : 'a macc -> node -> 'a macc
   method def_step               : 'a macc -> def_step -> 'a macc
   method reference              : 'a macc -> int -> 'a macc
-                                
   method entry                  : 'a macc -> (int * entry) -> 'a macc
   method context                : 'a macc -> context -> 'a macc
 

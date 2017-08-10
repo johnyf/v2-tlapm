@@ -15,6 +15,8 @@ type anyExpr =
   | Any_instance of instance
   | Any_instantiation of instantiation
   (*  | Any_subst of subst *)
+  | Any_fp_assignment of fp_assignment
+  | Any_fp_subst_in of fp_subst_in
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_assume_def of assume_def
@@ -85,6 +87,8 @@ let format_anyexpr = function
   | Any_subst_in _ -> "subst_in"
   | Any_instance _ -> "instance"
   | Any_instantiation _ -> "instantiation"
+  | Any_fp_assignment _ -> "fp assignment"
+  | Any_fp_subst_in _ -> "fp_subst_in"
   | Any_assume _ -> "assume"
   | Any_assume_ _ -> "assume_"
   | Any_assume_def _ -> "assume_def"
@@ -212,6 +216,12 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method formal_param_ acc =
     match self#extract acc with Any_formal_param_ x -> x
+                              | _ -> failwith (self#fmt acc)
+  method fp_subst_in acc =
+    match self#extract acc with Any_fp_subst_in x -> x
+                              | _ -> failwith (self#fmt acc)
+  method fp_assignment acc =
+    match self#extract acc with Any_fp_assignment x -> x
                               | _ -> failwith (self#fmt acc)
   method instance acc =
     match self#extract acc with Any_instance x -> x

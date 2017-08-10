@@ -83,6 +83,7 @@ and expr =
   | E_op_appl of op_appl
   | E_string of strng
   | E_subst_in of subst_in
+  | E_fp_subst_in of fp_subst_in
   | E_binder of binder
 
 (** The union of expressions and operator arguments.
@@ -120,6 +121,17 @@ and subst_in = {
   level             : level option;
   substs            : instantiation list;
   body              : expr
+}
+
+(** A substitution of formal parameters in an expression. Unlike
+    instantiations, applying an fp_subst_in does not preserve
+    validity.
+*)
+and fp_subst_in = {
+  location : location;
+  level : level option;
+  substs : fp_assignment list;
+  body : expr;
 }
 
 (** An instance step within a proof. The effect is the same
@@ -174,6 +186,13 @@ and instance = {
 and instantiation = {
   op                : op_decl;
   expr              : expr_or_op_arg
+}
+
+(** The assignment of a formal parameter to an expression or operator argument.
+*)
+and fp_assignment = {
+  param : formal_param;
+  expr  : expr_or_op_arg;
 }
 
 (** The union of assumption statements and references to them. *)

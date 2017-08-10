@@ -157,7 +157,6 @@ class formatter =
         | FMOTA_op_def (O_builtin_op op) ->
           Expr_prover_parser.extract_fixity op.name op.params
         | FMOTA_formal_param _
-        | FMOTA_op_def _
         | FMOTA_op_decl _
         | FMOTA_lambda _ -> Expr_prover_parser.Standard
       in

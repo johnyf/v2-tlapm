@@ -585,6 +585,12 @@ class formatter =
       let acc = self#expr_or_op_arg acc1 expr in
       acc
 
+    method fp_assignment acc0 { param; expr } =
+      let acc1 = self#formal_param acc0 param in
+      fprintf (ppf acc1) " <- ";
+      let acc = self#expr_or_op_arg acc1 expr in
+      acc
+
     method assume_prove acc0 { location; level; new_symbols; assumes;
                                prove; suffices; boxed; } =
       let acc1 = self#location acc0 location in
@@ -639,8 +645,18 @@ class formatter =
     method subst_in acc0 ({ location; level; substs; body } : subst_in) =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      fprintf (ppf acc2) "subst(";
+      fprintf (ppf acc2) "$subst(";
       let acc3 = List.fold_left self#instantiation acc2 substs in
+      fprintf (ppf acc3) ")(";
+      let acc = self#expr acc3 body in
+      fprintf (ppf acc3) ")";
+      acc
+
+    method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      fprintf (ppf acc2) "$fp_subst(";
+      let acc3 = List.fold_left self#fp_assignment acc2 substs in
       fprintf (ppf acc3) ")(";
       let acc = self#expr acc3 body in
       fprintf (ppf acc3) ")";

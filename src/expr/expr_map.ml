@@ -488,6 +488,15 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
+  method fp_assignment acc0 { param; expr } =
+    let acc1 = self#formal_param acc0 param in
+    let acc = self#expr_or_op_arg acc1 expr in
+    let r = Any_fp_assignment {
+        param = macc_extract#formal_param acc1 ;
+        expr = macc_extract#expr_or_op_arg acc ;
+      } in
+    set_anyexpr acc r
+
   method assume_prove acc0 { location; level; new_symbols; assumes;
                              prove; suffices; boxed; } =
     let acc1 = self#location acc0 location in
@@ -549,6 +558,20 @@ class ['a] expr_map = object(self)
         self#instantiation acc2 substs in
     let acc = self#expr acc3 body in
     let r = Any_subst_in {
+        location = macc_extract#location acc1;
+        level = macc_extract#level acc2;
+        substs;
+        body = macc_extract#expr acc;
+      } in
+    set_anyexpr acc r
+
+  method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
+    let acc1 = self#location acc0 location in
+    let acc2 = self#level acc1 level in
+    let substs, acc3 = unpack_fold id_extract#fp_assignment
+        self#fp_assignment acc2 substs in
+    let acc = self#expr acc3 body in
+    let r = Any_fp_subst_in {
         location = macc_extract#location acc1;
         level = macc_extract#level acc2;
         substs;
@@ -804,6 +827,10 @@ class ['a] expr_map = object(self)
     | E_subst_in x        ->
       let acc = self#subst_in acc x in
       let r = Any_expr (E_subst_in (macc_extract#subst_in acc)) in
+      set_anyexpr acc r
+    | E_fp_subst_in x        ->
+      let acc = self#fp_subst_in acc x in
+      let r = Any_expr (E_fp_subst_in (macc_extract#fp_subst_in acc)) in
       set_anyexpr acc r
     | E_binder x        ->
       let acc = self#binder acc x in

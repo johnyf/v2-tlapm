@@ -42,6 +42,7 @@ class ['a] visitor :
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
     method ap_subst_in     : 'a -> ap_subst_in -> 'a
+    method fp_subst_in     : 'a -> fp_subst_in -> 'a
     method module_instance : 'a -> module_instance -> 'a
     method builtin_op      : 'a -> builtin_op -> 'a
     method user_defined_op : 'a -> user_defined_op -> 'a
@@ -50,6 +51,7 @@ class ['a] visitor :
     method instance        : 'a -> instance -> 'a
     method use_or_hide     : 'a -> use_or_hide -> 'a
     method instantiation   : 'a -> instantiation -> 'a
+    method fp_assignment   : 'a -> fp_assignment -> 'a
     (*  method subst           : 'a -> subst -> 'a *)
     method label           : 'a -> label -> 'a
     method let_in          : 'a -> let_in -> 'a

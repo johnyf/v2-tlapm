@@ -206,8 +206,18 @@ let expand_theorem_bodies term_db global_acc visible_defs facts =
                 | ST_FORMULA (N_assume_prove {assumes; _} )
                 | ST_SUFFICES (N_assume_prove {assumes; _} ) ->
                   append acc assumes
+                | ST_FORMULA (N_expr _ )
+                | ST_SUFFICES (N_expr _) ->
+                  acc
+                | ST_FORMULA (N_ap_subst_in _ )
+                | ST_SUFFICES (N_ap_subst_in _) ->
+                  (* TODO: handle this case (push instantiation down?) *)
+                  failwith ("referencing to assumptions of instantiated "^
+                            "assume proves not yet implemented.")
                 | ST_CASE e ->
                   (N_expr e) :: acc
+                | ST_PICK _
+                | ST_TAKE _
                 | ST_HAVE _
                 | ST_WITNESS _ ->
                   (* TODO: decide cases here *)
@@ -461,14 +471,6 @@ class ['a] extract_obligations =
         in
         match toprove with
         | N_expr prove ->
-          (*          
-          let suffices = false in
-          let boxed = false in (* TODO: need to recompute boxed flag *)
-          let new_symbols = [] in
-          let assumes = [] in
-          let assumes = [N_expr formula] in 
-          let ap = { location; level; new_symbols; assumes; suffices; boxed; prove; } in
-          *)
           (* TODO: add theorem def to context *)
           self#update_cc_formula acc thmi (N_expr prove)
         | N_assume_prove tap ->
@@ -532,6 +534,7 @@ class ['a] extract_obligations =
                    bound_symbols = variables;
                  } in
       let bounds_formulas =
+        (* TODO: check why this was / is necessary *)
         map (function
             |  { params;
                  tuple;
@@ -563,7 +566,8 @@ class ['a] extract_obligations =
     method theorem acc thm =
       let cc = cc_peek acc in
       let thmi  = Deref.theorem cc.term_db thm in
-      (* we prepare one context for proving the statement and one for continuing *)
+      (* we prepare one context for proving the statement and
+         one for continuing *)
       let step_ccs = match thmi.statement with
         | ST_FORMULA f ->
           self#update_cc_formula acc thmi f

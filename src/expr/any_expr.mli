@@ -20,6 +20,8 @@ type anyExpr =
   | Any_instance of instance
   (*  | Any_subst of subst *)
   | Any_instantiation of instantiation
+  | Any_fp_assignment of fp_assignment
+  | Any_fp_subst_in of fp_subst_in
   | Any_assume of assume
   | Any_assume_ of assume_
   | Any_assume_def of assume_def
@@ -107,6 +109,8 @@ class ['a] any_extractor : object
   method expr_or_module_or_module_instance : 'a -> expr_or_module_or_module_instance
   method formal_param : 'a -> formal_param
   method formal_param_ : 'a -> formal_param_
+  method fp_subst_in : 'a -> fp_subst_in
+  method fp_assignment : 'a -> fp_assignment
   method instance : 'a -> instance
   method label : 'a -> label
   method lambda : 'a -> lambda

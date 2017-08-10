@@ -33,6 +33,7 @@ class ['a] visitor :
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
     method ap_subst_in     : 'a -> ap_subst_in -> 'a
+    method fp_subst_in     : 'a -> fp_subst_in -> 'a
     method module_instance : 'a -> module_instance -> 'a
     method builtin_op      : 'a -> builtin_op -> 'a
     method user_defined_op : 'a -> user_defined_op -> 'a
@@ -41,6 +42,7 @@ class ['a] visitor :
     method instance        : 'a -> instance -> 'a
     method use_or_hide     : 'a -> use_or_hide -> 'a
     method instantiation   : 'a -> instantiation -> 'a
+    method fp_assignment   : 'a -> fp_assignment -> 'a
     (*  method subst           : 'a -> subst -> 'a *)
     method label           : 'a -> label -> 'a
     method let_in          : 'a -> let_in -> 'a
@@ -292,6 +294,11 @@ class ['a] visitor :
       let acc = self#expr_or_op_arg acc1 expr in
       acc
 
+    method fp_assignment acc0 ({ param; expr } : fp_assignment) =
+      let acc1 = self#formal_param acc0 param in
+      let acc = self#expr_or_op_arg acc1 expr in
+      acc
+
     method assume_prove acc0 { location; level; new_symbols; assumes;
                                prove; suffices; boxed; } =
       let acc1 = self#location acc0 location in
@@ -324,6 +331,13 @@ class ['a] visitor :
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = List.fold_left self#instantiation acc2 substs in
+      let acc = self#expr acc3 body in
+      acc
+
+    method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = List.fold_left self#fp_assignment acc2 substs in
       let acc = self#expr acc3 body in
       acc
 
@@ -468,7 +482,7 @@ let unsupported s =
 
 class ['a] term_visitor = object
   inherit ['a] visitor
-      
+
   method node _ = unsupported "node"
   method proof _ = unsupported "proof"
   method ap_subst_in _ = unsupported "ap_subst_in"
@@ -487,5 +501,5 @@ class ['a] term_visitor = object
   method mule _ = unsupported "module"
   method mule_entry _ = unsupported "module"
   method let_in _ = unsupported "let in"
-  
+
 end
