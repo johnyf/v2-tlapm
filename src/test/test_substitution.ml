@@ -91,14 +91,12 @@ let formula tdb = E_binder {
                     ];
                 }
 
-let sub1 = [Subst.Subst
-              (FP_ref 103,
-               EO_op_arg { location; level = Some ConstantLevel;
-                           argument = FMOTA_formal_param (FP_ref 101) })]
-let sub2 = [Subst.Subst
-              (FP_ref 103,
-               EO_op_arg { location; level = Some ConstantLevel;
-                           argument = FMOTA_formal_param (FP_ref 102) })]
+let sub1 = [ { param = FP_ref 103;
+               expr  = EO_op_arg { location; level = Some ConstantLevel;
+                           argument = FMOTA_formal_param (FP_ref 101) }}]
+let sub2 = [ { param = FP_ref 103;
+               expr  = EO_op_arg { location; level = Some ConstantLevel;
+                           argument = FMOTA_formal_param (FP_ref 102) }}]
 
 (* helpers *)
 class free_bound_lists_visitor = object(self)

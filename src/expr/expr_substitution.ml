@@ -26,23 +26,23 @@ let compare_modulo_deref_formal_param term_db f1 f2 =
 module Subst =
 struct
   (** substitution of formal parameter by an expression *)
-  type subst = Subst of formal_param * expr_or_op_arg
+  type subst = Expr_ds.fp_assignment
   type substs = subst list
 
 
-  let domain = map (function | Subst (x, y) -> x)
+  let domain = map (function | {param; expr} -> param)
   let range tdb =
     (* TODO: fix EO case and type of this function, it must return formal_param list *)
     flat_map (function
-        | Subst (_, EO_expr e) -> free_variables tdb e
+        | {param; expr = EO_expr e;} -> free_variables tdb e
         | _ -> [] )
 
   let formal_params_in_range tdb =
     flat_map (function
-        | Subst (_, eo) ->
+        | {param; expr} ->
           let acc = DTAcc (tdb, IntSet.empty, FP_Set.empty) in
           let v= new formal_param_visitor in
-          let set = v#expr_or_op_arg acc eo |> v#dtacc_inner_acc in
+          let set = v#expr_or_op_arg acc expr |> v#dtacc_inner_acc in
           FP_Set.elements set
       )
 
@@ -100,28 +100,29 @@ struct
         debug (fun () ->
             fprintf std_formatter "@.mapped %s <- %s@." name fp_.name);
         mkref_formal_param term_db fp_
-          
+
   (* removes formal params in fps from substition domain *)
   let remove_from_subst termdb fps =
     let remove_from_subst_ termdb fps =
-      filter (function Subst (fp, expr) ->
-          mem (Deref.formal_param termdb fp) fps
+      filter (function {param; expr} ->
+          mem (Deref.formal_param termdb param) fps
         )
     in remove_from_subst_ termdb (map (Deref.formal_param termdb) fps)
 
   (* looks for mapping of fp in substs *)
   let find_subst ?cmp:(cmp=(=))  term_db fp =
-    let fpi = Deref.formal_param term_db fp in
+    let dr = Deref.formal_param term_db in
+    let cmpi x y = cmp (dr x) (dr y) in
     fold_left (function
         | None ->
           begin
             function
-            | Subst (v, exp) ->
-              let vi = Deref.formal_param term_db v in
-              if cmp fpi vi then
-                Some exp
-              else
-                None
+            | {param; expr; } when param = fp ->
+              Some expr
+            | {param; expr; } when cmpi param fp ->
+              (* references are now unique, but cmp might give us something *)
+              Some expr
+            | _ -> None
           end
         | Some _ as x ->
           fun _ -> x
@@ -142,10 +143,10 @@ module SubFormat = struct
     fmt_list ~front:str (fmt_formal_param term_db)
 
   let fmt_subst term_db formatter = function
-    | Subst.Subst (x,y) ->
+    | {param; expr; } ->
       fprintf formatter "%a <- %a;"
-        (fmt_formal_param term_db) x
-        (fmt_expr_or_op_arg term_db) y
+        (fmt_formal_param term_db) param
+        (fmt_expr_or_op_arg term_db) expr
 
 
   let fmt_substs ?intro:(str="[") term_db formatter =
@@ -337,10 +338,10 @@ class ['a] expr_substitution = object(self)
           SubFormat.fmt_sacc sacc0)
     ;
     let renaming_substs =
-      map (function (x,y) ->
+      map (function (param,y) ->
           let argument = FMOTA_formal_param y in
-          let eo = EO_op_arg { location; level; argument } in
-          Subst.Subst (x, eo)
+          let expr = EO_op_arg { location; level; argument } in
+          { param; expr; }
         )
         sacc0.bound_renaming
     in

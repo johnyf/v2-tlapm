@@ -2,7 +2,7 @@ open Expr_ds
 
 module Subst :
 sig
-  type subst = Subst of formal_param * expr_or_op_arg
+  type subst = Expr_ds.fp_assignment
   type substs = subst list
 
   val domain : substs -> formal_param list
