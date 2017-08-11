@@ -25,6 +25,7 @@
 
 \newcommand{\set}[1]{\{#1\}}
 \newcommand{\impl}[0]{\,\rightarrow\,}
+\newcommand{\liff}[0]{\,\Leftrightarrow\,}
 \newcommand{\dor}{\textbf{or}}
 \newcommand{\fpsubstin}[1]{\{#1\}}
 \newcommand{\fpscat}[0]{\circ}
@@ -656,18 +657,78 @@ We expected that the proof step $\tla{\proofstep{1}{a}}$ unfolds \tla{I!D}
 
 \end{itemize}
 
+\section{Replacing instantiated \ENABLED}
+There are situations where a full application of the rewrite rules is not
+ wanted. Suppose we have the following situation:
 
-\section{Dropped approach: Problems with current Orderings}
-The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
-  the *** rule into an application redex(e)). The reason is that outer pattern
-  matches weigh heavier than inner ones:
-  \begin{center}
-    \includegraphics[width=4cm]{measure_ce1.pdf}
-    \includegraphics[width=4cm]{measure_ce2.pdf}
-  \end{center}
+\begin{parcolumns}{2}
+  \colchunk{
+    \begin{lstlisting}
+      ---- MODULE Foo ----
+      VARIABLE x,y
 
-The weight of the abstraction on $x$ decreases as expected, but at the same time
-the weight of the abstraction on $y$ increases. Since $y$ is higher, its weight
-contributes more.
+      F == (* some definition *)
+      Q == (* some definition *)
+      G == ENABLED F
+
+      THEOREM EQ == G => Q
+
+      ====
+    \end{lstlisting}
+  }
+  \colchunk{
+    \begin{lstlisting}
+      ---- MODULE Bar ----
+      VARIABLE y
+
+      I == INSTANCE Foo with x <- y
+      B(e) == (* some big formula *)
+
+      THEOREM (* something *)
+      <1>a B( I!G )
+      <1>b B( I!Q ) BY I!EQ, <1>a
+
+      ====
+    \end{lstlisting}
+  }
+\end{parcolumns}
+
+To infer $\proofstep{1}{b}$ from $\proofstep{1}{a}$, we need to unfold I!EQ,
+ but the easiest way to prove the inference is by leaving the substitution
+ outside of enabled:
+
+\[
+\begin{array}{ll}
+  & (F \impl G) \substin{Foo}{x \iwith y} \\
+  \liff & (F\substin{Foo}{x \iwith y}) \impl (G \substin{Foo}{x \iwith y})\\
+  \liff & B(F\substin{Foo}{x \iwith y}) \impl B(G \substin{Foo}{x \iwith y})\\
+\end{array}
+\]
+
+
+In this particular case, the user has control by choosing (not) to unfold $F$
+ and $G$, but we might want to make the decision on whether to apply rewrite
+ rule~\ref{r:insten} optional for the backend.
+
+
+
+% \section{Dropped approach: Problems with current Orderings}
+% % This is due to non-confluence of the λσ calculus see also:
+% % Kesner : The theory of calculi with explicit substitutions revisited
+% % https://www.irif.fr/~kesner//enseignement/mpri/ll/springer-csl07.pdf
+%
+% The ordering $da$ does not decrease in some cases (e.g.: wrap the redex of
+%   the *** rule into an application redex(e)). The reason is that outer pattern
+%   matches weigh heavier than inner ones:
+%   \begin{center}
+%     \includegraphics[width=4cm]{measure_ce1.pdf}
+%     \includegraphics[width=4cm]{measure_ce2.pdf}
+%   \end{center}
+%
+% The weight of the abstraction on $x$ decreases as expected, but at the same time
+% the weight of the abstraction on $y$ increases. Since $y$ is higher, its weight
+% contributes more.
+%
+
 
 \end{document}
