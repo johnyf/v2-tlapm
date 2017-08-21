@@ -68,7 +68,6 @@ let dr_opd entries = function
     dr_bop entries bop
   | _ ->
     None
-    
 
 (* extractor counting suffices in sany tree *)
 class sany_suffices_scanner =
@@ -105,7 +104,6 @@ class sany_suffices_scanner =
           super#theorem (flags, constrs, locs,entries) t
         | EA_ap_subst_in aps ->
           failwith "Implementation error!"
-            
 
     method context (a,b,c,_) ({entries; modules;} as con) =
       (* add entries to acc for dereferencing *)
@@ -214,6 +212,22 @@ let test_xml_suffices record =
     (* (fun () -> exhandler ( test_suffices record )  ) *)
     (fun () -> ()  )
 *)
+
+let test_consistent_db record =
+  let title = Format.asprintf
+      "DB consistent after sany conversion of %s" record.filename in
+  Test.make_assert_test ~title
+    (fun () -> ())
+    (fun () ->
+       match record.expr_context with
+       | Some { Expr_ds.entries; _} ->
+         Assert.is_true (Expr_termdb_utils.is_consistent entries)
+       | None ->
+         ()
+    )
+    (fun _ -> ())
+
+
 let get_tests records =
-  List.append (List.map test_xml records) []
+  List.append (List.map test_xml records) (List.map test_consistent_db records)
     (* (List.map test_xml_suffices records) *)

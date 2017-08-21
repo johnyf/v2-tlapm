@@ -16,8 +16,12 @@ let test_expr_map record () =
   in
   let me = mapper#get_macc_extractor in
   let mapped_context =
-    me#context (mapper#context (Nothing, []) context) in
+    me#context (mapper#context (Nothing, context.entries) context) in
   let result = context = mapped_context in
+  Assert.is_true
+    ~msg:"Term db after lambda conversion is consistent"
+    (Expr_termdb_utils.is_consistent mapped_context.entries)
+  ;
   record.explicit_lambda_context <- Some mapped_context;
   Printf.printf "Lambda conversion test of %s %b\n" record.filename result;
   (* (* don't print the lambda versions right now *)
@@ -33,7 +37,7 @@ let test_map record =
     (fun () -> ())
     (fun () ->
        Assert.no_raise ~msg:"Unexpected exception raised."
-         (fun () -> exhandler ( test_expr_map record )  )
+         (fun () -> exhandler ~fn:(Some record.filename) ( test_expr_map record )  )
     )
     (fun () -> ()  )
 

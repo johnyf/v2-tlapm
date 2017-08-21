@@ -37,7 +37,7 @@ class suffices_scanner =
 
 let test_parse_theorems record () =
   Printf.printf "%s\n" record.filename;
-  let context = match record.expr_context with
+  let context = match record.explicit_lambda_context with
     | Some x -> x
     | None -> failwith ("No expression content for " ^ record.filename ^ "!")
   in

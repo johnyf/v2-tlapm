@@ -3,6 +3,7 @@
 *)
 
 type builtin_store = (int * Expr_ds.builtin_op) list
+type lambda_store = (int * Expr_ds.user_defined_op_) list
 
 (*val convert_expr :
   ?builtins:builtin_store -> Sany_ds.expr    ->   Expr_ds.expr

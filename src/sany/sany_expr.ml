@@ -45,15 +45,15 @@ end
 
 type builtin_store = (int * builtin_op) list
 
-let get_builtin_store (b,_,_,_) = b
-let get_entries (_,e,_,_) = e
-let get_tdb (_,_,t,_) = t
-let get_id (a,b,c,i) =
+let get_builtin_store (b,_,_,_,_) = b
+let get_entries (_,_,e,_,_) = e
+let get_tdb (_,_,_,t,_) = t
+let get_id (a,b,c,d,i) =
   match i with
   | None -> failwith "No id in accumulator!"
-  | Some v -> (v, (a,b,c,None))
+  | Some v -> (v, (a,b,c,d,None))
 
-let set_id i (a,b,c,_) = (a,b,c,Some i)
+let set_id i (a,b,c,d,_) = (a,b,c,d,Some i)
 
 (**
    Applies the function f to the element y with the accumulator extracted from x.
@@ -142,8 +142,14 @@ let check_suffices entries = function
     false
 
 
+type lambda_store = (int * user_defined_op_) list
+
 type converter_acc =
-  (builtin_store * Sany_ds.entry list * Sany_ds.entry list * int option)
+  (builtin_store * lambda_store * Sany_ds.entry list * Sany_ds.entry list * int option)
+
+let add_lambda (a,b,c,d,e) id def =
+  (a, (id,def) :: b, c, d, e)
+
 
 (**
    This visitor converts sany_ds datastructures into expr_ds datastructures. Since
@@ -252,8 +258,8 @@ class converter = object(self)
         | [] ->
           begin
             match  operator with
-            | FMOTA_op_def (OPDef (O_builtin_op r)) when
-                (dr_bop (get_entries acc3) r).name = "$Take" ->
+            | Sany_ds.FMOTA_op_def (Sany_ds.OPDef (Sany_ds.O_builtin_op r)) when
+                (dr_bop (get_entries acc3) r).Sany_ds.name = "$Take" ->
               let op_appl = { location; level; operator=op; operands; } in
               (Any_op_appl op_appl, acc4)
             |_ ->
@@ -393,9 +399,9 @@ class converter = object(self)
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
     let id, acc3 = get_id acc2 in
     let node = match body with
-      | EA_expr e -> Sany_ds.N_expr e
-      | EA_assume_prove ap -> Sany_ds.N_assume_prove ap
-      | EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
     in
     let Any_node body, acc4 = self#node (Nothing, acc3) node in
     let tdef : theorem_def_ = {id; location; level; name; body} in
@@ -421,20 +427,21 @@ class converter = object(self)
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
     let id, acc3 = get_id acc2 in
     let node = match expr with
-      | EA_expr e -> Sany_ds.N_expr e
-      | EA_assume_prove ap -> Sany_ds.N_assume_prove ap
-      | EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
     in
     let entries = get_entries acc3 in
     let definition, statement, acc4 = match node, suffices with
       | Sany_ds.N_expr
           (Sany_ds.E_op_appl
              {
-               operator = FMOTA_op_def (OPDef (O_builtin_op take));
+               Sany_ds.operator = Sany_ds.FMOTA_op_def
+                   (Sany_ds.OPDef (Sany_ds.O_builtin_op take));
                operands;
                bound_symbols;
                _}), _
-        when (dr_bop entries take).name = "$Take"
+        when (dr_bop entries take).Sany_ds.name = "$Take"
         -> (
             match operands with
             | [] ->
@@ -650,8 +657,8 @@ class converter = object(self)
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
     let node = match body with
       | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
-      | EA_expr e -> N_expr e
-      | EA_ap_subst_in aps -> N_ap_subst_in aps
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
     in
     let Any_node body, acc3 = self#node (Nothing, acc2) node in
     let params, acc =
@@ -746,8 +753,8 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
 
   method context acc { Sany_ds.entries; modules; root_module } =
     (* extend accumulator by term db entries *)
-    let (ae, (b,_, tdb,id)) = acc in
-    let acc = (ae, (b,entries,tdb,id)) in
+    let (ae, (b,l,_, tdb,id)) = acc in
+    let acc = (ae, (b,l,entries,tdb,id)) in
     let entries,  acc0 = fold self#entry acc entries unfold_entry in
     let modules, acc1 = fold self#mule (Nothing, acc0) modules unfold_module in
     let c = {
@@ -767,8 +774,16 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       let Any_builtin_op_ bi, acc = self#builtin_op_ acc0 x in
       (Any_entry (uid, BOP_entry bi), acc)
     | Sany_ds.E_user_defined_op x ->
-      let Any_user_defined_op_ op, acc = self#user_defined_op_ acc0 x in
-      (Any_entry (uid, UOP_entry op), acc)
+      let Any_user_defined_op_ op, acc0 = self#user_defined_op_ acc0 x in
+      let acc1 =
+        if op.name = "LAMBDA"
+        then (* collect lambda definition *)
+          (Printf.eprintf "Collecting lambda id %d\n" uid;
+           add_lambda acc0 uid op)
+        else
+          acc0
+      in
+      (Any_entry (uid, UOP_entry op), acc1)
     | Sany_ds.E_thm_def x ->
       let Any_theorem_def_ x, acc = self#theorem_def_ acc0 x in
       (Any_entry (uid, TDef_entry x), acc)
@@ -869,58 +884,8 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
 
   method expr_or_op_arg acc = function
     | Sany_ds.EO_op_arg ({ Sany_ds.location; level; argument  } as oa) ->
-      begin
-        (* replace definitions called LAMBDA by lambdas*)
-        (* i've seen only inline UOP lambdas so far, but there might be references *)
-        (* TODO: check references*)
-        match argument with
-        | Sany_ds.FMOTA_op_def
-            (Sany_ds.OPDef
-               (Sany_ds.O_user_defined_op
-                  (Sany_ds.UOP
-                     ({ Sany_ds.location; level; name="LAMBDA";
-                        arity; body; params;} )))) ->
-          (* helper function copied from Expr_map, just for a different accumulator *)
-          let unpack_fold unpack f acc l =
-            let rec mfold ?first:(first=true) up f start_acc list =
-              match list with
-              | x::xs ->
-                let nacc = f start_acc x in
-                let any = fst nacc in
-                let result = mfold ~first:false up f nacc xs in
-                let rany, racc = result in
-                (up any :: rany, racc)
-              | [] ->
-                ([], start_acc) in
-            let anys, racc = mfold unpack f acc l in
-            assert ((List.length l) = (List.length anys));
-            (anys, racc) in
-          let extract_fp = function
-            | Any_formal_param fp -> fp
-            | _ -> failwith "Expected any_formal_param!"
-          in
-          (* remark: LAMBDA is a keyword, there are no real user
-             definitions called like that *)
-          (* Printf.printf "replacing a lambda at %s %s!\n"
-                          (Commons.format_location eoi.location) uop.name; *)
-          let acc1 = self#location acc location in
-          let location =  macc_extract#location acc1 in
-          let acc1a = self#level acc1 level in
-          let acc2 = self#expr acc1a body in
-          let body = macc_extract#expr acc2 in
-          let fparams, leibniz = List.split params in
-          let rfparams, acc3 = unpack_fold extract_fp
-              self#formal_param acc2 fparams in
-          let params = List.combine rfparams leibniz in
-          let argument = FMOTA_lambda ({location; level; arity; body; params}) in
-          let oparg = {
-            location; level; argument;
-          } in
-          set_anyexpr acc (Any_expr_or_op_arg (EO_op_arg oparg))
-        | _ ->
-          let Any_op_arg y, acc0 = self#op_arg acc oa in
-          (Any_expr_or_op_arg (EO_op_arg y), acc0)
-      end
+      let Any_op_arg y, acc0 = self#op_arg acc oa in
+      (Any_expr_or_op_arg (EO_op_arg y), acc0)
     | Sany_ds.EO_expr e ->
       let Any_expr y, acc0 = self#expr acc e in
       (Any_expr_or_op_arg (EO_expr y), acc0)
@@ -930,7 +895,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       let Any_formal_param y, acc0 = self#formal_param acc x in
       (Any_operator (FMOTA_formal_param y), acc0)
     | Sany_ds.FMOTA_module  x ->
-      let Any_mule y, acc0 = self#mule acc x in
+      let Any_mule _y, _acc0 = self#mule acc x in
       failwith "modules shouldnt be operators"
     (* (Any_operator (FMOTA_module y), acc0) *)
     | Sany_ds.FMOTA_op_decl x ->
@@ -974,11 +939,14 @@ end
 
 let converter_instance = new converter
 
+let initial_context b x e =
+  ( Nothing, (b,[],[],e, None) )
+
 let convert_context ?builtins:(b=[]) (x:Sany_ds.context) =
-  match converter_instance#context ( Nothing, (b,[],x.Sany_ds.entries, None) ) x with
+  match converter_instance#context (initial_context b x x.Sany_ds.entries)  x with
   | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
 let convert_formal_param ?builtins:(b=[]) entries x =
-  match converter_instance#formal_param (Nothing, (b,[],entries,None)) x with
+  match converter_instance#formal_param (initial_context b x entries) x with
   | Any_formal_param e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."

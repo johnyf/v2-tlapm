@@ -54,3 +54,6 @@ true: annot, bin_annot
 <src/sany/*.ml{,i,y}>: pkg_xmlm, pkg_containers
 <src/expr/*.ml{,i,y}>: pkg_containers, pkg_result
 <src/core/*.ml{,i,y}>: pkg_result
+
+#remove warning 8 from sany_expr
+"src/sany/sany_expr.ml": warn(+a-4-6-7-8-9-27-29-32..39-41..42-44-45-48-50)

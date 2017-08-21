@@ -73,7 +73,8 @@ let get_ids =
 
 
 let inconsistent_entries term_db =
-  IntSet.fold (fun x xs -> x::xs) (map_term_db IntSet.diff term_db) []
+  let set =  map_term_db IntSet.diff term_db in
+  IntSet.to_list set
 
 (* checks if there are mentioned references without term_db entries *)
 let is_consistent term_db =
