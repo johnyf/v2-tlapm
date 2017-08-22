@@ -73,8 +73,12 @@ let get_ids =
 
 
 let inconsistent_entries term_db =
-  let set =  map_term_db IntSet.diff term_db in
-  IntSet.to_list set
+  map_term_db IntSet.diff term_db |> IntSet.to_list
+  (* alternative slow implementation
+  let ms = mentioned_ids term_db in
+  let es = entry_ids term_db in
+  List.filter (fun x -> not (List.mem x es)) ms
+  *)
 
 (* checks if there are mentioned references without term_db entries *)
 let is_consistent term_db =

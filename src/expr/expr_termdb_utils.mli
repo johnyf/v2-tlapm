@@ -61,6 +61,12 @@ val mkref_module_instance : ?compare:(entry -> entry -> bool) -> term_db
 val tdb_of_termdb : term_db -> tdb
 val termdb_of_tdb : tdb -> term_db
 
+(** Returns a list of all ids mentioned in the terms. *)
+val mentioned_ids : term_db -> int list
+
+(** Returns a list of all ids saved in the term database. *)
+val entry_ids     : term_db -> int list
+
 module DeepTraversal : sig
   (** This module provides traversal classes for expressions which follow
       references.

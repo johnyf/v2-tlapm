@@ -483,10 +483,10 @@ class ['a] expr_map = object(self)
     let acc1 = self#op_decl acc0 op in
     let acc2 = self#expr_or_op_arg acc1 expr in
     let next, acc = unpack_fold id_extract#expr_or_op_arg
-        self#expr_or_op_arg acc1 next in
+        self#expr_or_op_arg acc2 next in
     let r = Any_instantiation {
         op = macc_extract#op_decl acc1 ;
-        expr;
+        expr = macc_extract#expr_or_op_arg acc2 ;
         next;
       } in
     set_anyexpr acc r

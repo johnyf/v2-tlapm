@@ -218,13 +218,6 @@ let autodetect_executable_path =
   let lib_path = Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
   lib_path
 
- (*
-(* an (inefficient) implementation of flat_map *)
-let flat_map f =
-  List.fold_left (fun x y -> List.append x (f y)) []
- *)
-
-
 (* Maps for some types *)
 module IntOrdering =
   struct
