@@ -778,7 +778,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       let acc1 =
         if op.name = "LAMBDA"
         then (* collect lambda definition *)
-          (Printf.eprintf "Collecting lambda id %d\n" uid;
+          ( (* Printf.eprintf "Collecting lambda id %d\n" uid; *)
            add_lambda acc0 uid op)
         else
           acc0

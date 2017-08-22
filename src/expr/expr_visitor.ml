@@ -291,8 +291,8 @@ class ['a] visitor :
 
     method instantiation acc0 { op; expr; next } =
       let acc1 = self#op_decl acc0 op in
-      let acc2 = self#expr_or_op_arg acc0 expr in
-      let acc = List.fold_left self#expr_or_op_arg acc1 next in
+      let acc2 = self#expr_or_op_arg acc1 expr in
+      let acc = List.fold_left self#expr_or_op_arg acc2 next in
       acc
 
     method fp_assignment acc0 ({ param; expr } : fp_assignment) =
@@ -411,7 +411,6 @@ class ['a] visitor :
       | OPDec_entry x -> self#op_decl_ acc x
       | MI_entry x -> self#module_instance_ acc x
       | UOP_entry x -> self#user_defined_op_ acc x
-      | BOP_entry x -> self#builtin_op_ acc x
       | TDef_entry x -> self#theorem_def_ acc x
       | ADef_entry x -> self#assume_def_ acc x
       | THM_entry x -> self#theorem_ acc x
@@ -433,6 +432,7 @@ class ['a] visitor :
       | E_string x    -> self#strng acc x
       | E_subst_in x  -> self#subst_in acc x
       | E_binder x    -> self#binder acc x
+      | E_fp_subst_in x -> self#fp_subst_in acc x
 
     method op_appl_or_binder acc0 = function
       | OB_op_appl x -> self#op_appl acc0 x

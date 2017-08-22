@@ -63,27 +63,29 @@ end
 
 let extract_location expr =
   match expr with
-  | E_at { location; level } -> location
-  | E_decimal { location; level; _ } -> location
-  | E_label { location; level; _ } -> location
-  | E_let_in { location; level; _ } -> location
-  | E_numeral { location; level; _ } -> location
-  | E_op_appl { location; level; _ } -> location
-  | E_string { location; level; _ } -> location
-  | E_subst_in { location; level; _ } -> location
-  | E_binder {location; level; _ } -> location
+  | E_at { location; level }
+  | E_decimal { location; level; _ }
+  | E_label { location; level; _ }
+  | E_let_in { location; level; _ }
+  | E_numeral { location; level; _ }
+  | E_op_appl { location; level; _ }
+  | E_string { location; level; _ }
+  | E_subst_in { location; level; _ }
+  | E_binder {location; level; _ }
+  | E_fp_subst_in {location; level; _ } -> location
 
 let extract_level expr =
   match expr with
-  | E_at { location; level; _ } -> level
-  | E_decimal { location; level; _ } -> level
-  | E_label { location; level; _ } -> level
-  | E_let_in { location; level; _ } -> level
-  | E_numeral { location; level; _ } -> level
-  | E_op_appl { location; level; _ } -> level
-  | E_string { location; level; _ } -> level
-  | E_subst_in { location; level; _ } -> level
-  | E_binder {location; level; _ } -> level
+  | E_at { location; level; _ }
+  | E_decimal { location; level; _ }
+  | E_label { location; level; _ }
+  | E_let_in { location; level; _ }
+  | E_numeral { location; level; _ }
+  | E_op_appl { location; level; _ }
+  | E_string { location; level; _ }
+  | E_subst_in { location; level; _ }
+  | E_binder {location; level; _ }
+  | E_fp_subst_in {location; level; _ } -> level
 
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_prove_from_expr suffices expr =  {

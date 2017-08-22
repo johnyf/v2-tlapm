@@ -209,6 +209,8 @@ class ['a] expr_substitution = object(self)
     | E_string x    as e -> super#expr acc e
     | E_numeral x   as e -> super#expr acc e
     | E_let_in x    as e -> super#expr acc e
+    | E_fp_subst_in x as e ->  (* TODO: handle *)
+      failwith "unhandled push of fp subst over explicit subst"
 
   method subst_in acc s =
     failwith "Expr substitution inside instantiation not supported."

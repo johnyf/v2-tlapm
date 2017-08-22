@@ -29,6 +29,7 @@ let toolbox_status_string = function
   | Trivial -> "trivial"
   | BeingProved -> "being proved"
   | Interrupted -> "interrupted"
+  | Countermodel -> "countermodel"
 
 let toolbox_method_string = function
   | Auto -> "auto"
