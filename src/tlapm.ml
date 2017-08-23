@@ -6,6 +6,7 @@ open Settings
 open Arg_handler
 open Result
 open Obligation
+open Obligation_formatter
 open Extract_obligations
 open Expr_substitution
 open Expr_termdb_utils
@@ -104,19 +105,31 @@ let compute_obligations settings sany_context =
 let announce_obligations settings formatter obligations =
   (* print obligations to stdout *)
   ignore(
+    let fmt_id =
+      (fun f -> function | {id;_ } -> CCFormat.fprintf f "oid %d:" id) in
+    let fmt_obl = fun f o -> CCFormat.fprintf f " %a" fmt_obligation o in
+    let (pp_msg, pp_obl) = if settings.toolbox_output
+      then (fmt_toolbox_msg, CCFormat.silent)
+      else (fmt_id, fmt_obl)
+    in
     List.fold_left (fun no (obl:obligation) ->
         let r = {id=no; location=obl.location; status = ToBeProved;
                  prover = None; meth=None; already_processed = Some false;
                  obligation_string = None } in
-        fprintf formatter "%a@,@." fmt_toolbox_msg r;
-        (*          fprintf std_formatter "%d @ %a@." no fmt_location obl.location; *)
+        fprintf formatter "%a%a@,@."
+          pp_msg r
+          pp_obl obl
+        ;
         no+1
       ) 1 obligations
   );
   (* print obligation count message *)
   let obl_no = List.length obligations in
-  fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
-  ()
+  if settings.toolbox_output then (
+    fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+    ()
+  ) else
+    ()
 
 let announce_results msgs =
   IntMap.fold (fun _ -> fun m -> fun _ ->
@@ -158,7 +171,6 @@ let init () =
     prepare_backends settings (); (*TODO refactor *)
     let messages = scheduler settings obligations in
     announce_results messages;
-
     Exit_status 0
   end
   with

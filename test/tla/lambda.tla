@@ -26,5 +26,5 @@ THEOREM I!APPLYO(23,42) = 23 BY DEF I!APPLYO
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Mar 25 16:27:34 CET 2015 by marty
+\* Last modified Wed Aug 23 15:07:42 CEST 2017 by marty
 \* Created Wed Mar 25 15:39:39 CET 2015 by marty

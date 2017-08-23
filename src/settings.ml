@@ -14,6 +14,7 @@ type settings = {
   verbose      : bool;
   overlord     : bool;
   toolbox      : int_range;
+  toolbox_output : bool;
   fingerprints : bool;
   input_file   : string;
   pm_path      : string;
@@ -34,6 +35,7 @@ let default_settings =
 
     (* pm settings *)
     toolbox      = { rbegin = 0; rend = 0};
+    toolbox_output = false;
     verbose      = false;
     overlord     = true;       (* TODO change back to false *)
     fingerprints = false;
@@ -49,7 +51,8 @@ let default_settings =
 let fmt_settings formatter { java_executable; check_schema; xml_input;
                              include_paths; verbose; overlord; toolbox;
                              fingerprints; input_file; pm_path; models_in_tla;
-                             nunchaku_executable; nunchaku_temp_path } =
+                             nunchaku_executable; nunchaku_temp_path;
+                             toolbox_output } =
   fprintf formatter "@[<v 2>{@,";
   fprintf formatter "java exec     = %s@," java_executable;
   fprintf formatter "verbose       = %b@," verbose;
@@ -58,10 +61,12 @@ let fmt_settings formatter { java_executable; check_schema; xml_input;
   fprintf formatter "xml input     = %b@," xml_input;
   ignore(map (fprintf formatter "include directory: %s@,") include_paths);
   fprintf formatter "toolbox range = %a@," fmt_int_range toolbox;
+  fprintf formatter "toolbox output = %b@," toolbox_output;
   fprintf formatter "fingerprints  = %b@," fingerprints;
   fprintf formatter "input file    = \"%s\"@," input_file;
   fprintf formatter "tlapm binary location  = \"%s\"@," pm_path;
-  fprintf formatter "print nunchaku models in TLA syntax  = \"%b\"@," models_in_tla;
+  fprintf formatter
+    "print nunchaku models in TLA syntax  = \"%b\"@," models_in_tla;
   fprintf formatter "nunchaku exec = %s@," nunchaku_executable;
   fprintf formatter "nunchaku temp path = %s@," nunchaku_temp_path;
   fprintf formatter "@]}";
