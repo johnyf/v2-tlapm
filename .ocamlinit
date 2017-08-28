@@ -25,6 +25,8 @@
 #load "expr_dereference.cmo" ;;
 #load "expr_prover_parser.cmo" ;;
 #load "expr_formatter.cmo" ;;
+#load "expr_termdb_utils.cmo" ;;
+#load "expr_constructors.cmo" ;;
 #load "expr_parse_theorems.cmo" ;;
 #load "extract_obligations.cmo" ;;
 #load "obligation_formatter.cmo" ;;
@@ -32,8 +34,13 @@
 #load "sany.cmo" ;;
 #load "sany_visitor.cmo" ;;
 #load "sany_expr.cmo" ;;
-#load "sany_builtin_extractor.cmo" ;;
 
 open Commons
 open Expr_ds
-open Obligation ;;
+open Expr_constructors
+open Expr_builtins
+open Obligation
+
+let location = toplevel_loation
+let term_db = Expr_termdb_utils.empty_term_db
+;;

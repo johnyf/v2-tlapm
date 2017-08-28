@@ -12,6 +12,8 @@ open Expr_visitor
 module Tdb = IntMap
 type tdb = entry Tdb.t
 
+val empty_term_db : term_db
+
 (** Extracts a list of all reference ids in the term db. *)
 val get_ids : term_db -> int list
 

@@ -169,6 +169,9 @@ module Builtin = struct
     | str -> let msg = CCFormat.sprintf "Unknown builtin %s" str in
       failwith msg
 
+  let pp f builtin =
+    CCFormat.fprintf f "%s" (string_of_builtin builtin)
+
   (** get an entry *)
   let get (tdb:term_db) b =
     let lookup x =

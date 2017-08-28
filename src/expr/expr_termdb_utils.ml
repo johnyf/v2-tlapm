@@ -8,6 +8,107 @@ open Expr_dereference
 module Tdb = IntMap
 type tdb = entry Tdb.t
 
+let empty_term_db = []
+
+(* comparison operators for term_db entries modulo the id  *)
+module ModId = struct
+  let cmp_formal_param ({id; level; location; name; arity} : formal_param_)
+      (fp2:formal_param_) =
+                 (level = fp2.level) &&
+                 (location = fp2.location) &&
+                 (name = fp2.name) &&
+                 (arity = fp2.arity)
+
+  let cmp_op_decl ({id; level; location; name; arity; kind} : op_decl_)
+                    (od2:op_decl_) =
+    (location = od2.location) &&
+    (level = od2.level) &&
+    (name = od2.name) &&
+    (arity = od2.arity) &&
+    (kind = od2.kind)
+
+  let cmp_uop ({ id; location; level; name; arity; body;
+                 params; recursive; } : user_defined_op_)
+      (uop : user_defined_op_) =
+    (location = uop.location) &&
+    (level = uop.level) &&
+    (name = uop.name) &&
+    (arity = uop.arity) &&
+    (body = uop.body) &&
+    (params = uop.params) &&
+    (recursive = uop.recursive)
+
+  let cmp_builtin_op ({ id; level; name; arity; params; } : builtin_op_)
+      (bop : builtin_op_) =
+    (level = bop.level) &&
+    (name = bop.name) &&
+    (arity = bop.arity) &&
+    (params = bop.params)
+
+  let cmp_mule ({id; name; location; module_entries;}) (m:mule_) =
+    (name = m.name) &&
+    (location = m.location) &&
+    (module_entries = m.module_entries)
+
+  let cmp_mi ({id; location; level; name} : module_instance_)
+      (mi:module_instance_) =
+    (location = mi.location) &&
+    (level = mi.level) &&
+    (name = mi.name)
+
+  let cmp_thm_def ({id; location; level; name; body;} : theorem_def_)
+      (td:theorem_def_) =
+    (location = td.location) &&
+    (level = td.level) &&
+    (name = td.name) &&
+    (body = td.body)
+
+  let cmp_assume_def ({id; location; level; name; body;} : assume_def_)
+      (td:assume_def_) =
+    (location = td.location) &&
+    (level = td.level) &&
+    (name = td.name) &&
+    (body = td.body)
+
+  let cmp_thm ({id; location; level; definition; statement; proof} : theorem_)
+      (t : theorem_) =
+    (location = t.location) &&
+    (level = t.level) &&
+    (definition = t.definition) &&
+    (statement = t.statement) &&
+    (proof = t.proof)
+
+  let cmp_assume ({id; location; level; definition; expr;} : assume_)
+      (a :assume_) =
+    (level = a.level) &&
+    (definition = a.definition) &&
+    (expr = a.expr)
+
+  let cmp_entry = function
+    | FP_entry     e -> (function | FP_entry e2 -> cmp_formal_param e e2
+                                 | _ -> false)
+    | MOD_entry    e -> (function | MOD_entry e2 -> cmp_mule e e2
+                                  | _ -> false)
+    | OPDec_entry  e -> (function | OPDec_entry e2 -> cmp_op_decl e e2
+                                  | _ -> false)
+    | MI_entry     e -> (function | MI_entry e2 -> cmp_mi e e2
+                                  | _ -> false)
+    | UOP_entry    e -> (function | UOP_entry e2 -> cmp_uop e e2
+                                  | _ -> false)
+    | BOP_entry    e -> (function | BOP_entry e2 -> cmp_builtin_op e e2
+                                  | _ -> false)
+    | TDef_entry   e -> (function | TDef_entry e2 -> cmp_thm_def e e2
+                                  | _ -> false)
+    | ADef_entry   e -> (function | ADef_entry e2 -> cmp_assume_def e e2
+                                  | _ -> false)
+    | THM_entry    e -> (function | THM_entry e2 -> cmp_thm e e2
+                                  | _ -> false)
+    | ASSUME_entry e -> (function | ASSUME_entry e2 -> cmp_assume e e2
+                                  | _ -> false)
+
+end
+
+
 
 (* ---------------- not exposed in the module interface ----------------  *)
 
@@ -133,12 +234,12 @@ let generate_id term_db =
 *)
 let mkref_entry cmp mkentry mkref term_db ref_content =
   match filter (function
-      | (id, e) -> cmp e (mkentry ref_content)
+      | (id, e) -> cmp e (mkentry id ref_content)
     ) term_db
   with
   | [] -> (* create new entry *)
     let id = generate_id term_db in
-    let term_db' = append term_db [(id, mkentry ref_content)] in
+    let term_db' = append term_db [(id, mkentry id ref_content)] in
     (term_db', mkref id)
   | [ (id, _) ] ->
     (term_db, mkref id)
@@ -146,29 +247,31 @@ let mkref_entry cmp mkentry mkref term_db ref_content =
     failwith "Multiple entries matching when creating a FP reference!"
 
 
+let cmp_entry = ModId.cmp_entry
+
 (* creates a reference to a formal_param and enters into the term_db, if necessary *)
-let mkref_formal_param ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> FP_entry x) (fun x -> FP_ref x)
+let mkref_formal_param ?compare:(cmp=cmp_entry) =
+  mkref_entry cmp (fun id x -> FP_entry {x with id}) (fun x -> FP_ref x)
 
 (* creates a reference to a module and enters into the term_db, if necessary *)
-let mkref_mule ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> MOD_entry x) (fun x -> MOD_ref x)
+let mkref_mule ?compare:(cmp=cmp_entry) =
+  mkref_entry cmp (fun id x -> MOD_entry {x with id}) (fun x -> MOD_ref x)
 
 (* creates a reference to an operator declaration and enters into the term_db,
    if necessary *)
-let mkref_opdec ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> OPDec_entry x) (fun x -> OPD_ref x)
+let mkref_opdec ?compare:(cmp=cmp_entry) =
+  mkref_entry cmp (fun id x -> OPDec_entry { x with id }) (fun x -> OPD_ref x)
 
 (* creates a reference to a user defined operator and enters into the term_db,
    if necessary *)
-let mkref_user_defined_op ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> UOP_entry x)
+let mkref_user_defined_op ?compare:(cmp=cmp_entry) =
+  mkref_entry cmp (fun id x -> UOP_entry { x with id })
     (fun x -> UOP_ref x)
 
 (* creates a reference to a module instance and enters into the term_db,
    if necessary *)
-let mkref_module_instance  ?compare:(cmp=(=)) =
-  mkref_entry cmp (fun x -> MI_entry x)
+let mkref_module_instance  ?compare:(cmp=cmp_entry) =
+  mkref_entry cmp (fun id x -> MI_entry { x with id })
     (fun x -> MI_ref x)
 
 let termdb_of_tdb tdb =

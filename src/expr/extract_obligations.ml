@@ -6,7 +6,9 @@ open Expr_builtins
 open Expr_utils
 open Expr_dereference
 open Expr_formatter
+open Expr_utils
 open Expr_visitor
+open Expr_constructors
 open Obligation
 open Expr_prover_parser
 open Util
@@ -422,8 +424,8 @@ class ['a] extract_obligations =
         OuterInner (outer_cc, inner_cc)
       | N_expr e ->
         let cc = cc_peek acc in
-        let location = extract_location e in
-        let level = extract_level e in
+        let location = location_of_expr e in
+        let level = level_of_expr e in
         (* TODO: check boxed flag in ap *)
         let ap = {location; level; new_symbols = []; assumes = [];
                   prove = e; suffices = false; boxed = true; } in
@@ -459,9 +461,9 @@ class ['a] extract_obligations =
                       "Encountered case statement without active goal!"
           | Some f -> f
         in
-        let location = extract_location formula in
-        let flevel = extract_level formula in
-        let level = match node_level toprove, flevel with
+        let location = location_of_expr formula in
+        let flevel = level_of_expr formula in
+        let level = match level_of_node toprove, flevel with
           (* TODO: check if the level recomputation is correct *)
           | Some l, Some f when l > f   -> Some l
           | Some l, Some f (* l <= f *) -> Some f
@@ -504,8 +506,8 @@ class ['a] extract_obligations =
        Printf.printf "Pick formula starts with: %s\n"
                      (Format.flush_str_formatter ());
      *)
-      let location = extract_location formula in
-      let level = extract_level formula in
+      let location = location_of_expr formula in
+      let level = level_of_expr formula in
       let (bounded_qs, unbounded_qs) as qs =
         partition (function
             | B_bounded_bound_symbol _ -> true;
@@ -518,23 +520,21 @@ class ['a] extract_obligations =
           in
           failwith_msg thmi.location msg
       in
-      let tdb = (get_cc acc |> hd).term_db in
-      let (bounds, quantifier) =
+      let term_db = (get_cc acc |> hd).term_db in
+      let (bounds, ex_binder) =
         match qs with
-        | ([], uqs) -> ([], Builtin.get tdb Builtin.EXISTS)
+        | ([], uqs) ->
+          ([], Constr.quantifier ~term_db ~location ~level Builtin.EXISTS
+             variables (EO_expr formula))
         | (bqs, []) ->
-          (map get_bounds bqs, Builtin.get tdb Builtin.BEXISTS)
+          (map get_bounds bqs, Constr.bquantifier ~term_db ~location ~level
+             Builtin.BEXISTS variables (EO_expr formula))
         | _ -> failwith_msg thmi.location
                  "Pick mixes bounded and unbounded quantifiers!"
       in
-      let ex_formula =
-        E_binder { location; level;
-                   operator = FMOTA_op_def (O_builtin_op quantifier);
-                   operand  = EO_expr formula;
-                   bound_symbols = variables;
-                 } in
+      let ex_formula = E_binder ex_binder in
       let bounds_formulas =
-        (* TODO: check why this was / is necessary *)
+        (* TODO: the bounds need to be converted to x \in S *)
         map (function
             |  { params;
                  tuple;

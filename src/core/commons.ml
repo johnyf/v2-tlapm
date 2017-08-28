@@ -53,7 +53,10 @@ type prover =
 let mkDummyRange = { rbegin = 0; rend = 0 }
 let mkDummyLocation = { column = mkDummyRange ;
                         line = mkDummyRange;
-                        filename = "Dummy" }
+                        filename = "*** Dummy ***" }
+let toplevel_loation = { column = mkDummyRange ;
+                         line = mkDummyRange;
+                         filename = "*** toplevel ***" }
 
 let format_location {filename; column; line} =
   filename ^ ":"

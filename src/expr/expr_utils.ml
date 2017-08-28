@@ -1,5 +1,6 @@
 open List
 open Expr_ds
+open Expr_builtins
 open Expr_visitor
 open Util
 
@@ -61,8 +62,7 @@ module Unpack = struct
 
 end
 
-let extract_location expr =
-  match expr with
+let location_of_expr = function
   | E_at { location; level }
   | E_decimal { location; level; _ }
   | E_label { location; level; _ }
@@ -74,8 +74,7 @@ let extract_location expr =
   | E_binder {location; level; _ }
   | E_fp_subst_in {location; level; _ } -> location
 
-let extract_level expr =
-  match expr with
+let level_of_expr = function
   | E_at { location; level; _ }
   | E_decimal { location; level; _ }
   | E_label { location; level; _ }
@@ -87,10 +86,18 @@ let extract_level expr =
   | E_binder {location; level; _ }
   | E_fp_subst_in {location; level; _ } -> level
 
+let level_of_expr_or_op_arg = function
+  | EO_expr e -> level_of_expr e
+  | EO_op_arg {level; _} -> level
+
+let location_of_expr_or_op_arg = function
+  | EO_expr e -> location_of_expr e
+  | EO_op_arg {location; _} -> location
+
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_prove_from_expr suffices expr =  {
-  location = extract_location expr;
-  level = extract_level expr;
+  location = location_of_expr expr;
+  level = level_of_expr expr;
   assumes = [];
   new_symbols = [];
   prove = expr;
@@ -98,7 +105,8 @@ let assume_prove_from_expr suffices expr =  {
   boxed = false; (* TODO: check if this is true *)
 }
 
-let node_level = function
-  | N_expr e -> extract_level e
+let level_of_node = function
+  | N_expr e -> level_of_expr e
   | N_ap_subst_in ap -> ap.level
   | N_assume_prove ap -> ap.level
+

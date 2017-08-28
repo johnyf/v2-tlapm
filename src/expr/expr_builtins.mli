@@ -1,4 +1,5 @@
 open Expr_ds
+open CCFormat
 
 module Builtin : sig
   exception BuiltinNotFound of string * string
@@ -44,6 +45,8 @@ module Builtin : sig
   (** obtain the sany string representation of builtin *)
   val builtin_of_string : string -> builtin_symbol
   (** parse a string to a builtin symbol *)
+  val pp : builtin_symbol printer
+  (** printer for builtin *)
   val complete_builtins : term_db -> term_db
   (** Extends the given term db by all missing builtins. *)
 end

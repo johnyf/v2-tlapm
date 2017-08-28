@@ -838,3 +838,7 @@ let fmt_expr_or_op_arg  = mk_fmt (expr_formatter#expr_or_op_arg)
 let fmt_formal_param  = mk_fmt (expr_formatter#formal_param)
 
 let fmt_node =  mk_fmt (expr_formatter#node)
+
+let fmt_bound_symbol =  mk_fmt (expr_formatter#bound_symbol)
+
+let fmt_operator = mk_fmt (expr_formatter#operator)

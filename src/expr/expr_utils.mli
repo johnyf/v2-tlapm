@@ -1,6 +1,7 @@
 (** Some basic operations on the expression datastructures. *)
 open Commons
 open Expr_ds
+open Expr_builtins
 
 module Unpack : sig
   (** Extracts the formal parameter from an entry *)
@@ -36,13 +37,20 @@ module Unpack : sig
 end
 
 (** Extracts a location from an expression *)
-val extract_location : expr -> location
+val location_of_expr : expr -> location
 
 (** Extracts a location from an expression *)
-val extract_level : expr -> level option
+val level_of_expr : expr -> level option
+
+(** Extracts a location from an expression *)
+val location_of_expr_or_op_arg : expr_or_op_arg -> location
+
+(** Extracts a location from an expression *)
+val level_of_expr_or_op_arg : expr_or_op_arg -> level option
+
 
 (** Wraps an expression into an assume-prove with empty assumptions *)
 val assume_prove_from_expr : bool -> expr -> assume_prove
 
 (** gets the level of a node *)
-val node_level : node -> level option
+val level_of_node : node -> level option
