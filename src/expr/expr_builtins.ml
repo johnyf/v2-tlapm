@@ -86,6 +86,13 @@ module Builtin = struct
 
     let builtin_false tdb = mk_builtin tdb ConstantLevel "FALSE" 0 []
 
+    let builtin_not tdb = mk_builtin tdb ConstantLevel "\\lnot" 1 []
+    let builtin_and tdb = mk_builtin tdb ConstantLevel "\\land" 2 []
+    let builtin_or tdb = mk_builtin tdb ConstantLevel "\\lor" 2 []
+    let builtin_impl tdb = mk_builtin tdb ConstantLevel "=>" 2 []
+    let builtin_eq tdb = mk_builtin tdb ConstantLevel "=" 2 []
+    let builtin_neq tdb = mk_builtin tdb ConstantLevel "/=" 2 []
+
     (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
     let bounded_exists tdb =
       mk_builtin tdb ConstantLevel "$BoundedExists" 1 [(0,true)]
@@ -206,11 +213,19 @@ module Builtin = struct
     match s with
     | TRUE -> ce Make.builtin_true
     | FALSE -> ce Make.builtin_false
+    | NOT -> ce Make.builtin_not
+    | AND -> ce Make.builtin_and
+    | OR -> ce Make.builtin_or
+    | IMPLIES -> ce Make.builtin_impl
+    | EQ -> ce Make.builtin_eq
+    | NEQ -> ce Make.builtin_neq
     | FORALL -> ce Make.unbounded_forall
     | EXISTS -> ce Make.unbounded_exists
     | BFORALL -> ce Make.bounded_forall
     | BEXISTS -> ce Make.bounded_exists
-    | _ -> failwith "builtin symbol not yet supported"
+    | _ ->
+      let msg = CCFormat.sprintf "builtin symbol %a not yet supported" pp s in
+      failwith msg
 
   let complete_builtins tdb =
     (* TODO: add builtins for all the operators here *)
@@ -219,6 +234,7 @@ module Builtin = struct
                 TFORALL; TEXISTS; TBFORALL; TBEXISTS; BOX; DIAMOND; WF; SF;
                 FUNAPP; SET_ENUM ] in
     *)
-    let ops = [TRUE; FALSE; FORALL; EXISTS; BFORALL; BEXISTS ] in
+    let ops = [TRUE; FALSE; NOT; AND; OR; IMPLIES; EQ; NEQ;
+               FORALL; EXISTS; BFORALL; BEXISTS ] in
     List.fold_left (fun db op -> fetch db op |> fst) tdb ops
 end

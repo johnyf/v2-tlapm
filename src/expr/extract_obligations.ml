@@ -533,16 +533,18 @@ class ['a] extract_obligations =
                  "Pick mixes bounded and unbounded quantifiers!"
       in
       let ex_formula = E_binder ex_binder in
-      let bounds_formulas =
+      let term_db, bounds_formulas =
         (* TODO: the bounds need to be converted to x \in S *)
-        map (function
-            |  { params;
-                 tuple;
-                 domain;
-               } ->
-              ()
+        List.fold_left (function _tdb, _bounds ->
+          function
+          |  { params; tuple = false; domain; } ->
+            let f = Constr.conj ~term_db:_tdb in
+            (_tdb, _bounds)
+          | { params; tuple = true; domain; } ->
+            (* TODO: fill in *)
+            (_tdb, _bounds)
           )
-          bounds in
+          (term_db, []) bounds in
       let inner_cc =
         {cc with
          goal = Some (N_expr ex_formula);

@@ -42,5 +42,5 @@ open Expr_builtins
 open Obligation
 
 let location = toplevel_loation
-let term_db = Expr_termdb_utils.empty_term_db
+let term_db = Expr_termdb_utils.empty_term_db |> Builtin.complete_builtins
 ;;

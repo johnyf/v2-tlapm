@@ -10,6 +10,26 @@ open Expr_termdb_utils
 open Util
 
 module Constr = struct
+  let numeral ~location:location value =
+    E_numeral { location;
+                level = Some ConstantLevel;
+                value;
+              }
+
+  let decimal ~location:location mantissa exponent =
+    E_decimal { location;
+                level = Some ConstantLevel;
+                mantissa;
+                exponent;
+              }
+
+  let strng ~location:location value =
+    E_string {
+      location;
+      level = Some ConstantLevel;
+      value;
+    }
+
   let maxlevel l1 l2 = match (l1,l2) with
     | Some l1, Some l2 ->
       Some (max l1 l2)
@@ -20,8 +40,74 @@ module Constr = struct
     | None, None ->
       None
 
+  (* TODO: find better place for that - can't go to expr_utils because of cyclic
+     dependencies *)
+  let level_of_op_def tdb = function
+    | O_user_defined_op op ->
+      (Deref.user_defined_op tdb op).level
+    | O_builtin_op op ->
+      (Deref.builtin_op tdb op).level
+    | O_module_instance op ->
+      (Deref.module_instance tdb op).level
+    | O_thm_def op ->
+      (Deref.theorem_def tdb op).level
+    | O_assume_def op ->
+      (Deref.assume_def tdb op).level
+
+  let level_of_operator tdb = function
+    | FMOTA_formal_param op ->
+      (Deref.formal_param tdb op).level
+    | FMOTA_op_decl op ->
+      (Deref.op_decl tdb op).level
+    | FMOTA_op_def op ->
+      level_of_op_def tdb op
+    | FMOTA_ap_subst_in op ->
+      op.level
+    | FMOTA_lambda op ->
+      op.level
+
+  let location_of_op_def tdb = function
+    | O_user_defined_op op ->
+      (Deref.user_defined_op tdb op).location
+    | O_builtin_op op ->
+      Commons.mkDummyLocation
+    | O_module_instance op ->
+      (Deref.module_instance tdb op).location
+    | O_thm_def op ->
+      (Deref.theorem_def tdb op).location
+    | O_assume_def op ->
+      (Deref.assume_def tdb op).location
+
+  let location_of_operator tdb = function
+    | FMOTA_formal_param op ->
+      (Deref.formal_param tdb op).location
+    | FMOTA_op_decl op ->
+      (Deref.op_decl tdb op).location
+    | FMOTA_op_def op ->
+      location_of_op_def tdb op
+    | FMOTA_ap_subst_in op ->
+      op.location
+    | FMOTA_lambda op ->
+      op.location
+
   let apply ~location ~level operator operands =
     { location; level; operator; operands; }
+
+  (*
+  let leibniz_apply ~term_db:tdb ~location operator operands =
+    (* check if operator is leibniz *)
+    (* compute level *)
+    let level = List.fold_left
+        (fun m eo -> level_of_expr_or_op_arg eo |> max m)
+        (level_of_operator tdb operator)
+        operands
+    in
+    { location; level; operator; operands; }
+  *)
+
+  let const_app ~term_db:tdb ~location operator =
+    let level = level_of_operator tdb operator in
+    { location; level; operator; operands = [] }
 
   let const_unop builtin ~term_db:tdb ~location
       (op1:expr_or_op_arg) =
@@ -45,6 +131,28 @@ module Constr = struct
   let impl      = const_binop Builtin.IMPLIES
   let eqality   = const_binop Builtin.EQ
   let nequality = const_binop Builtin.NEQ
+
+  let binop_fold conj neutral ~term_db ~location =
+    let opd_uop x = O_user_defined_op x in
+    let opd_bop x = O_builtin_op x in
+    let e_op_appl x = E_op_appl x in
+    let eo_expr x = EO_expr x in
+    let fmota_op_def x = FMOTA_op_def x in
+    let rec aux acc = function
+      | [] ->
+        Builtin.get term_db neutral |> opd_bop |>
+        fmota_op_def |> const_app ~term_db ~location |> e_op_appl
+      | [x] ->
+        acc x
+      | x :: xs ->
+        aux (fun y -> conj ~term_db ~location (x |> eo_expr) (y |> eo_expr)
+                      |> e_op_appl |> acc ) xs
+    in
+    aux (fun x -> x)
+
+  let conjs = binop_fold conj Builtin.TRUE
+  let disjs = binop_fold disj Builtin.FALSE
+  let impls = binop_fold impl Builtin.TRUE
 
   let fp ~term_db:tdb ~location:location ~level:level name arity =
     let fp = ({id = -1; location; level; name; arity;} : formal_param_) in
@@ -143,7 +251,7 @@ module Constr = struct
       when List.mem bop e_quants ->
       List.fold_left (fun aux ->
           function
-          | B_bounded_bound_symbol {params; tuple; domain; } ->
+          | B_bounded_bound_symbol {params; tuple = false; domain; } ->
             let location =  location_of_expr domain in
             let level = List.fold_left
                 (fun l fp ->

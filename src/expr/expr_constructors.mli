@@ -3,8 +3,15 @@ open Expr_ds
 open Expr_builtins
 
 module Constr : sig
-  val fp : term_db:term_db -> location:location -> level:level option -> string -> int
-    -> term_db * formal_param
+  val numeral : location:location -> int -> expr
+  (** Constructs a numeral expression *)
+  val decimal : location:location -> int -> int -> expr
+  (** Constructs a decimal expression *)
+  val strng   : location:location -> string -> expr
+  (** Constructs a string expression *)
+
+  val fp : term_db:term_db -> location:location -> level:level option -> string
+    -> int -> term_db * formal_param
   (** Constructs a formal parameter *)
 
   val constant : term_db:term_db -> location:location -> string -> int
@@ -41,6 +48,13 @@ module Constr : sig
   val nequality : term_db:term_db -> location:location -> expr_or_op_arg
     -> expr_or_op_arg -> op_appl
   (** Constructs a negated equation *)
+
+  val conjs : term_db:term_db -> location:location -> expr list -> expr
+  (** Constructs a right-associative series of conjunctions *)
+  val disjs : term_db:term_db -> location:location -> expr list -> expr
+  (** Constructs a right-associative series of disjunctions *)
+  val impls : term_db:term_db -> location:location -> expr list -> expr
+  (** Constructs a right-associative series of implications *)
 
   val quantifier : term_db:term_db  -> location:location -> level:(level option)
     -> Builtin.builtin_symbol -> bound_symbol list -> expr_or_op_arg -> binder

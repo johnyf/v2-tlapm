@@ -109,4 +109,3 @@ let level_of_node = function
   | N_expr e -> level_of_expr e
   | N_ap_subst_in ap -> ap.level
   | N_assume_prove ap -> ap.level
-
