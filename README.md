@@ -5,10 +5,22 @@ This is the next version of the TLA proof manager, which is part of the
  current version[2].
 
 [1] https://tlaplus.codeplex.com
+
 [2] https://tlaps.codeplex.com
 
 
 ## Installation
+The easiest way to install is via opam:
+
+    opam pin add tlapm2 https://github.com/tlaplus/v2-tlapm.git
+
+If it is already pinned but not installed a simple
+
+    opam install tlapm2
+
+will suffice.
+
+## Compilation
 The compilation requirements are:
 
 * a recent version of ocaml (at  least 4.02)
@@ -24,16 +36,16 @@ opam install oasis xmlm kaputt result sexplib
 
 To initialize the configuration, call
 
- oasis setup ;
- ./configure --enable-tests --enable-debug
+    oasis setup ;
+    ./configure --enable-tests --enable-debug
 
 in the v2-tlapm base directory. For the actual compilation, the usual
 
-make
+    make
 
 will compile the project, wheras
 
-make test
+    make test
 
 will run the test suite.
 

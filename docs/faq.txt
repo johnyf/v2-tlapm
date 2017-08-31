@@ -6,6 +6,12 @@ Q: How do I build sany.jar:
 A: in tlatoolbox call:
    mvn -P exporter -pl tlatools package
 
+Q: How do I strip signatures from sany.jar?
+A:  Call:
+
+  zip -d tlatools/target/org.lamport.tlatools-1.0.0-SNAPSHOT.jar \
+  'META-INF/*.SF' 'META-INF/*.RSA' 'META-INF/*SF'
+
 Q: Where can I get the toolbox after building?
 A: After mvn package, the directory ./org.lamport.tla.toolbox.product.product/
     target/products/org.lamport.tla.toolbox.product.product/ contains folders
@@ -128,6 +134,37 @@ A:
    * WITNESS : TRUE
    * PICK x \in S : F(x) : \E x \in S : F(x)
 
+Q: Can I reference an assume prove within a formula?
+A: Yes, but it needs instantiation. The fragment
+
+THEOREM S == ASSUME TRUE PROVE 0=0
+THEOREM T == S => 1=1
+
+is not accepted by the parser, but
+
+---- MODULE Foo ----
+VARIABLE x
+THEOREM S == ASSUME TRUE PROVE 0=0
+====
+
+I == INSTANCE Foo WITH x <- 2
+THEOREM T == I!S => 1<-1
+
+is accepted. It is yet undecided if the PM should accept this pattern.
+
+Q: How can I see the input files, TLAPM v1 produces?
+A: Use the flag: --debug tempfiles
+
+
+Q: What is the semantics of: G BY A,B,C ?
+
+This leads to four obligations:
+1: A
+2: ASSUME A PROVE B
+3: ASSUME A,B PROVE C
+4: ASSUME A,B,C PROVE G
+
+
 ========================== Unsolved ========================
 
 Q: Why does Zenon export report a bug when called with a list of zero bullet
@@ -139,6 +176,7 @@ Q: Which TLA constructs are syntactic sugar?
 A: incomplete list:
    1) records r.m translates to r["m"]
    2) f[x \in S] == e translates to f == CHOOSE f : f = [x \in S |-> e]
+      In SANY this is an application to $RecursiveFcnSpec
    3) things mentioned in chap 17.1.3 in the tla book
       3a) set union as successive union of singleton sets
       3b) multiple function assignments as composition of single assignment
@@ -162,3 +200,10 @@ A: Unknown, an incomplete list is:
 
 Q: how to unify ASSUME NEW i ... with an eigenvariable in an assumption?
 A: use the PICK operator?
+
+Q: What is the meaning of the different semantical entailments in TLA?
+A: In the context of proofs, We have three entailments, |= , |[]= and ||= .
+ The first one is the evaluation of a behaviour, the second one is true for boxed formulas
+ only. And the third is a quantification on all behaviours. To prove a Lemma, you need the
+ ||= operator. (missing: details and explanations)
+

@@ -8,7 +8,6 @@
     unwraps the results of converter for a few particular types.
 *)
 open Expr_ds
-open Expr_builtins
 open Commons
 open Any_expr
 
@@ -31,6 +30,8 @@ let unfold_op_def (Any_op_def x) = x
 let unfold_theorem (Any_theorem x) = x
 let unfold_steps  (Any_step x) = x
 let unfold_instantiation (Any_instantiation x) = x
+let unfold_location (Any_location x) = x
+let unfold_node (Any_node x) = x
 
 (** Sets the anyExpr of the first argument to the one given as second. *)
 let set_anyexpr (_,acc) any = (any,acc)
@@ -44,8 +45,15 @@ end
 
 type builtin_store = (int * builtin_op) list
 
-let get_builtin_store (b,_) = b
-let get_entries (_,e) = e
+let get_builtin_store (b,_,_,_,_) = b
+let get_entries (_,_,e,_,_) = e
+let get_tdb (_,_,_,t,_) = t
+let get_id (a,b,c,d,i) =
+  match i with
+  | None -> failwith "No id in accumulator!"
+  | Some v -> (v, (a,b,c,d,None))
+
+let set_id i (a,b,c,d,_) = (a,b,c,d,Some i)
 
 (**
    Applies the function f to the element y with the accumulator extracted from x.
@@ -95,44 +103,53 @@ let assume_proves_from_expr (expr : Sany_ds.expr) suffices =  {
   boxed = false; (* TODO: check if this is true *)
 }
 
-(* dereferences an opdef *)
-let dr_opd (entries : Sany_ds.entry list) = function
-  | Sany_ds.OPDef_ref r ->
-    (
-      match List.filter (fun x -> x.Sany_ds.uid = r) entries with
-      | [] -> failwith "Could not find opdef!"
-      | [{reference = Sany_ds.FMOTA_op_def OPDef  od; _}] ->
-        od
-      | _ -> failwith "Lookup problem!"
-    )
-  | Sany_ds.OPDef x -> x
-
 (* dereferences an builtin op *)
-let dr_bop (entries : Sany_ds.entry list) = function
+let dr_bop (entries:Sany_ds.entry list) = function
   | Sany_ds.BOP_ref r ->
     (
-      match List.filter (fun x -> x.Sany_ds.uid = r) entries with
-      | [] -> failwith "Could not find opdef!"
-      | [{reference = Sany_ds.FMOTA_op_def OPDef (O_builtin_op (BOP od)); _}] ->
+      match List.filter (fun {Sany_ds.uid; reference} -> uid = r) entries with
+      | [] ->
+        let msg = CCFormat.sprintf "Could not find opdef %d!" r in
+        failwith msg
+      | [{Sany_ds.reference = Sany_ds.E_builtin_op od; _}] ->
         od
-      | _ -> failwith "Lookup problem!"
+      | _ ->
+        let msg = CCFormat.sprintf "Duplication of uid %d in proof db!" r in
+        failwith msg
     )
-  | Sany_ds.BOP x -> x
+  | Sany_ds.BOP x ->
+    x
 
+(* dereferences an opdef *)
+let dr_opd entries = function
+  | Sany_ds.OPDef_ref r ->
+    dr_bop entries (Sany_ds.BOP_ref r) |> CCOpt.return
+  | Sany_ds.OPDef (Sany_ds.O_builtin_op bop) ->
+   dr_bop entries bop |> CCOpt.return
+  | _ ->
+    None
 
 (* check if an expr is a suffices operator *)
 let check_suffices entries = function
-  | Sany_ds.E_op_appl {operator = FMOTA_op_def opd; operands;_} -> (
+  | Sany_ds.E_op_appl {Sany_ds.operator = Sany_ds.FMOTA_op_def opd; operands;_} -> (
       match dr_opd entries opd with
-      | O_builtin_op op ->
-        let name = (dr_bop entries op).name in
-        let found = (name = "$Suffices") in
-        found
+      | Some {Sany_ds.name = "$Suffices"} ->
+        true
       | _ ->
         false
     )
   | _ ->
     false
+
+
+type lambda_store = (int * user_defined_op_) list
+
+type converter_acc =
+  (builtin_store * lambda_store * Sany_ds.entry list * Sany_ds.entry list * int option)
+
+let add_lambda (a,b,c,d,e) id def =
+  (a, (id,def) :: b, c, d, e)
+
 
 (**
    This visitor converts sany_ds datastructures into expr_ds datastructures. Since
@@ -145,7 +162,7 @@ let check_suffices entries = function
    internal datastructure.
 *)
 class converter = object(self)
-  inherit [anyExpr * (builtin_store * Sany_ds.entry list)]
+  inherit [anyExpr * converter_acc]
       Sany_visitor.visitor as super
 
   val macc_extract = new macc_extractor
@@ -157,45 +174,9 @@ class converter = object(self)
     | Sany_ds.N_assume_prove x ->
       let (Any_assume_prove x, acc0) = self#assume_prove acc x in
       (Any_node (N_assume_prove x), acc0)
-    | Sany_ds.N_def_step x     ->
-      let (Any_def_step x, acc0) = self#def_step acc x in
-      (Any_node (N_def_step x), acc0)
     | Sany_ds.N_expr x         ->
       let (Any_expr x, acc0) = self#expr acc x in
       (Any_node (N_expr x), acc0)
-    | Sany_ds.N_op_arg x       ->
-      let (Any_op_arg x, acc0) = self#op_arg acc x in
-      (Any_node (N_op_arg x), acc0)
-    | Sany_ds.N_instance x     ->
-      let (Any_instance x, acc0) = self#instance acc x in
-      (Any_node (N_instance x), acc0)
-    | Sany_ds.N_new_symb x     ->
-      let (Any_new_symb x, acc0) = self#new_symb acc x in
-      (Any_node (N_new_symb x), acc0)
-    | Sany_ds.N_proof x        ->
-      let (Any_proof x, acc0) = self#proof acc x in
-      (Any_node (N_proof x), acc0)
-    | Sany_ds.N_formal_param x ->
-      let (Any_formal_param x, acc0) = self#formal_param acc x in
-      (Any_node (N_formal_param x), acc0)
-    | Sany_ds.N_module x       ->
-      let (Any_mule x, acc0) = self#mule acc x in
-      (Any_node (N_module x), acc0)
-    | Sany_ds.N_op_decl x      ->
-      let (Any_op_decl x, acc0) = self#op_decl acc x in
-      (Any_node (N_op_decl x), acc0)
-    | Sany_ds.N_op_def x       ->
-      let (Any_op_def x, acc0) = self#op_def acc x in
-      (Any_node (N_op_def x), acc0)
-    | Sany_ds.N_assume x       ->
-      let (Any_assume x, acc0) = self#assume acc x in
-      (Any_node (N_assume x), acc0)
-    | Sany_ds.N_theorem x      ->
-      let (Any_theorem x, acc0) = self#theorem acc x in
-      (Any_node (N_theorem x), acc0)
-    | Sany_ds.N_use_or_hide x  ->
-      let (Any_use_or_hide x, acc0) = self#use_or_hide acc x in
-      (Any_node (N_use_or_hide x), acc0)
 
   (* parts of expressions *)
   method location (_, acc) = function
@@ -259,33 +240,41 @@ class converter = object(self)
                         operands; bound_symbols} : Sany_ds.op_appl) =
     let Any_location location, acc1 = self#location acc0 location in
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-    let Any_operator operator, acc3 = self#fmota (Nothing, acc2) operator in
+    let Any_operator op, acc3 = self#fmota (Nothing, acc2) operator in
     let operands, acc4 =
       fold self#expr_or_op_arg (Nothing, acc3) operands unfold_e_o in
     (* binders in sany are applications. in expr_ds we have different
        type constructors for application and binding *)
     match bound_symbols with
     | [] ->
-      let op_appl = { location; level; operator; operands; } in
+      let op_appl = { location; level; operator=op; operands; } in
       (Any_op_appl op_appl, acc4)
     | _ ->
-      let operand = match operands with
-        | [] -> (*failwith ("Unhandled case of binder without body at "
-                          ^ (format_location location)) *)
-          let operator = FMOTA_op_def (O_builtin_op builtin_true) in
-          EO_expr (E_op_appl {location;
-                              level = builtin_true.level;
-                              operator;
-                              operands = [];
-                             })
-        | [x] -> x
-        | _ -> failwith ("A binder must have exactly one formula it applies to at "
-                         ^ (format_location location))
-      in
-      let bound_symbols, acc =
-        fold self#bound_symbol (Nothing, acc4) bound_symbols unfold_bs in
-      let binder = { location; level; operator; operand; bound_symbols } in
-      (Any_binder binder, acc)
+      match operands with
+        (* the case of TAKE x \in Nat is a binder without arguments. It
+           is handled in self#theorem_ but we need to create a dummy element
+           here.
+        *)
+        | [] ->
+          begin
+            match  operator with
+            | Sany_ds.FMOTA_op_def (Sany_ds.OPDef (Sany_ds.O_builtin_op r)) when
+                (dr_bop (get_entries acc3) r).Sany_ds.name = "$Take" ->
+              let op_appl = { location; level; operator=op; operands; } in
+              (Any_op_appl op_appl, acc4)
+            |_ ->
+              failwith ("Unhandled case of binder without body at "
+                        ^ (format_location location))
+          end
+        | [operand] ->
+          (* now we are sure we have a normal binder here *)
+          let bound_symbols, acc =
+            fold self#bound_symbol (Nothing, acc4) bound_symbols unfold_bs in
+          let binder = { location; level; operator=op; operand; bound_symbols } in
+          (Any_binder binder, acc)
+        | _ ->
+          failwith ("A binder must have exactly one formula it applies to at "
+                    ^ (format_location location))
 
   method bound_symbol acc0 = function
     | Sany_ds.B_bounded_bound_symbol s ->
@@ -320,29 +309,29 @@ class converter = object(self)
   method formal_param acc0 = function
     | Sany_ds.FP_ref i ->
       (Any_formal_param (FP_ref i), snd acc0)
-    | Sany_ds.FP { Sany_ds.location; level; name; arity; } ->
+    | Sany_ds.FP { Sany_ds.name; _ } ->
+      let msg = CCFormat.sprintf "Expecting FP ref, not FP %s" name in
+      failwith msg
+
+  method formal_param_ acc0 { Sany_ds.location; level; name; arity; } =
       let Any_location location, acc1 = self#location acc0 location in
       let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-      let fp = {
-        location ;
-        level ;
-        name ;
-        arity ;
-      }
-      in (Any_formal_param (FP fp), acc2)
+      let id, acc3 = get_id acc2 in
+      let fp = ({ id; location; level; name; arity; } : formal_param_)
+      in (Any_formal_param_ fp, acc3)
 
   method mule acc0 = function
     | Sany_ds.MOD_ref i ->
       (Any_mule (MOD_ref i), snd acc0)
-    | Sany_ds.MOD { Sany_ds.name; location; module_entries } ->
-      let Any_location location, acc1 = self#location acc0 location in
-      let module_entries, acc =
-        fold self#mule_entry (Nothing, acc1) module_entries unfold_module_entry in
-      let m = MOD { name ;
-                    location ;
-                    module_entries;
-                  } in
-      (Any_mule m, acc)
+    | _ -> failwith "Expecting MOD ref, not MOD"
+
+  method private mule_ acc0 { Sany_ds.name; location; module_entries } =
+    let Any_location location, acc1 = self#location acc0 location in
+    let module_entries, acc2 =
+      fold self#mule_entry (Nothing, acc1) module_entries unfold_module_entry in
+    let id, acc3 = get_id acc2 in
+    let m = { id; name ; location ; module_entries; } in
+    (Any_mule_ m, acc3)
 
   method op_arg acc0 { Sany_ds.location; level; argument } =
     let Any_location location, acc1 = self#location acc0 location in
@@ -359,18 +348,18 @@ class converter = object(self)
   method op_decl acc0 = function
     | Sany_ds.OPD_ref x ->
       (Any_op_decl (OPD_ref x), snd acc0)
-    | Sany_ds.OPD  { Sany_ds.location ; level ; name ; arity ; kind ; } ->
+    | Sany_ds.OPD { Sany_ds.location; name; _ } ->
+      let msg =
+        CCFormat.sprintf "Expected op decl ref not op decl %s" name in
+      failwith msg
+
+  method op_decl_ acc0 { Sany_ds.location ; level ; name ; arity ; kind ; } =
       (* terminal node *)
       let Any_location location, acc1 = self#location acc0 location in
       let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-      let opdec = OPD {
-          location ;
-          level ;
-          name ;
-          arity ;
-          kind ;
-        } in
-      (Any_op_decl opdec, acc2)
+      let id, acc3 = get_id acc2 in
+      let opdec = { id; location; level;  name; arity; kind; } in
+      (Any_op_decl_ opdec, acc2)
 
   method op_def acc0 = function
     | Sany_ds.OPDef_ref x ->
@@ -384,44 +373,124 @@ class converter = object(self)
     | Sany_ds.OPDef (Sany_ds.O_user_defined_op x) ->
       let Any_user_defined_op op, acc = self#user_defined_op acc0 x in
       (Any_op_def (O_user_defined_op op), acc)
+    | Sany_ds.OPDef (Sany_ds.O_thm_def x) ->
+      let Any_theorem_def op, acc = self#theorem_def acc0 x in
+      (Any_op_def (O_thm_def op), acc)
+    | Sany_ds.OPDef (Sany_ds.O_assume_def x) ->
+      let Any_assume_def op, acc = self#assume_def acc0 x in
+      (Any_op_def (O_assume_def op), acc)
+
+  method assume_def (_, acc0) (Sany_ds.ADef_ref x) =
+    (Any_assume_def (ADef_ref x), acc0)
+
+  method assume_def_ acc0 {Sany_ds.location; level; name; body} =
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let Any_expr body, acc4 = self#expr (Nothing, acc3) body in
+    let adef : assume_def_ = {id; location; level; name; body} in
+    (Any_assume_def_ adef, acc4)
+
+  method theorem_def (_, acc0) (Sany_ds.TDef_ref x) =
+    (Any_theorem_def (TDef_ref x), acc0)
+
+  method theorem_def_ acc0 {Sany_ds.location; level; name; body} =
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let node = match body with
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
+    in
+    let Any_node body, acc4 = self#node (Nothing, acc3) node in
+    let tdef : theorem_def_ = {id; location; level; name; body} in
+    (Any_theorem_def_ tdef, acc4)
 
   method theorem acc0 = function
     | Sany_ds.THM_ref x -> (Any_theorem (THM_ref x), snd acc0)
-    | Sany_ds.THM { Sany_ds.location; level; name; expr; proof; suffices } ->
-      let Any_location location, acc1 = self#location acc0 location in
-      let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-      let ap = match expr with
-        | Sany_ds.EA_expr expr ->
-          let entries = get_entries acc2 in
-          let s = check_suffices entries expr in
-          assume_proves_from_expr expr s
-        | Sany_ds.EA_assume_prove ap ->
-          ap
-      in
-      let Any_assume_prove expr, acc3 =
-        self#assume_prove (Nothing,acc2) ap  in
-      let statement = match suffices with
-        | false -> ST_FORMULA expr
-        | true ->  ST_SUFFICES expr
-      in
-      let Any_proof proof, acc4 = self#proof (Nothing, acc3) proof  in
-      let t = {
-        location;
-        level;
-        name;
-        statement;
-        proof;
-      } in
-      (Any_theorem (THM t), acc4)
+    | _ -> failwith "Expected theorem ref not theorem."
+
+  method private theorem_ acc0
+      { Sany_ds.location; level; definition; expr; proof; suffices } =
+    (* delay definition processing -- <1>a TAKE x should not be referable
+       and leads to an error
+    *)
+    let process_definition acc = function
+      | None -> None, acc
+      | Some d ->
+        let Any_theorem_def d, acc_ =
+          self#theorem_def (Nothing, acc) d in
+        Some d, acc_
+    in
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let node = match expr with
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
+    in
+    let entries = get_entries acc3 in
+    let definition, statement, acc4 = match node, suffices with
+      | Sany_ds.N_expr
+          (Sany_ds.E_op_appl
+             {
+               Sany_ds.operator = Sany_ds.FMOTA_op_def
+                   (Sany_ds.OPDef (Sany_ds.O_builtin_op take));
+               operands;
+               bound_symbols;
+               _}), _
+        when (dr_bop entries take).Sany_ds.name = "$Take"
+        -> (
+            match operands with
+            | [] ->
+              let bound_symbols, acc5 =
+                fold self#bound_symbol (Nothing, acc3) bound_symbols unfold_bs
+              in
+              None, ST_TAKE bound_symbols, acc5
+            | _ -> failwith "Error in parsing $Take!"
+          )
+      | _, false ->
+        let Any_node body, acc4 =
+          self#node (Nothing,acc3) node  in
+        let d, acc5 = process_definition acc3 definition in
+        d, ST_FORMULA body, acc5
+      | _, true ->
+        let Any_node body, acc5 =
+          self#node (Nothing,acc3) node  in
+        let d, acc5 = process_definition acc3 definition in
+        d, ST_SUFFICES body, acc5
+    in
+    let Any_proof proof, acc6 = self#proof (Nothing, acc4) proof  in
+    let t = {
+      id;
+      location;
+      level;
+      definition;
+      statement;
+      proof;
+    } in
+    (Any_theorem_ t, acc6)
 
   method assume acc0  = function
     | Sany_ds.ASSUME_ref x -> (Any_assume (ASSUME_ref x), snd acc0)
-    | Sany_ds.ASSUME {Sany_ds.location; level; expr; } ->
-      let Any_location location, acc1 = self#location acc0 location in
-      let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-      let Any_expr expr,         acc = self#expr (Nothing, acc2) expr in
-      let a = { location; level; expr;  } in
-      (Any_assume (ASSUME a), acc)
+    | _ -> failwith "Expected assume ref not assume"
+
+  method assume_ acc0  {Sany_ds.location; level; definition; expr; } =
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let definition, acc4 = match definition with
+      | None ->
+        None, acc3
+      | Some d ->
+        let Any_assume_def d, acc_ = self#assume_def (Nothing, acc3) d in
+        Some d, acc_
+    in
+    let Any_expr expr, acc = self#expr (Nothing, acc4) expr in
+    let a = { id; location; level; definition; expr;  } in
+    (Any_assume_ a, acc)
 
   method proof acc0 = function
     | Sany_ds.P_omitted { Sany_ds.location; level } ->
@@ -510,7 +579,11 @@ class converter = object(self)
     let Any_op_decl op, acc1 = self#op_decl acc0 op in
     let Any_expr_or_op_arg expr, acc =
       self#expr_or_op_arg (Nothing, acc1) expr in
-    let s = { op = op; expr = expr; } in
+    (* initially, the assignment op <- expr is the same in the current
+       and next state. Only permuting the subst with ENABLED changes the
+       content of next.
+    *)
+    let s = { op = op; expr; next = [expr]; } in
     (Any_instantiation s, acc)
 
   method assume_prove acc0 { Sany_ds.location; level; assumes;
@@ -533,12 +606,13 @@ class converter = object(self)
           let (ns,aps) = pair in
           match nea with
           | Sany_ds.NEA_new_symb n -> (n::ns, aps)
-          | Sany_ds.NEA_assume_prove ap -> (ns, ap::aps)
-          | Sany_ds.NEA_expr _ -> failwith "Implementation error!"
+          | Sany_ds.NEA_assume_prove ap -> (ns, (Sany_ds.N_assume_prove ap)::aps)
+          | Sany_ds.NEA_expr e -> (ns, (Sany_ds.N_expr e)::aps)
+          | Sany_ds.NEA_ap_subst_in ap -> (ns, (Sany_ds.N_ap_subst_in ap)::aps)
         ) sany_assumes2 ([],[]) in
     let assumes, acc3 =
-      fold self#assume_prove (Nothing, acc2)
-        sany_assumes3 unfold_assume_prove in
+      fold self#node (Nothing, acc2)
+        sany_assumes3 unfold_node in
     let new_symbols, acc4 =
       fold self#new_symb (Nothing, acc3) sany_ns unfold_new_symb
     in
@@ -581,13 +655,12 @@ class converter = object(self)
                       arity; body; params } : Sany_ds.label) =
     let Any_location location, acc1 = self#location acc0 location in
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-    let ap = match body with
-      | Sany_ds.EA_expr expr ->
-        let entries = get_entries acc2 in
-        let s = check_suffices entries expr in
-        assume_proves_from_expr expr s
-      | Sany_ds.EA_assume_prove ap -> ap in
-    let Any_assume_prove body, acc3 = self#assume_prove (Nothing, acc2) ap in
+    let node = match body with
+      | Sany_ds.EA_assume_prove ap -> Sany_ds.N_assume_prove ap
+      | Sany_ds.EA_expr e -> Sany_ds.N_expr e
+      | Sany_ds.EA_ap_subst_in aps -> Sany_ds.N_ap_subst_in aps
+    in
+    let Any_node body, acc3 = self#node (Nothing, acc2) node in
     let params, acc =
       fold self#formal_param (Nothing, acc3) params unfold_formal_param  in
     let l = ({location; level; name; arity; body; params } : label) in
@@ -611,19 +684,28 @@ class converter = object(self)
 
   method module_instance acc0 = function
     | Sany_ds.MI_ref x -> (Any_module_instance (MI_ref x), snd acc0)
-    | Sany_ds.MI { Sany_ds.location; level; name } ->
-      let Any_location location, acc1 = self#location acc0 location in
-      let Any_level level,       acc2 = self#level (Nothing, acc1) level in
-      let mi = { location; level; name } in
-      (Any_module_instance (MI mi), acc2)
+    | _ -> failwith "Expected module instance ref, not MI"
 
-  (* TODO: proper replacement *)
-  method builtin_op (_, (bstore, entries)) = function
+  method private module_instance_ acc0 { Sany_ds.location; level; name } =
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let mi = { id; location; level; name } in
+    (Any_module_instance_ mi, acc3)
+
+  method builtin_op (_, acc) = function
     | Sany_ds.BOP_ref x ->
-      let op = List.assoc x bstore in
-      (Any_builtin_op op, (bstore, entries))
-    | Sany_ds.BOP {Sany_ds.location; level; name; arity; params } ->
-      failwith "Implementation error: builtins shouldn't be converted anymore!"
+      (Any_builtin_op (BOP_ref x), acc)
+
+  method builtin_op_ acc0 {Sany_ds.location; level; name; arity; params } =
+    let Any_location location, acc1 = self#location acc0 location in
+    let Any_level level,       acc2 = self#level (Nothing, acc1) level in
+    let id, acc3 = get_id acc2 in
+    let params, leibniz = List.split params in
+    let rparams, acc =
+      fold self#formal_param (Nothing, acc3) params unfold_formal_param  in
+    let params = List.combine rparams leibniz in
+    (Any_builtin_op_ {id; level; name; arity; params}, acc)
 
 (*
 method private lambda acc0 { Sany_ds.location; level; name; arity;
@@ -644,21 +726,25 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
   method user_defined_op acc0 = function
     | Sany_ds.UOP_ref x ->
       (Any_user_defined_op (UOP_ref x), snd acc0)
-    | Sany_ds.UOP { Sany_ds.location; level ; name ; arity ;
-                    body ; params ; recursive ; } ->
-      let (Any_location location, acc1) = self#location acc0 location in
-      let (Any_level level, acc2) = self#level (Nothing, acc1) level in
-      let (Any_expr body, acc3) = self#expr (Nothing, acc2) body in
-      let handle_arg x (fp,_) = self#formal_param x fp in
-      let (args, acc) = fold handle_arg (Nothing, acc3)
-          params unfold_formal_param in
-      let leibniz = List.map snd params in
-      let params = List.combine args leibniz in
-      let op = UOP {
-          location; level; name; arity; body; params; recursive;
-        }
-      in
-      (Any_user_defined_op op, acc)
+    | Sany_ds.UOP { Sany_ds.name; _ } ->
+      let msg =
+        CCFormat.sprintf "Expected user defined op ref, not uop %s!" name in
+      failwith msg
+
+  method user_defined_op_ acc0 { Sany_ds.location; level ; name ; arity ;
+                                         body ; params ; recursive ; } =
+    let (Any_location location, acc1) = self#location acc0 location in
+    let (Any_level level, acc2) = self#level (Nothing, acc1) level in
+    let (id, acc2a) = get_id acc2 in
+    let (Any_expr body, acc3) = self#expr (Nothing, acc2a) body in
+    let handle_arg x (fp,_) = self#formal_param x fp in
+    let (args, acc) = fold handle_arg (Nothing, acc3)
+        params unfold_formal_param in
+    let leibniz = List.map snd params in
+    let params = List.combine args leibniz in
+    let op = { id; location; level; name; arity; body; params; recursive;  }
+    in
+    (Any_user_defined_op_ op, acc)
 
   method name (_,acc) x = (Any_name x, acc)
 
@@ -667,8 +753,8 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
 
   method context acc { Sany_ds.entries; modules; root_module } =
     (* extend accumulator by term db entries *)
-    let (ae, (b,_)) = acc in
-    let acc = (ae, (b,entries)) in
+    let (ae, (b,l,_, tdb,id)) = acc in
+    let acc = (ae, (b,l,entries,tdb,id)) in
     let entries,  acc0 = fold self#entry acc entries unfold_entry in
     let modules, acc1 = fold self#mule (Nothing, acc0) modules unfold_module in
     let c = {
@@ -678,36 +764,48 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     } in
     (Any_context c, acc1)
 
-  method entry acc0 { Sany_ds.uid; reference } =
+  method entry (a, acc) { Sany_ds.uid; reference } =
+    let acc0 = (a, set_id uid acc) in
     match reference with
-    (* builtin operators need to be taken from the builtin store *)
-    | Sany_ds.FMOTA_op_def (Sany_ds.OPDef (Sany_ds.O_builtin_op _)) ->
-      let _, acc = acc0 in
-      let x = List.assoc uid (get_builtin_store acc) in
-      (Any_entry (uid, OPDef_entry (O_builtin_op x)), acc)
+    | Sany_ds.E_module_instance x ->
+      let Any_module_instance_ mi, acc = self#module_instance_ acc0 x in
+      (Any_entry (uid, (MI_entry mi)), acc)
+    | Sany_ds.E_builtin_op x      ->
+      let Any_builtin_op_ bi, acc = self#builtin_op_ acc0 x in
+      (Any_entry (uid, BOP_entry bi), acc)
+    | Sany_ds.E_user_defined_op x ->
+      let Any_user_defined_op_ op, acc0 = self#user_defined_op_ acc0 x in
+      let acc1 =
+        if op.name = "LAMBDA"
+        then (* collect lambda definition *)
+          ( (* Printf.eprintf "Collecting lambda id %d\n" uid; *)
+           add_lambda acc0 uid op)
+        else
+          acc0
+      in
+      (Any_entry (uid, UOP_entry op), acc1)
+    | Sany_ds.E_thm_def x ->
+      let Any_theorem_def_ x, acc = self#theorem_def_ acc0 x in
+      (Any_entry (uid, TDef_entry x), acc)
+    | Sany_ds.E_assume_def x ->
+      let Any_assume_def_ x, acc = self#assume_def_ acc0 x in
+      (Any_entry (uid, ADef_entry x), acc)
     (* remaining cases *)
-    | Sany_ds.FMOTA_formal_param x ->
-      let Any_formal_param (FP x), acc = self#formal_param acc0 x in
+    | Sany_ds.E_formal_param x ->
+      let Any_formal_param_ x, acc = self#formal_param_ acc0 x in
       (Any_entry (uid,FP_entry x), acc)
-    | Sany_ds.FMOTA_module x ->
-      let Any_mule (MOD x), acc = self#mule acc0 x in
+    | Sany_ds.E_module x ->
+      let Any_mule_ x, acc = self#mule_ acc0 x in
       (Any_entry (uid, MOD_entry x), acc)
-    | Sany_ds.FMOTA_op_def x ->
-      let Any_op_def x, acc = self#op_def acc0 x in
-      (Any_entry (uid, OPDef_entry x), acc)
-    | Sany_ds.FMOTA_op_decl x ->
-      let Any_op_decl (OPD x), acc = self#op_decl acc0 x in
+    | Sany_ds.E_op_decl x ->
+      let Any_op_decl_ x, acc = self#op_decl_ acc0 x in
       (Any_entry (uid, OPDec_entry x), acc)
-    | Sany_ds.FMOTA_theorem x ->
-      let Any_theorem (THM x), acc = self#theorem acc0 x in
+    | Sany_ds.E_theorem x ->
+      let Any_theorem_ x, acc = self#theorem_ acc0 x in
       (Any_entry (uid, THM_entry x), acc)
-    | Sany_ds.FMOTA_assume x ->
-      let Any_assume (ASSUME x), acc = self#assume acc0 x in
+    | Sany_ds.E_assume x ->
+      let Any_assume_ x, acc = self#assume_ acc0 x in
       (Any_entry (uid, ASSUME_entry x), acc)
-    | Sany_ds.FMOTA_ap_subst_in x ->
-      let Any_ap_subst_in x, acc = self#ap_subst_in acc0 x in
-      (Any_entry (uid, APSUBST_entry x), acc)
-
 
   (* pure disjunction types *)
   method expr acc = function
@@ -760,12 +858,12 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     | Sany_ds.UMTA_module_instance x ->
       let Any_module_instance y, acc0 = self#module_instance acc x in
       (Any_defined_expr ( UMTA_module_instance y), acc0)
-    | Sany_ds.UMTA_theorem x         ->
-      let Any_theorem y, acc0 = self#theorem acc x in
-      (Any_defined_expr ( UMTA_theorem y), acc0)
-    | Sany_ds.UMTA_assume x          ->
-      let Any_assume y, acc0 = self#assume acc x in
-      (Any_defined_expr ( UMTA_assume y), acc0)
+    | Sany_ds.UMTA_theorem_def x         ->
+      let Any_theorem_def y, acc0 = self#theorem_def acc x in
+      (Any_defined_expr ( UMTA_theorem_def y), acc0)
+    | Sany_ds.UMTA_assume_def x          ->
+      let Any_assume_def y, acc0 = self#assume_def acc x in
+      (Any_defined_expr ( UMTA_assume_def y), acc0)
 
   method new_symb_or_expr_or_assume_prove acc =
     failwith "Implementation eror! This code should be unreachable!"
@@ -785,7 +883,7 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
     failwith "Implementation eror! This code should be unreachable!"
 
   method expr_or_op_arg acc = function
-    | Sany_ds.EO_op_arg oa ->
+    | Sany_ds.EO_op_arg ({ Sany_ds.location; level; argument  } as oa) ->
       let Any_op_arg y, acc0 = self#op_arg acc oa in
       (Any_expr_or_op_arg (EO_op_arg y), acc0)
     | Sany_ds.EO_expr e ->
@@ -797,20 +895,15 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
       let Any_formal_param y, acc0 = self#formal_param acc x in
       (Any_operator (FMOTA_formal_param y), acc0)
     | Sany_ds.FMOTA_module  x ->
-      let Any_mule y, acc0 = self#mule acc x in
-      (Any_operator (FMOTA_module y), acc0)
+      let Any_mule _y, _acc0 = self#mule acc x in
+      failwith "modules shouldnt be operators"
+    (* (Any_operator (FMOTA_module y), acc0) *)
     | Sany_ds.FMOTA_op_decl x ->
       let Any_op_decl y, acc0 = self#op_decl acc x in
       (Any_operator (FMOTA_op_decl y), acc0)
     | Sany_ds.FMOTA_op_def  x ->
       let Any_op_def y, acc0 = self#op_def acc x in
       (Any_operator (FMOTA_op_def y), acc0)
-    | Sany_ds.FMOTA_theorem x ->
-      let Any_theorem y, acc0 = self#theorem acc x in
-      (Any_operator (FMOTA_theorem y), acc0)
-    | Sany_ds.FMOTA_assume  x ->
-      let Any_assume y, acc0 = self#assume acc x in
-      (Any_operator (FMOTA_assume y), acc0)
     | Sany_ds.FMOTA_ap_subst_in x ->
       let Any_ap_subst_in y, acc0 = self#ap_subst_in acc x in
       (Any_operator (FMOTA_ap_subst_in y), acc0)
@@ -846,19 +939,14 @@ end
 
 let converter_instance = new converter
 
-let convert_expr ?builtins:(b=[]) x =
-  match converter_instance#expr ( Nothing, (b,[]) ) x with
-  | Any_expr e, _ -> e
-  | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_context ?builtins:(b=[]) x =
-  match converter_instance#context ( Nothing, (b,[]) ) x with
+let initial_context b x e =
+  ( Nothing, (b,[],[],e, None) )
+
+let convert_context ?builtins:(b=[]) (x:Sany_ds.context) =
+  match converter_instance#context (initial_context b x x.Sany_ds.entries)  x with
   | Any_context e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_module ?builtins:(b=[]) x =
-  match converter_instance#mule (Nothing, (b,[])) x with
-  | Any_mule e, _ -> e
-  | _ -> failwith "Implementation error in sany -> internal term conversion."
-let convert_formal_param ?builtins:(b=[]) x =
-  match converter_instance#formal_param (Nothing, (b,[])) x with
+let convert_formal_param ?builtins:(b=[]) entries x =
+  match converter_instance#formal_param (initial_context b x entries) x with
   | Any_formal_param e, _ -> e
   | _ -> failwith "Implementation error in sany -> internal term conversion."

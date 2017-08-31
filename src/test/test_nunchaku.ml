@@ -29,12 +29,12 @@ let test_fun_positive obl =
   try
     let msg str = Format.asprintf
         "Expecting a counter-model to %a, but nunchaku returned %s"
-        (fmt_assume_prove obl.term_db) obl.goal str
+        (fmt_node obl.term_db) obl.goal str
     in
     match nunchaku settings obl obl.id with
     | REFUTED model ->
       Format.printf "Found a counter model for obligation %a (as expected).@."
-        (fmt_assume_prove obl.term_db) obl.goal;
+        (fmt_node obl.term_db) obl.goal;
       Ok obl
     | VALID
     | UNKNOWN
@@ -43,7 +43,7 @@ let test_fun_positive obl =
   with
   | UnhandledLanguageElement (p, msg) ->
     Format.printf "Warning: skipped obligation %d because of unhandled \
-                   element %s@." obl.id msg;
+                   element %s.@." obl.id msg;
     Unhandled obl
 
 
@@ -51,14 +51,14 @@ let test_fun_negative obl =
   try
     let msg = Format.asprintf
         "Expecting no counter-model to %a, but nunchaku returned one!"
-        (fmt_assume_prove obl.term_db) obl.goal
+        (fmt_node obl.term_db) obl.goal
     in
     match nunchaku settings obl obl.id with
     | REFUTED model ->
       Assertion.fail_msg msg
     | VALID | UNKNOWN | TIMEOUT ->
       Format.printf "No counter-model for obligation %a (as expected).@."
-        (fmt_assume_prove obl.term_db) obl.goal
+        (fmt_node obl.term_db) obl.goal
       ;
       Ok obl
   with

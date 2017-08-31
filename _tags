@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f0e44f04570ded47df44744f470a0578)
+# DO NOT EDIT (digest: 3c6633ea784d731587ada5ec0efb0704)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -15,18 +15,21 @@ true: annot, bin_annot
 "_darcs": -traverse
 "_darcs": not_hygienic
 # Executable tlapm2
+"src/tlapm.byte": pkg_containers
 "src/tlapm.byte": pkg_result
 "src/tlapm.byte": pkg_sexplib
 "src/tlapm.byte": pkg_str
 "src/tlapm.byte": pkg_unix
 "src/tlapm.byte": pkg_xmlm
 # Executable test
+"src/tests.byte": pkg_containers
 "src/tests.byte": pkg_kaputt
 "src/tests.byte": pkg_result
 "src/tests.byte": pkg_sexplib
 "src/tests.byte": pkg_str
 "src/tests.byte": pkg_unix
 "src/tests.byte": pkg_xmlm
+<src/*.ml{,i,y}>: pkg_containers
 <src/*.ml{,i,y}>: pkg_kaputt
 <src/*.ml{,i,y}>: pkg_result
 <src/*.ml{,i,y}>: pkg_sexplib
@@ -38,10 +41,19 @@ true: annot, bin_annot
 <src>: include
 <src/core>: include
 <src/expr>: include
+<src/backends>: include
 <src/nunchaku>: include
 <src/nunchaku/simple_expr>: include
 <src/test>: include
 <src/sany>: include
-<src/test/*.ml{,i,y}>: pkg_kaputt
+
+<src/test/*.ml{,i,y}>: pkg_kaputt, pkg_containers
+<src/backends/*.ml{,i,y}>: pkg_containers
 <src/nunchaku/*.ml{,i,y}>: pkg_sexplib
-<src/sany/*.ml{,i,y}>: pkg_xmlm
+<src/nunchaku/*.ml{,i,y}>: pkg_containers
+<src/sany/*.ml{,i,y}>: pkg_xmlm, pkg_containers
+<src/expr/*.ml{,i,y}>: pkg_containers, pkg_result
+<src/core/*.ml{,i,y}>: pkg_result
+
+#remove warning 8 from sany_expr
+"src/sany/sany_expr.ml": warn(+a-4-6-7-8-9-27-29-32..39-41..42-44-45-48-50)

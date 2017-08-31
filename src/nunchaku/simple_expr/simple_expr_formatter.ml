@@ -150,52 +150,73 @@ class formatter =
     method op_appl acc0 {location; level; operator; operands} =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      (* fprintf (ppf acc2) "OP_APPL_"; *)
-      let acc = match match_infix_op (tdb acc2) operator with
-        | true ->
-          (* infix binary operators *)
-          fprintf (ppf acc2) "(";
-          let left, right = match operands with
-            | [l;r] -> l,r
-            | _ -> failwith "Binary operator does not have 2 arguments!"
-          in
-          let acc3 = self#expr_or_op_arg acc2 left in
-          fprintf (ppf acc3) " ";
-          let acc4 = self#operator acc3 operator in
-          fprintf (ppf acc4) " ";
-          let acc5 = self#expr_or_op_arg acc4 right in
-          fprintf (ppf acc5) ")";
-          acc5
-        | false -> (
-            match match_ternary_op (tdb acc2) operator with
-            | Some name ->
-              (* ternary binary operators *)
-              let str_begin,str_middle,str_end = expand_ternary_name name in
-              fprintf (ppf acc2) "(";
-              let op1, op2, op3 = match operands with
-                | [o1;o2;o3] -> o1,o2,o3
-                | _ -> failwith "Binary operator does not have 2 arguments!"
-              in
-              fprintf (ppf acc2) "(%s " str_begin;
-              let acc3 = self#expr_or_op_arg acc2 op1 in
-              fprintf (ppf acc3) " %s " str_middle;
-              let acc4 = self#expr_or_op_arg acc3 op2 in
-              fprintf (ppf acc4) " %s " str_end;
-              let acc5 = self#expr_or_op_arg acc4 op3 in
-              fprintf (ppf acc5) ")";
-              acc5
-            | _ ->
-              (* other operators *)
-              let acc3 = self#operator acc2 operator in
-              let oparens, cparens =
-                if (operands <> []) then ("(",")") else ("","") in
-              fprintf (ppf acc3) "%s" oparens;
-              let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
-              fprintf (ppf acc4) "%s" cparens;
-              acc4
-          )
+      let match_fixity_op term_db =  function
+        | FMOTA_op_def (O_user_defined_op uop) ->
+          let uopi = dereference_user_defined_op term_db uop in
+          Expr_prover_parser.extract_fixity uopi.name uopi.params
+        | FMOTA_op_def (O_builtin_op op) ->
+          Expr_prover_parser.extract_fixity op.name op.params
+        | FMOTA_formal_param _
+        | FMOTA_op_decl _
+        | FMOTA_lambda _ -> Expr_prover_parser.Standard
       in
-      acc
+      match match_fixity_op (tdb acc2) operator with
+      | Expr_prover_parser.BinaryInfix ->
+        (* infix binary operators *)
+        fprintf (ppf acc2) "(";
+        let left, right = match operands with
+          | [l;r] -> l,r
+          | _ -> failwith "Binary operator does not have 2 arguments!"
+        in
+        let acc3 = self#expr_or_op_arg acc2 left in
+        fprintf (ppf acc3) " ";
+        let acc4 = self#operator acc3 operator in
+        fprintf (ppf acc4) " ";
+        let acc5 = self#expr_or_op_arg acc4 right in
+        fprintf (ppf acc5) ")";
+        acc5
+      | Expr_prover_parser.Special Expr_builtins.Builtin.IF_THEN_ELSE ->
+        fprintf (ppf acc2) "(";
+        let op1, op2, op3 = match operands with
+          | [o1;o2;o3] -> o1,o2,o3
+          | _ -> failwith "if-then-else operator does not have 3 arguments!"
+        in
+        fprintf (ppf acc2) "(IF ";
+        let acc3 = self#expr_or_op_arg acc2 op1 in
+        fprintf (ppf acc3) " THEN ";
+        let acc4 = self#expr_or_op_arg acc3 op2 in
+        fprintf (ppf acc4) " ELSE ";
+        let acc5 = self#expr_or_op_arg acc4 op3 in
+        fprintf (ppf acc5) ")";
+        acc5
+      | Expr_prover_parser.Special Expr_builtins.Builtin.FUN_APP ->
+        (* TODO: not sure if the args need to be wrapped in prenthesis sometimes *)
+        let f, args = match operands with
+          | x::y::xs -> x, y::xs
+          | _ -> failwith "Function application needs at least 2 arguments!"
+        in
+        let acc3 = self#expr_or_op_arg acc2 f in
+        fprintf (ppf acc3) "[";
+        let acc4 = ppf_fold_with self#expr_or_op_arg acc3 args in
+        fprintf (ppf acc4) "]";
+        acc4
+      | Expr_prover_parser.Special Expr_builtins.Builtin.SET_ENUM ->
+        fprintf (ppf acc2) "{";
+        (* TODO: not sure if the args need to be wrapped in prenthesis sometimes *)
+        let acc3 = ppf_fold_with self#expr_or_op_arg acc2 operands in
+        fprintf (ppf acc3) "}";
+        acc3
+      | Expr_prover_parser.Special _
+      | Expr_prover_parser.UnaryPrefix|Expr_prover_parser.UnaryPostfix
+      | Expr_prover_parser.Standard ->
+        (* other operators *)
+        let acc3 = self#operator acc2 operator in
+        let oparens, cparens =
+          if (operands <> []) then ("(",")") else ("","") in
+        fprintf (ppf acc3) "%s" oparens;
+        let acc4 = ppf_fold_with self#expr_or_op_arg acc3 operands in
+        fprintf (ppf acc4) "%s" cparens;
+        acc4
 
     method lambda acc0 {level; arity; body; params} =
       let acc1 = self#level acc0 level in
@@ -484,13 +505,9 @@ let expr_formatter = new formatter
 let mk_fmt (f : fc -> 'a -> fc) term_db channel (expr : 'a) =
   let fmt = formatter_of_out_channel channel in
   let acc = (fmt, term_db, true, Expression, 0) in
-  ignore (f acc expr; fprintf fmt "@.")
+  ignore (f acc expr);
+  fprintf fmt "@."
 
 let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
-
-
-
-
-

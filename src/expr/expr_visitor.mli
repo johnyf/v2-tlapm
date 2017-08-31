@@ -36,10 +36,13 @@ class ['a] visitor :
     method op_def          : 'a -> op_def -> 'a
     method theorem         : 'a -> theorem -> 'a
     method statement       : 'a -> statement -> 'a
+    method theorem_def     : 'a -> theorem_def -> 'a
+    method assume_def      : 'a -> assume_def -> 'a
     method assume          : 'a -> assume -> 'a
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
     method ap_subst_in     : 'a -> ap_subst_in -> 'a
+    method fp_subst_in     : 'a -> fp_subst_in -> 'a
     method module_instance : 'a -> module_instance -> 'a
     method builtin_op      : 'a -> builtin_op -> 'a
     method user_defined_op : 'a -> user_defined_op -> 'a
@@ -48,6 +51,7 @@ class ['a] visitor :
     method instance        : 'a -> instance -> 'a
     method use_or_hide     : 'a -> use_or_hide -> 'a
     method instantiation   : 'a -> instantiation -> 'a
+    method fp_assignment   : 'a -> fp_assignment -> 'a
     (*  method subst           : 'a -> subst -> 'a *)
     method label           : 'a -> label -> 'a
     method let_in          : 'a -> let_in -> 'a
@@ -55,6 +59,19 @@ class ['a] visitor :
     method node            : 'a -> node -> 'a
     method def_step        : 'a -> def_step -> 'a
     method reference       : 'a -> int -> 'a
+
+    method formal_param_   : 'a -> formal_param_ -> 'a
+    method mule_           : 'a -> mule_ -> 'a
+    method op_decl_        : 'a -> op_decl_ -> 'a
+    method module_instance_  : 'a -> module_instance_ -> 'a
+    method user_defined_op_  : 'a -> user_defined_op_ -> 'a
+    method builtin_op_     : 'a -> builtin_op_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
+    method theorem_        : 'a -> theorem_ -> 'a
+    method assume_         : 'a -> assume_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
 
     method entry           : 'a -> (int * entry) -> 'a
     method context         : 'a -> context -> 'a
@@ -68,3 +85,7 @@ class ['a] visitor :
       : 'a -> op_def_or_theorem_or_assume -> 'a
 
   end
+
+class ['a] term_visitor : object
+  inherit ['a] visitor
+end

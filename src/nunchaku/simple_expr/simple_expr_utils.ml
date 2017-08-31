@@ -26,7 +26,6 @@ let extract_location expr =
   | E_op_appl { location; level; _ } -> location
   | E_string { location; level; _ } -> location
   | E_binder {location; level; _ } -> location
-  | E_lambda {location; level; _ } -> location
 
 let extract_level expr =
   match expr with
@@ -38,7 +37,6 @@ let extract_level expr =
   | E_op_appl { location; level; _ } -> level
   | E_string { location; level; _ } -> level
   | E_binder {location; level; _ } -> level
-  | E_lambda {location; level; _ } -> level
 
 (** wraps an expression into an assume-prove with empty assumptions *)
 let assume_prove_from_expr suffices expr =  {

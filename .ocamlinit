@@ -1,25 +1,46 @@
-#directory "_build/src"
-#load "any_expr.cmo"
-#load "commons.cmo"
-#load "expr_builtins.cmo"
-#load "expr_correct_lambda.cmo"
-#load "expr_dereference.cmo"
-#load "expr_formatter.cmo"
-#load "expr_map.cmo"
-#load "expr_parse_theorems.cmo"
-#load "expr_prover_parser.cmo"
-#load "expr_utils.cmo"
-#load "expr_visitor.cmo"
-#load "extract_obligations.cmo"
-#load "obligation_formatter.cmo"
-#load "sany_builtin_extractor.cmo"
-#load "sany.cmo"
-#load "sany_expr.cmo"
-#load "sany_visitor.cmo"
-#load "util.cmo"
-#load "xml_utils.cmo"
+#directory "_build/src/core" ;;
+#directory "_build/src/expr" ;;
+#directory "_build/src/sany" ;;
+#directory "_build/src/expr" ;;
+#directory "_build/src/nunchaku" ;;
+#directory "_build/src/test" ;;
+#directory "_build/src/oldpm" ;;
+#directory "_build/src" ;;
 
+#require "result" ;;
+#require "unix" ;;
+#require "containers" ;;
+#require "xmlm" ;;
+
+#load "str.cma" ;;
+#load "ext.cmo" ;;
+#load "any_expr.cmo" ;;
+#load "commons.cmo" ;;
+#load "util.cmo" ;;
+#load "expr_visitor.cmo" ;;
+#load "expr_map.cmo" ;;
+#load "expr_builtins.cmo" ;;
+#load "expr_correct_lambda.cmo" ;;
+#load "expr_utils.cmo" ;;
+#load "expr_dereference.cmo" ;;
+#load "expr_prover_parser.cmo" ;;
+#load "expr_formatter.cmo" ;;
+#load "expr_termdb_utils.cmo" ;;
+#load "expr_constructors.cmo" ;;
+#load "expr_parse_theorems.cmo" ;;
+#load "extract_obligations.cmo" ;;
+#load "obligation_formatter.cmo" ;;
+#load "xml_utils.cmo" ;;
+#load "sany.cmo" ;;
+#load "sany_visitor.cmo" ;;
+#load "sany_expr.cmo" ;;
 
 open Commons
 open Expr_ds
+open Expr_constructors
+open Expr_builtins
 open Obligation
+
+let location = toplevel_loation
+let term_db = Expr_termdb_utils.empty_term_db |> Builtin.complete_builtins
+;;

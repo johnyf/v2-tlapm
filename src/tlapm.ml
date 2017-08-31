@@ -1,16 +1,19 @@
 open Commons
 open Util
 open Sany
-open Obligation
-open Extract_obligations
 open Format
-open Nunchaku
-open Expr_substitution
 open Settings
 open Arg_handler
-open Toolbox
 open Result
+open Obligation
+open Obligation_formatter
+open Extract_obligations
+open Expr_substitution
+open Expr_termdb_utils
+open Toolbox
+open Scheduler
 open Backend_exceptions
+open Isabelle
 
 let  global_settings = ref default_settings
 
@@ -56,11 +59,11 @@ let load_sany settings =
     | TLA_channel (c, _, _) -> c
   in
   let sany_context =
-    try
+    (*    try *)
       Ok (Sany.import_xml channel)
-    with
+(*    with
     | e ->
-      Error e
+      Error e *)
   in
   (* close_channels *)
   let exit_code = match fds with
@@ -72,7 +75,7 @@ let load_sany settings =
   in
   match (exit_code, sany_context) with
   | Unix.WEXITED 0,    Ok sc -> sc
-  | Unix.WEXITED code, _ ->
+  | Unix.WEXITED code, _ when code <> 0 ->
     let msg = asprintf "%s: java return code is %d"
         tla_error code
     in
@@ -85,13 +88,11 @@ let load_sany settings =
     in
     failwith msg
 
+
 let compute_obligations settings sany_context =
-  (* extract builtins from file *)
-  let sany_builtins =
-    Sany_builtin_extractor.extract_from_context sany_context in
   (* convert sany ast to internal ast (expr_ds) *)
   let exprds =
-    Sany_expr.convert_context ~builtins:sany_builtins sany_context in
+    Sany_expr.convert_context ~builtins:[] sany_context in
   (* replace definitions of name LAMBDA by lambda constructors *)
   let fixed_lambda =
     Expr_correct_lambda.correct_lambda_context exprds in
@@ -104,19 +105,35 @@ let compute_obligations settings sany_context =
 let announce_obligations settings formatter obligations =
   (* print obligations to stdout *)
   ignore(
+    let fmt_id =
+      (fun f -> function | {id;_ } -> CCFormat.fprintf f "oid %d:" id) in
+    let fmt_obl = fun f o -> CCFormat.fprintf f " %a" fmt_obligation o in
+    let (pp_msg, pp_obl) = if settings.toolbox_output
+      then (fmt_toolbox_msg, CCFormat.silent)
+      else (fmt_id, fmt_obl)
+    in
     List.fold_left (fun no (obl:obligation) ->
         let r = {id=no; location=obl.location; status = ToBeProved;
                  prover = None; meth=None; already_processed = Some false;
                  obligation_string = None } in
-        fprintf formatter "%a@,@." fmt_toolbox_msg r;
-        (*          fprintf std_formatter "%d @ %a@." no fmt_location obl.location; *)
+        fprintf formatter "%a%a@,@."
+          pp_msg r
+          pp_obl obl
+        ;
         no+1
       ) 1 obligations
   );
   (* print obligation count message *)
   let obl_no = List.length obligations in
-  fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
-  ()
+  if settings.toolbox_output then (
+    fprintf formatter "@[<v>@,%a@]@." fmt_toolbox_msg_count obl_no;
+    ()
+  ) else
+    ()
+
+let announce_results msgs =
+  IntMap.fold (fun _ -> fun m -> fun _ ->
+      fmt_toolbox_msg err_formatter m) msgs ()
 
 let announce_all_failed settings formatter obligations =
   (* print obligation fail messages to stdout *)
@@ -135,34 +152,12 @@ let announce_all_failed settings formatter obligations =
   );
   ()
 
+
+let prepare_backends settings () =
+  let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
+  ignore(Sys.command clear_tmp)
 type exit_status = Exit_status of int
 
-let nunchaku_backend obligations settings =
-  let f obligation =
-    try
-      let result = nunchaku_result_printer (nunchaku settings obligation obligation.id) in
-      match result with
-      | Some message ->
-        let toolbox_msg = {
-          id       = obligation.id;
-          location = obligation.location;
-          status   = Failed;
-          prover   = Some Nunchaku;
-          meth     = None;
-          already_processed = Some false;
-          obligation_string = Some message;
-        }
-        in
-        print_string "\n\n";
-        fmt_toolbox_msg err_formatter toolbox_msg
-      | None -> ()
-    with
-    | UnhandledLanguageElement (_, _) ->
-      () (* fail gracefully for unhandled constructs *)
-  in
-  let clear_tmp = Printf.sprintf "rm '%s'/nunchaku/tmp*.*" settings.pm_path in
-  ignore(Sys.command clear_tmp);
-  ignore (List.map f (List.rev obligations))
 
 let init () =
   Printexc.record_backtrace true;
@@ -173,8 +168,9 @@ let init () =
     let obligations = compute_obligations settings sany_context in
     announce_obligations settings err_formatter obligations;
     (* here goes the calling of backends *)
-    nunchaku_backend obligations settings;
-
+    prepare_backends settings (); (*TODO refactor *)
+    let messages = scheduler settings obligations in
+    announce_results messages;
     Exit_status 0
   end
   with

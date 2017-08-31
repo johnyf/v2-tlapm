@@ -17,7 +17,6 @@ type simple_expr =
   | E_op_appl of simple_op_appl
   | E_string of simple_strng
   | E_binder of simple_binder
-  | E_lambda of simple_lambda
 
 (** The union of expressions and operator arguments.
     Used by substitutions and as operand in applications. *)
@@ -235,6 +234,7 @@ and simple_operator =
   | FMOTA_formal_param of simple_formal_param
   | FMOTA_op_decl of simple_op_decl
   | FMOTA_op_def of simple_op_def
+  | FMOTA_lambda of simple_lambda
 
 and simple_op_appl = {
   location          : location;
@@ -281,3 +281,13 @@ type simple_entry =
 
 
 type simple_term_db = (int * simple_entry) list
+
+(** Definition **)
+
+type tla_simple_pb = {
+  (* actual obligation, without expansion *)
+  goal : simple_assume_prove;
+
+  (* the term database *)
+  term_db : simple_term_db;
+}

@@ -259,7 +259,8 @@ class formatter =
           let acc2 = self#expr acc1 op.body in
           let acc3 = add_axiom [App (Builtin `Eq,[var op.name;(ter acc2)])] acc2 in
           if is_unsupported op then
-            raise (UnhandledLanguageElement (Nunchaku, "Unsupported builtin"));
+            raise (UnhandledLanguageElement
+                     (Nunchaku, "Unsupported builtin "^op.name));
           (* TODO add rec if parameters *)
           match op.arity with
           | 0 ->
@@ -320,7 +321,7 @@ class formatter =
       let term =
         match name with
         | "$SetEnumerate" -> SetEnum []
-        | _ -> (builtin (self#translate_builtin_name name))
+        | _ -> (builtin (Simple_expr.translate_builtin_name name))
       in
       set_term term acc
 
@@ -339,26 +340,6 @@ class formatter =
 
     method reference acc x = acc
 
-    method translate_builtin_name = function
-      | "$BoundedExists" -> `Exists
-      | "$BoundedForall" -> `Forall
-      | "$ConjList" -> `And
-      | "$DisjList" -> `Or
-      | "$UnboundedExists" -> `Exists
-      | "$UnboundedForall" -> `Forall
-      (* manual additions *)
-      | "\\land" -> `And
-      | "\\lor" -> `Or
-      | "TRUE" -> `True
-      | "FALSE" -> `False
-      | "=" -> `Eq
-      | "=>" -> `Imply
-      | "/=" -> `Neq
-      | "\\lnot" -> `Not
-      | "$FcnApply" -> `Apply
-      | "\\intersect" -> `Intersect
-      | "\\union" -> `Union
-      | x -> `Undefined x (* catchall case *)
   end
 
 
@@ -383,4 +364,5 @@ let fmt_expr = mk_fmt (expr_formatter#expr)
 
 let fmt_assume_prove = mk_fmt (expr_formatter#assume_prove)
 
-let tla_simple_pb_to_nun_ast { goal; term_db; } = List.rev (fmt_assume_prove term_db goal)
+let tla_simple_pb_to_nun_ast { goal; term_db; } =
+  List.rev (fmt_assume_prove term_db goal)

@@ -12,15 +12,15 @@ type test_result = {
   mutable explicit_lambda_context : Expr_ds.context option;
   mutable explicit_steps_context : Expr_ds.context option;
   mutable obligations  : Obligation.obligation list;
-  mutable simple_obligations : Tla_simple_pb.tla_simple_pb list;
+  mutable simple_obligations : Simple_expr_ds.tla_simple_pb list;
 }
 
 (** creates a test result from the filename and optionally the contexts. *)
 val mkTestResult :
-  ?sc:Sany_ds.context -> ?ec:Expr_ds.context -> ?lc:Expr_ds.context
-  -> ?esc:Expr_ds.context
+  ?sc:Sany_ds.context -> ?ec:Expr_ds.context
+  -> ?lc:Expr_ds.context -> ?esc:Expr_ds.context
   -> ?ob:Obligation.obligation list
-  -> ?sob:Tla_simple_pb.tla_simple_pb list
+  -> ?sob:Simple_expr_ds.tla_simple_pb list
   -> string -> test_result
 
 
@@ -28,4 +28,4 @@ val mkTestResult :
     if it is raised. In that case, the exception is raised again for
     the caller to catch too.
 *)
-val exhandler : (unit -> 'a) -> 'a
+val exhandler : ?fn:(string option) -> (unit -> 'a) -> 'a

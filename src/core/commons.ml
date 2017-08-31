@@ -12,6 +12,7 @@
  * Author: TL
 *)
 open Format
+open Result
 
 type int_range = {
   rbegin  : int;
@@ -26,8 +27,8 @@ type location = {
 
 type level =
   | ConstantLevel
-  | VariableLevel
-  | ActionLevel
+  | StateLevel
+  | TransitionLevel
   | TemporalLevel
 
 type op_decl_kind =
@@ -52,7 +53,10 @@ type prover =
 let mkDummyRange = { rbegin = 0; rend = 0 }
 let mkDummyLocation = { column = mkDummyRange ;
                         line = mkDummyRange;
-                        filename = "Dummy" }
+                        filename = "*** Dummy ***" }
+let toplevel_loation = { column = mkDummyRange ;
+                         line = mkDummyRange;
+                         filename = "*** toplevel ***" }
 
 let format_location {filename; column; line} =
   filename ^ ":"
@@ -60,6 +64,9 @@ let format_location {filename; column; line} =
   ^ (string_of_int column.rbegin) ^ "-"
   ^ (string_of_int line.rend) ^ ","
   ^ (string_of_int column.rend)
+
+let fmt_location fmt l =
+  Format.fprintf fmt "%s" (format_location l)
 
 let fmt_int_range f { rbegin; rend; } =
   fprintf f "@[%d-%d@]" rbegin rend;
@@ -78,7 +85,47 @@ let format_prover = function
   | SMT -> "SMT"
   | LS4 -> "LS4"
   | Tlaps -> "TLAPS"
+  | Nunchaku -> "Nunchaku"
   | Default -> "Default provers"
 
 let fmt_prover f p =
   fprintf f "%s" (format_prover p)
+
+let format_op_decl_kind = function
+  | ConstantDecl -> "constant"
+  | VariableDecl -> "variable"
+  | BoundSymbol -> "bound symbol"
+  | NewConstant -> "new constant"
+  | NewVariable -> "new variable"
+  | NewState -> "new state"
+  | NewAction -> "new action"
+  | NewTemporal -> "new temporal"
+
+let lmax = function
+  | ConstantLevel ->
+    (function x -> x)
+  | StateLevel ->
+    (function
+      | ConstantLevel
+      | StateLevel -> StateLevel
+      | x -> x
+    )
+  | TransitionLevel ->
+    (function
+      | ConstantLevel
+      | StateLevel
+      | TransitionLevel -> TransitionLevel
+      | x -> x
+    )
+  | TemporalLevel ->
+    (function _ -> TemporalLevel)
+
+let level_of_op_decl_kind = function
+  | ConstantDecl -> Ok ConstantLevel
+  | VariableDecl -> Ok StateLevel
+  | NewConstant  -> Ok ConstantLevel
+  | NewVariable  -> Ok StateLevel
+  | NewState     -> Ok StateLevel
+  | NewAction    -> Ok TransitionLevel
+  | NewTemporal  -> Ok TemporalLevel
+  | BoundSymbol  -> Error "bound symbol"

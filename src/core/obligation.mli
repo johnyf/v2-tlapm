@@ -14,7 +14,7 @@ type obligation = {
   id : int;
 
   (* actual obligation, without expansion *)
-  goal : assume_prove;
+  goal : node;
 
   (* the location of the obligation *)
   location : location;

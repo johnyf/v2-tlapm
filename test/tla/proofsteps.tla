@@ -56,10 +56,15 @@ LEMMA ASSUME NEW X, X PROVE X
 <1>1 ASSUME NEW Y, Y PROVE Y BY <1>1
 <1> QED OBVIOUS
 
-
-\* test scope of use statement
 T1 == TRUE
 T2 == TRUE
+
+\* test suffices of an expression
+THEOREM T1
+<1> SUFFICES T2 BY DEF T1, T2
+<1> QED BY DEF T2
+
+\* test scope of use statement
 
 THEOREM T1 /\ T2
 <1> USE T1
@@ -68,7 +73,6 @@ THEOREM T1 /\ T2
    <2> QED OBVIOUS
 <1>2 T2 BY ShouldFail
 <1> QED BY <1>1, <1>2
-
 
 
 \* test references to different parts of the proof
@@ -86,8 +90,7 @@ vars == <<x>>
 THEOREM ASSUME Invariant, [Next]_vars PROVE Invariant'
 <1> QED BY PTL
 
-
 =============================================================================
 \* Modification History
-\* Last modified Tue Nov 17 15:42:58 CET 2015 by marty
+\* Last modified Wed Apr 19 17:12:42 CEST 2017 by marty
 \* Created Mon May 11 11:34:19 CEST 2015 by marty

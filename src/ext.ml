@@ -132,7 +132,7 @@ module Std = struct
   let input_all : ?bsize:int -> in_channel -> string =
     fun ?(bsize = 19) ch ->
       let buf = Buffer.create bsize in
-      let str = String.create 64 in
+      let str = Bytes.create 64 in
       let rec loop () =
         let hmany = Pervasives.input ch str 0 64 in
         if hmany > 0 then begin

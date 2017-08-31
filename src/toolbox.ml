@@ -7,7 +7,7 @@ open Format
 *)
 
 type toolbox_status = | ToBeProved | Proved | Failed | Trivial
-                      | BeingProved | Interrupted
+                      | BeingProved | Interrupted | Countermodel
 
 (* TODO: how many proofs actually use that? *)
 type toolbox_method = | Auto | Blast | Force | Fail | Sorry
@@ -29,6 +29,7 @@ let toolbox_status_string = function
   | Trivial -> "trivial"
   | BeingProved -> "being proved"
   | Interrupted -> "interrupted"
+  | Countermodel -> "countermodel"
 
 let toolbox_method_string = function
   | Auto -> "auto"

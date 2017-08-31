@@ -17,6 +17,7 @@ Executable tlapm2
                 str,
                 unix,
                 sexplib,
+                containers,
                 result
 
 
@@ -31,6 +32,7 @@ Document tlapm_api
     "-docflags '-colorize-code -short-functors -charset utf-8'"
   XOcamlBuildModules:   Tlapm, Commons, Expr_ds, Expr_visitor, Expr_map,
                         Expr_formatter, Expr_utils, Expr_dereference,
+                        Expr_substitution, Expr_termdb_utils,
                         Sany, Sany_ds, Sany_visitor, Sany_expr,
                         Any_expr, Util, Test_common
 
@@ -45,6 +47,7 @@ Executable test
                 unix,
                 kaputt,
                 sexplib,
+                containers,
                 result
 
 Test "test-runner"

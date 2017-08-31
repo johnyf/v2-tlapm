@@ -20,7 +20,8 @@ let test_map record =
         { obligations; _ } ->
         Assert.is_false (obligations = []);
         let _ = List.map (function
-            | { goal = { assumes = []; _}; _ } ->
+            | { goal = N_expr _; _ }
+            | { goal = (N_assume_prove { assumes = []; _}); _ } ->
               ()
             | obl ->
               let msg = asprintf

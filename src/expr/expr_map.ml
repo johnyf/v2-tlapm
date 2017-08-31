@@ -181,13 +181,15 @@ class ['a] expr_map = object(self)
       let acc1 = self#reference acc0 i in
       let r = Any_formal_param (FP_ref (macc_extract#reference acc1)) in
       set_anyexpr acc1 r
-    | FP { location; level; name; arity; } ->
+
+  method formal_param_ acc0 { id; location; level; name; arity; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
       (* arity skipped *)
-      let r = Any_formal_param
-          (FP {
+      let r = Any_formal_param_
+          ({
+              id;
               location = macc_extract#location acc1;
               level = macc_extract#level acc2;
               name = macc_extract#name acc3;
@@ -200,17 +202,18 @@ class ['a] expr_map = object(self)
       let acc1 = self#reference acc0 i in
       let r = Any_mule (MOD_ref (macc_extract#reference acc1)) in
       set_anyexpr acc1 r
-    | MOD {name; location; module_entries } ->
+
+  method mule_ acc0 {id; name; location; module_entries } =
       let acc1 = self#name acc0 name in
       let acc2 = self#location acc1 location in
       let m_entries,   acc =
         unpack_fold id_extract#mule_entry self#mule_entry acc2 module_entries in
-      let r = Any_mule (
-          MOD {
-            name = macc_extract#name acc1;
-            location = macc_extract#location acc2;
-            module_entries = m_entries;
-          }) in
+      let r = Any_mule_ ({
+          id;
+          name = macc_extract#name acc1;
+          location = macc_extract#location acc2;
+          module_entries = m_entries;
+        }) in
       set_anyexpr acc r
 
   method op_arg acc0 {location; level; argument } =
@@ -230,20 +233,22 @@ class ['a] expr_map = object(self)
       let acc1 = self#reference acc0 x in
       let r = Any_op_decl (OPD_ref (macc_extract#reference acc1)) in
       set_anyexpr acc1 r
-    | OPD  { location ; level ; name ; arity ; kind ; } ->
+
+  method op_decl_ acc0 { id; location ; level ; name ; arity ; kind ; } =
       (* terminal node *)
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
       (* skip arity and kind *)
-      let r = Any_op_decl
-          (OPD {
-              location = macc_extract#location acc1;
-              level = macc_extract#level acc2;
-              name = macc_extract#name acc3;
-              arity;
-              kind;
-            }) in
+      let r = Any_op_decl_
+          ({
+            id;
+            location = macc_extract#location acc1;
+            level = macc_extract#level acc2;
+            name = macc_extract#name acc3;
+            arity;
+            kind;
+          }) in
       set_anyexpr acc3 r
 
   method op_def acc = function
@@ -262,42 +267,53 @@ class ['a] expr_map = object(self)
       let r = Any_op_def
           (O_user_defined_op (macc_extract#user_defined_op acc1)) in
       set_anyexpr acc1 r
+    | O_thm_def x ->
+      let acc1 = self#theorem_def acc x in
+      let r = Any_op_def
+          (O_thm_def (macc_extract#theorem_def acc1)) in
+      set_anyexpr acc1 r
+    | O_assume_def x ->
+      let acc1 = self#assume_def acc x in
+      let r = Any_op_def
+          (O_assume_def (macc_extract#assume_def acc1)) in
+      set_anyexpr acc1 r
 
   method theorem acc0 = function
     | THM_ref x ->
       let acc1 = self#reference acc0 x in
       let r = Any_theorem (THM_ref (macc_extract#reference acc1)) in
       set_anyexpr acc1 r
-    | THM { location; level; name; statement; proof;  } ->
+
+  method theorem_ acc0 {id; location; level; definition; statement; proof;  } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      let nameopt, acc3 = match name with
+      let definition, acc3 = match definition with
         | None -> None, acc2
         | Some n ->
-          let acc3_ = self#name acc2 n in
-          (Some (macc_extract#name acc3_), acc3_)
+          let acc3_ = self#theorem_def acc2 n in
+          (Some (macc_extract#theorem_def acc3_), acc3_)
       in
       let acc4 = self#statement acc3 statement in
       let acc5 = self#proof acc4 proof  in
       (* skip suffices *)
-      let r = Any_theorem
-          (THM {
-              location = macc_extract#location acc1;
-              level = macc_extract#level acc2;
-              name = nameopt;
-              statement = macc_extract#statement acc4;
-              proof = macc_extract#proof acc5;
-            }) in
+      let r = Any_theorem_ ({
+          id;
+          location = macc_extract#location acc1;
+          level = macc_extract#level acc2;
+          definition;
+          statement = macc_extract#statement acc4;
+          proof = macc_extract#proof acc5;
+        }) in
       set_anyexpr acc5 r
 
   method statement acc0 = function
     | ST_FORMULA f ->
-      let acc1 = self#assume_prove acc0 f in
-      let anys = (Any_statement (ST_FORMULA (macc_extract#assume_prove acc1)))
+      let acc1 = self#node acc0 f in
+      let anys = (Any_statement (ST_FORMULA (macc_extract#node acc1)))
       in set_anyexpr acc1 anys
     | ST_SUFFICES f ->
-      let acc1 = self#assume_prove acc0 f in
-      let anys = (Any_statement (ST_SUFFICES (macc_extract#assume_prove acc1)))
+      let acc1 = self#node acc0 f in
+      let anys = (Any_statement (ST_SUFFICES (macc_extract#node acc1)))
       in set_anyexpr acc1 anys
     | ST_CASE f ->
       let acc1 = self#expr acc0 f in
@@ -316,9 +332,10 @@ class ['a] expr_map = object(self)
       let acc1 = self#expr acc0 f in
       let anys = (Any_statement (ST_HAVE (macc_extract#expr acc1))) in
       set_anyexpr acc1 anys
-    | ST_TAKE f ->
-      let acc1 = self#expr acc0 f in
-      let anys = (Any_statement (ST_TAKE (macc_extract#expr acc1))) in
+    | ST_TAKE bound_variables ->
+      let (bound_variables, acc1) = unpack_fold id_extract#bound_symbol
+          self#bound_symbol acc0 bound_variables in
+      let anys = (Any_statement (ST_TAKE bound_variables)) in
       set_anyexpr acc1 anys
     | ST_WITNESS f ->
       let acc1 = self#expr acc0 f in
@@ -333,13 +350,17 @@ class ['a] expr_map = object(self)
       let acc1 = self#reference acc0 x in
       let r = Any_assume (ASSUME_ref (macc_extract#reference acc1)) in
       set_anyexpr acc1 r
-    | ASSUME {location; level; expr; } ->
+
+  method assume_ acc0 {id; location; definition; level; expr; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
-      let acc = self#expr acc2 expr in
-      let r = Any_assume (ASSUME {
+      let acc3 = CCOpt.map_or ~default:acc2 (self#assume_def acc2) definition in
+      let acc = self#expr acc3 expr in
+      let r = Any_assume_ ({
+          id;
           location = macc_extract#location acc1;
           level = macc_extract#level acc2;
+          definition = CCOpt.map (fun _ -> macc_extract#assume_def acc3) definition;
           expr = macc_extract#expr acc;
         }) in
       set_anyexpr acc r
@@ -458,11 +479,23 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
-  method instantiation acc0 { op; expr } =
+  method instantiation acc0 { op; expr; next } =
     let acc1 = self#op_decl acc0 op in
-    let acc = self#expr_or_op_arg acc1 expr in
+    let acc2 = self#expr_or_op_arg acc1 expr in
+    let next, acc = unpack_fold id_extract#expr_or_op_arg
+        self#expr_or_op_arg acc2 next in
     let r = Any_instantiation {
         op = macc_extract#op_decl acc1 ;
+        expr = macc_extract#expr_or_op_arg acc2 ;
+        next;
+      } in
+    set_anyexpr acc r
+
+  method fp_assignment acc0 { param; expr } =
+    let acc1 = self#formal_param acc0 param in
+    let acc = self#expr_or_op_arg acc1 expr in
+    let r = Any_fp_assignment {
+        param = macc_extract#formal_param acc1 ;
         expr = macc_extract#expr_or_op_arg acc ;
       } in
     set_anyexpr acc r
@@ -473,8 +506,8 @@ class ['a] expr_map = object(self)
     let acc2 = self#level acc1 level in
     let new_symbols, acc3 = unpack_fold id_extract#new_symb
         self#new_symb acc2 new_symbols in
-    let assumes, acc4 = unpack_fold id_extract#assume_prove
-        self#assume_prove acc3 assumes in
+    let assumes, acc4 = unpack_fold id_extract#node
+        self#node acc3 assumes in
     let acc = self#expr acc4 prove in
     (* suffices and boxed are boolean flags*)
     let r = Any_assume_prove {
@@ -535,12 +568,26 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
+  method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
+    let acc1 = self#location acc0 location in
+    let acc2 = self#level acc1 level in
+    let substs, acc3 = unpack_fold id_extract#fp_assignment
+        self#fp_assignment acc2 substs in
+    let acc = self#expr acc3 body in
+    let r = Any_fp_subst_in {
+        location = macc_extract#location acc1;
+        level = macc_extract#level acc2;
+        substs;
+        body = macc_extract#expr acc;
+      } in
+    set_anyexpr acc r
+
   method label acc0 ({location; level; name; arity; body; params } : label) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let acc3 = self#name acc2 name in
     (* skip arity *)
-    let acc4 = self#assume_prove acc3 body in
+    let acc4 = self#node acc3 body in
     let params, acc = unpack_fold id_extract#formal_param
         self#formal_param acc4 params in
     let r = Any_label {
@@ -548,7 +595,7 @@ class ['a] expr_map = object(self)
         level = macc_extract#level acc2;
         name = macc_extract#name acc3;
         arity;
-        body = macc_extract#assume_prove acc4;
+        body = macc_extract#node acc4;
         params;
       } in
     set_anyexpr acc r
@@ -584,11 +631,13 @@ class ['a] expr_map = object(self)
       let acc = self#reference acc0 x in
       let r = Any_module_instance (MI_ref (macc_extract#reference acc)) in
       set_anyexpr acc r
-    | MI {location; level; name} ->
+
+  method module_instance_ acc0 {id; location; level; name} =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc = self#name acc2 name in
-      let r = Any_module_instance (MI {
+      let r = Any_module_instance_ ({
+          id;
           location = macc_extract#location acc1;
           level = macc_extract#level acc2;
           name = macc_extract#name acc;
@@ -596,7 +645,12 @@ class ['a] expr_map = object(self)
       set_anyexpr acc r
 
   method builtin_op acc0 = function
-    | { level; name; arity; params } ->
+    | BOP_ref x ->
+      let acc = self#reference acc0 x in
+      let r = Any_builtin_op (BOP_ref (macc_extract#reference acc)) in
+      set_anyexpr acc r
+      
+  method builtin_op_ acc0 { id; level; name; arity; params } =
       let acc1 = self#level acc0 level in
       let acc2 = self#name acc1 name in
       (* skip arity *)
@@ -604,7 +658,8 @@ class ['a] expr_map = object(self)
       let fparams, acc = unpack_fold id_extract#formal_param
           self#formal_param acc2 fps in
       let params = List.combine fparams leibniz in
-      let r = Any_builtin_op {
+      let r = Any_builtin_op_ {
+          id;
           level = macc_extract#level acc1;
           name = macc_extract#name acc2;
           arity;
@@ -617,8 +672,10 @@ class ['a] expr_map = object(self)
       let acc = self#reference acc0 x in
       let r = (Any_user_defined_op (UOP_ref (macc_extract#reference acc))) in
       set_anyexpr acc r
-    | UOP { location; level ; name ; arity ;
-            body ; params ;  recursive; } ->
+
+  method user_defined_op_ acc0
+    { id; location; level ; name ; arity ;
+      body ; params ;  recursive; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
@@ -628,7 +685,8 @@ class ['a] expr_map = object(self)
       let fparams, acc = unpack_fold id_extract#formal_param
           self#formal_param acc4 fps in
       let params = List.combine fparams leibniz in
-      let r = Any_user_defined_op (UOP {
+      let r = Any_user_defined_op_ ({
+          id;
           location = macc_extract#location acc1;
           level = macc_extract#level acc2;
           name = macc_extract#name acc3;
@@ -639,6 +697,47 @@ class ['a] expr_map = object(self)
         }) in
       set_anyexpr acc r
 
+  method assume_def acc0 (ADef_ref x) =
+    let acc = self#reference acc0 x in
+    let r = (Any_assume_def (ADef_ref (macc_extract#reference acc))) in
+    set_anyexpr acc r
+
+  method assume_def_ acc0 {id; location; level; name; body} =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = self#name acc2 name in
+      let acc4 = self#expr acc3 body in
+      let r = Any_assume_def_ {
+          id;
+          location = macc_extract#location acc1;
+          level = macc_extract#level acc2;
+          name = macc_extract#name acc3;
+          body = macc_extract#expr acc4;
+        }
+      in
+      set_anyexpr acc4 r
+   
+
+  method theorem_def acc0 (TDef_ref x) =
+    let acc = self#reference acc0 x in
+    let r = (Any_theorem_def (TDef_ref (macc_extract#reference acc))) in
+    set_anyexpr acc r
+
+  method theorem_def_ acc0 {id; location; level; name; body} =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = self#name acc2 name in
+      let acc4 = self#node acc3 body in
+      let r = Any_theorem_def_ {
+          id;
+          location = macc_extract#location acc1;
+          level = macc_extract#level acc2;
+          name = macc_extract#name acc3;
+          body = macc_extract#node acc4;
+        }
+      in
+      set_anyexpr acc4 r
+
   method name acc x =
     set_anyexpr acc (Any_name x)
 
@@ -647,59 +746,50 @@ class ['a] expr_map = object(self)
 
   method entry acc (id, e) = match e with
     | FP_entry x ->
-      let acc0 = self#formal_param acc (FP x) in
-      let entry = match id_extract#formal_param (get_anyexpr acc0) with
-        | FP x -> x
-        | FP_ref _ ->
-          failwith "Implementation error: entries may not contain references!"
+      let acc0 = self#formal_param_ acc x in
+      let entry = id_extract#formal_param_ (get_anyexpr acc0)
       in
       set_anyexpr acc0 (Any_entry (id, FP_entry entry))
     | MOD_entry x ->
-      let acc0 = self#mule acc (MOD x) in
-      let entry = match id_extract#mule (get_anyexpr acc0) with
-        | MOD x -> x
-        | MOD_ref _ ->
-          failwith "Implementation error: entries may not contain references!"
+      let acc0 = self#mule_ acc x in
+      let entry = id_extract#mule_ (get_anyexpr acc0)
       in
       set_anyexpr acc0 (Any_entry (id, MOD_entry entry))
-    | OPDef_entry x ->
-      let acc0 = self#op_def acc x in
-      let entry = match id_extract#op_def (get_anyexpr acc0) with
-        | O_module_instance (MI_ref _) ->
-          failwith "Implementation error: entries may not contain references!"
-        | O_user_defined_op (UOP_ref _) ->
-          failwith "Implementation error: entries may not contain references!"
-        | x -> x
-      in
-      set_anyexpr acc0 (Any_entry (id, OPDef_entry entry))
+    | BOP_entry x ->
+      let acc0 = self#builtin_op_ acc x in
+      let entry = id_extract#builtin_op_ (get_anyexpr acc0) in
+      set_anyexpr acc0 (Any_entry (id, BOP_entry entry)) 
+    | UOP_entry x ->
+      let acc0 = self#user_defined_op_ acc x in
+      let entry = id_extract#user_defined_op_ (get_anyexpr acc0) in
+      set_anyexpr acc0 (Any_entry (id, UOP_entry entry)) 
+    | MI_entry x ->
+      let acc0 = self#module_instance_ acc x in
+      let entry = id_extract#module_instance_ (get_anyexpr acc0) in
+      set_anyexpr acc0 (Any_entry (id, MI_entry entry)) 
+    | TDef_entry x ->
+      let acc0 = self#theorem_def_ acc x in
+      let entry = id_extract#theorem_def_ (get_anyexpr acc0) in
+      set_anyexpr acc0 (Any_entry (id, TDef_entry entry)) 
+    | ADef_entry x ->
+      let acc0 = self#assume_def_ acc x in
+      let entry = id_extract#assume_def_ (get_anyexpr acc0) in
+      set_anyexpr acc0 (Any_entry (id, ADef_entry entry)) 
     | OPDec_entry x ->
-      let acc0 = self#op_decl acc (OPD x) in
-      let entry = match id_extract#op_decl (get_anyexpr acc0) with
-        | OPD x -> x
-        | OPD_ref _ ->
-          failwith "Implementation error: entries may not contain references!"
+      let acc0 = self#op_decl_ acc x in
+      let entry = id_extract#op_decl_ (get_anyexpr acc0)
       in
       set_anyexpr acc0 (Any_entry (id, OPDec_entry entry))
     | THM_entry x ->
-      let acc0 = self#theorem acc (THM x) in
-      let entry = match id_extract#theorem (get_anyexpr acc0) with
-        | THM x -> x
-        | THM_ref _ ->
-          failwith "Implementation error: entries may not contain references!"
+      let acc0 = self#theorem_ acc x in
+      let entry = id_extract#theorem_ (get_anyexpr acc0)
       in
       set_anyexpr acc0 (Any_entry (id, THM_entry entry))
     | ASSUME_entry x ->
-      let acc0 = self#assume acc (ASSUME x) in
-      let entry = match id_extract#assume (get_anyexpr acc0) with
-        | ASSUME x -> x
-        | ASSUME_ref _ ->
-          failwith "Implementation error: entries may not contain references!"
+      let acc0 = self#assume_ acc x in
+      let entry = id_extract#assume_ (get_anyexpr acc0)
       in
       set_anyexpr acc0 (Any_entry (id, ASSUME_entry entry))
-    | APSUBST_entry x ->
-      let acc0 = self#ap_subst_in acc x in
-      let r = (Any_entry (id, APSUBST_entry (macc_extract#ap_subst_in acc0))) in
-      set_anyexpr acc0 r
 
   method context acc { root_module; entries; modules } =
     let entries, acc1 = unpack_fold id_extract#entry self#entry acc entries in
@@ -716,10 +806,6 @@ class ['a] expr_map = object(self)
     | E_decimal x        ->
       let acc = self#decimal acc x in
       let r = Any_expr (E_decimal (macc_extract#decimal acc)) in
-      set_anyexpr acc r
-    | E_lambda x        ->
-      let acc = self#lambda acc x in
-      let r = Any_expr (E_lambda (macc_extract#lambda acc)) in
       set_anyexpr acc r
     | E_label x        ->
       let acc = self#label acc x in
@@ -744,6 +830,10 @@ class ['a] expr_map = object(self)
     | E_subst_in x        ->
       let acc = self#subst_in acc x in
       let r = Any_expr (E_subst_in (macc_extract#subst_in acc)) in
+      set_anyexpr acc r
+    | E_fp_subst_in x        ->
+      let acc = self#fp_subst_in acc x in
+      let r = Any_expr (E_fp_subst_in (macc_extract#fp_subst_in acc)) in
       set_anyexpr acc r
     | E_binder x        ->
       let acc = self#binder acc x in
@@ -783,13 +873,13 @@ class ['a] expr_map = object(self)
       let acc0 = self#module_instance acc x in
       let r = UMTA_module_instance (macc_extract#module_instance acc0) in
       set_anyexpr acc0 (Any_defined_expr r)
-    | UMTA_theorem x         ->
-      let acc0 = self#theorem acc x in
-      let r = UMTA_theorem (macc_extract#theorem acc0) in
+    | UMTA_theorem_def x         ->
+      let acc0 = self#theorem_def acc x in
+      let r = UMTA_theorem_def (macc_extract#theorem_def acc0) in
       set_anyexpr acc0 (Any_defined_expr r)
-    | UMTA_assume x          ->
-      let acc0 = self#assume acc x in
-      let r = UMTA_assume (macc_extract#assume acc0) in
+    | UMTA_assume_def x          ->
+      let acc0 = self#assume_def acc x in
+      let r = UMTA_assume_def (macc_extract#assume_def acc0) in
       set_anyexpr acc0 (Any_defined_expr r)
 
   method op_def_or_theorem_or_assume acc = function
@@ -821,10 +911,12 @@ class ['a] expr_map = object(self)
       let acc0 = self#formal_param acc x in
       let r = FMOTA_formal_param (macc_extract#formal_param acc0) in
       set_anyexpr acc0 (Any_operator r)
+(*
     | FMOTA_module  x ->
       let acc0 = self#mule acc x in
       let r = FMOTA_module (macc_extract#mule acc0) in
       set_anyexpr acc0 (Any_operator r)
+*)
     | FMOTA_op_decl x ->
       let acc0 = self#op_decl acc x in
       let r = FMOTA_op_decl (macc_extract#op_decl acc0) in
@@ -833,6 +925,7 @@ class ['a] expr_map = object(self)
       let acc0 = self#op_def acc x in
       let r = FMOTA_op_def (macc_extract#op_def acc0) in
       set_anyexpr acc0 (Any_operator r)
+(*        
     | FMOTA_theorem x ->
       let acc0 = self#theorem acc x in
       let r = FMOTA_theorem (macc_extract#theorem acc0) in
@@ -841,10 +934,15 @@ class ['a] expr_map = object(self)
       let acc0 = self#assume acc x in
       let r = FMOTA_assume (macc_extract#assume acc0) in
       set_anyexpr acc0 (Any_operator r)
+*)
     | FMOTA_ap_subst_in x ->
       let acc0 = self#ap_subst_in acc x in
       let r = FMOTA_ap_subst_in (macc_extract#ap_subst_in acc0) in
       set_anyexpr acc0 (Any_operator r)
+    | FMOTA_lambda x        ->
+      let acc = self#lambda acc x in
+      let r =FMOTA_lambda (macc_extract#lambda acc) in
+      set_anyexpr acc (Any_operator r)
 
   method mule_entry acc = function
     | MODe_op_decl x     ->
@@ -881,19 +979,8 @@ class ['a] expr_map = object(self)
       let acc0 = self#expr acc x in
       let r = N_expr (macc_extract#expr acc0) in
       set_anyexpr acc0 (Any_node r)
-    | _ -> failwith "AP_subst_in nodes should only be expr or assume_prove."
-    (*  | N_ap_subst_in x -> self#ap_subst_in acc x
-        | N_def_step x     -> self#def_step acc x
-        | N_op_arg x       -> self#op_arg acc x
-        | N_instance x     -> self#instance acc x
-        | N_new_symb x     -> self#new_symb acc x
-        | N_proof x        -> self#proof acc x
-        | N_formal_param x -> self#formal_param acc x
-        | N_module x       -> self#mule acc x
-        | N_op_decl x      -> self#op_decl acc x
-        | N_op_def x       -> self#op_def acc x
-        | N_assume x       -> self#assume acc x
-        | N_theorem x      -> self#theorem acc x
-        | N_use_or_hide x  -> self#use_or_hide acc x
-    *)
+    | N_ap_subst_in aps ->
+      let acc0 = self#ap_subst_in acc aps in
+      let r = N_ap_subst_in (macc_extract#ap_subst_in acc0) in
+      set_anyexpr acc0 (Any_node r)
 end

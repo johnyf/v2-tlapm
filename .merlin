@@ -3,6 +3,7 @@ S src/core
 S src/expr
 S src/sany
 S src/test
+S src/backends
 S src/nunchaku
 S src/nunchaku/simple_expr
 
@@ -11,10 +12,21 @@ B _build/src/core
 B _build/src/expr
 B _build/src/sany
 B _build/src/test
+B _build/src/backends
 B _build/src/nunchaku
 B _build/src/nunchaku/simple_expr
+
+CMT _build/src
+CMT _build/src/core
+CMT _build/src/expr
+CMT _build/src/sany
+CMT _build/src/test
+CMT _build/src/backends
+CMT _build/src/nunchaku
+CMT _build/src/nunchaku/simple_expr
 
 PKG xmlm
 PKG kaputt
 PKG sexplib
 PKG result
+PKG containers

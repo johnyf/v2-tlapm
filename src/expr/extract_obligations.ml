@@ -6,7 +6,9 @@ open Expr_builtins
 open Expr_utils
 open Expr_dereference
 open Expr_formatter
+open Expr_utils
 open Expr_visitor
+open Expr_constructors
 open Obligation
 open Expr_prover_parser
 open Util
@@ -20,15 +22,15 @@ let failwith_msg loc msg =
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
-  | InProof of int
+  | InProof of int * theorem_ list
 
 (* used to track the currently visible objects *)
 type current_context = {
   (* the current goal *)
-  goal : assume_prove option;
+  goal : node option;
 
   (* the facts which should be used as assumptions *)
-  usable_facts : assume_prove list;
+  usable_facts : node list;
 
   (* the expanded definitions *)
   expanded_defs : op_def list;
@@ -44,7 +46,7 @@ type current_context = {
   theorems          : theorem list ;
 
   (* the own step has to be treated differently, so we keep it seperate *)
-  thm_statements : (theorem_ * assume_prove list) list;
+  thm_statements : (theorem_def * node list) list;
 }
 
 let emptyCurrentContext term_db = {
@@ -84,22 +86,27 @@ type step_context_type =
     Outer of current_context |
     OuterInner of current_context * current_context
 
+type ofail = ObligationFail of string * location
 
 (* the accumulator type - containing an open parameter for derived classes *)
 type 'a eoacc =
-    EOAcc of current_context list * obligation list * nesting * string *'a
+    EOAcc of current_context list * obligation list * ofail list
+             * nesting * string *'a
 
 (* extractors for the constituents of the accumulator *)
-let get_cc (EOAcc (c, _, _, _, _)) = c
-let get_obligations (EOAcc (_, o, _, _, _)) = o
-let get_nesting (EOAcc (_, _, n, _, _)) = n
-let get_root_module (EOAcc (_, _, _, m, _)) = m
+let get_cc (EOAcc (c, _, _, _, _, _)) = c
+let get_obligations (EOAcc (_, o, _, _, _, _)) = o
+let get_failed_obligations (EOAcc (_, _, f, _, _, _)) = f
+let get_nesting (EOAcc (_, _, _, n, _, _)) = n
+let get_root_module (EOAcc (_, _, _, _, m, _)) = m
 
 (* accumulator updates *)
-let update_cc (EOAcc (_,o,n,m,a)) cc = EOAcc (cc,o,n,m,a)
-let update_obligations (EOAcc (cc,_,n,m,a)) o = EOAcc (cc,o,n,m,a)
-let update_nesting (EOAcc (cc,o,_,m,a)) n = EOAcc (cc,o,n,m,a)
-let update_root_module (EOAcc (cc,o,n,_,a)) m = EOAcc (cc,o,n,m,a)
+let update_cc (EOAcc (_,o,f,n,m,a)) cc = EOAcc (cc,o,f,n,m,a)
+let update_obligations (EOAcc (cc,_,f,n,m,a)) o = EOAcc (cc,o,f,n,m,a)
+let update_nesting (EOAcc (cc,o,f,_,m,a)) n = EOAcc (cc,o,f,n,m,a)
+let update_root_module (EOAcc (cc,o,f,n,_,a)) m = EOAcc (cc,o,f,n,m,a)
+
+let enqueue_failure (EOAcc (cc,o,f,n,m,a)) nf = (EOAcc (cc,o,nf::f,n,m,a))
 
 (* convenience function adding one obligation to the accumulator *)
 let enqueue_obligation acc newobs =
@@ -115,15 +122,20 @@ let enqueue_obligation acc newobs =
     failwith msg
 
 (* convenience functions managing the nesting *)
-let increase_nesting acc =
+let increase_nesting acc thm =
   match get_nesting acc with
-  | Module -> update_nesting acc (InProof 1)
-  | InProof n -> update_nesting acc (InProof (n+1))
+  | Module -> update_nesting acc (InProof (1, [thm] ))
+  | InProof (n, thms) -> update_nesting acc (InProof ((n+1), thm::thms))
 
 let decrease_nesting acc =
   match get_nesting acc with
   | Module -> failwith "Cannot decrease nesting level below module!"
-  | InProof n -> update_nesting acc (InProof (n-1))
+  | InProof (_, []) -> failwith "Decrease nesting on an empty stack!"
+  | InProof (1, [_]) -> update_nesting acc Module
+  | InProof (n, _::thms) when n > 1 -> update_nesting acc (InProof ((n-1), thms))
+  | InProof (n, l) (* when n <= 0 *) ->
+    let msg = Format.asprintf "Nesting may not go below 1, but is %d!" n in
+    failwith msg
 
 let cc_empty acc =
   match get_cc acc with
@@ -152,32 +164,18 @@ let cc_replace cc acc =
   let (_, acc0) = cc_pop acc in
   cc_push cc acc0
 
+let current_theorem acc =
+  match get_nesting acc with
+  | Module ->
+    failwith "Accessing current theorem at module level."
+  | InProof (_, []) ->
+    failwith "Implementation error: current theorem stack empty."
+  | InProof (_, t::_) ->
+    t
 
 (* generates an obligation id based on the current list of obligations *)
 let generate_id acc =
   (length (get_obligations acc)) + 1
-
-(* that doesn't work in general anymore, because builtins are expanded and
-    may not be present in the term db anymore *)
-(*
-let find_builtin term_db opname =
-  let check_bopname = function
-    | OPDef_entry (O_builtin_op bop) ->
-       bop.name = opname
-    | _ ->
-       false
-  in
-  match filter (fun x -> check_bopname (snd x) ) term_db with
-  | [] ->
-     let msg = sprintf "Could not find built in %s in term db!" opname in
-     failwith msg
-  | [(_,x)] ->
-     x
-  | _ ->
-     let msg = sprintf "Found multiple built ins of %s in term db!" opname in
-     failwith msg
- *)
-
 
 (* extracts prover tags from by list *)
 let rec split_provers term_db = function
@@ -195,30 +193,71 @@ let rec split_provers term_db = function
     let (provers, exprs) = split_provers term_db xs in
     (provers,x::exprs)
 
-(* split facts into list of theorem_ and rest *)
-let split_theorem_expr_facts term_db facts =
-  let split_theorem_expr_facts_ term_db =
-    fold_left (fun r fact ->
-        let (thms, exprs, rest) = r in
-        match fact with
-        | EMM_expr ((E_op_appl appl) as e)->
-          (
-            match appl.operator, appl.operands with
-            | FMOTA_theorem thm, [] ->
-              (dereference_theorem term_db thm :: thms, exprs, rest)
-            | _ ->
-              (thms, e::exprs, rest)
+(* replaces assume / theorem definition references by the actual statements *)
+let expand_theorem_bodies term_db global_acc visible_defs facts =
+  let rec aux term_db =
+    List.fold_left (fun acc -> function
+        | EMM_expr (E_op_appl { location;
+                                operator = FMOTA_op_def ((O_thm_def td) as o);
+                                operands; _ }) ->
+          let tdi = Deref.theorem_def term_db td in
+          ( match current_theorem global_acc, List.mem o visible_defs with
+            | { definition = Some cd; statement; _ } , _ when cd = td ->
+              (* reference to own assumptions *)
+              ( match statement with
+                | ST_FORMULA (N_assume_prove {assumes; _} )
+                | ST_SUFFICES (N_assume_prove {assumes; _} ) ->
+                  append acc assumes
+                | ST_FORMULA (N_expr _ )
+                | ST_SUFFICES (N_expr _) ->
+                  acc
+                | ST_FORMULA (N_ap_subst_in _ )
+                | ST_SUFFICES (N_ap_subst_in _) ->
+                  (* TODO: handle this case (push instantiation down?) *)
+                  failwith ("referencing to assumptions of instantiated "^
+                            "assume proves not yet implemented.")
+                | ST_CASE e ->
+                  (N_expr e) :: acc
+                | ST_PICK _
+                | ST_TAKE _
+                | ST_HAVE _
+                | ST_WITNESS _ ->
+                  (* TODO: decide cases here *)
+                  failwith "have and witness self references not implemented"
+                | ST_QED ->
+                  failwith "no self references of QED steps allowed!"
+              )
+            | _, true ->
+              (* reference to theorem in context *)
+              tdi.body::acc
+            | { definition = Some cd; _ }, false ->
+              let cdi = Deref.theorem_def term_db cd in
+              let msg = CCFormat.sprintf
+                  "Theorem def %s not visible in %s!" tdi.name cdi.name in
+              failwith_msg location msg
+            | _, false ->
+              let msg = CCFormat.sprintf "Theorem def %s not visible!" tdi.name in
+              failwith_msg location msg
           )
-        | EMM_expr e ->
-          (thms, e::exprs, rest)
-        | _ ->
-          (thms, exprs, fact::rest)
-      )
-      ([], [], [])
+        | EMM_expr (E_op_appl { location;
+                                operator = FMOTA_op_def ((O_assume_def ad) as o);
+                                operands; _ }) ->
+          let adi = Deref.assume_def term_db ad in
+          if (not (List.mem o visible_defs)) then
+            let msg = CCFormat.sprintf "Assume def %s not visible!" adi.name in
+            failwith_msg location msg
+          else
+            (N_expr adi.body)::acc
+        | EMM_expr exp ->
+          (N_expr exp) :: acc
+        | EMM_module m ->
+          failwith "don't know what to do with BY M, where M is a module"
+        | EMM_module_instance m ->
+          failwith "don't know what to do with BY M, where M is a module instance"
+      ) []
   in
   (* during fold we prepended, reverse lists to preserve order *)
-  let (thms, exprs, facts) = split_theorem_expr_facts_ term_db facts in
-  (rev thms, rev exprs, rev facts)
+  aux term_db facts |> List.rev
 
 
 (* the actual visitor subclass *)
@@ -227,18 +266,30 @@ class ['a] extract_obligations =
     inherit ['a eoacc] visitor
 
     method assume acc a =
-      let cc = cc_peek acc in
-      let assumptions = a :: cc.assumptions in
-      cc_replace { cc with assumptions } acc
+      match get_nesting acc with
+      | Module ->
+        let cc = cc_peek acc in
+        let assumptions = a :: cc.assumptions in
+        let ai = Deref.assume cc.term_db a in
+        let definitions = CCOpt.map_or ~default:cc.definitions
+            (fun x -> (O_assume_def x)::cc.definitions) ai.definition in
+        cc_replace { cc with assumptions; definitions } acc
+      | InProof (n, _) ->
+        let msg = CCFormat.sprintf "assume at nesting %d!" n in
+        failwith msg;
 
     method op_decl acc opdecl =
-      let cc = cc_peek acc in
-      let decl_instance = dereference_op_decl cc.term_db opdecl in
-      let ccnew = match decl_instance.kind with
-        | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
-        | VariableDecl -> { cc with variables = opdecl :: cc.variables }
-        | _ -> cc in
-      cc_replace ccnew acc
+      match get_nesting acc with
+      | Module ->
+        let cc = cc_peek acc in
+        let decl_instance = Deref.op_decl cc.term_db opdecl in
+        let ccnew = match decl_instance.kind with
+          | ConstantDecl -> { cc with constants = opdecl :: cc.constants }
+          | VariableDecl -> { cc with variables = opdecl :: cc.variables }
+          | _ -> cc in
+        cc_replace ccnew acc
+      | _ ->
+        acc
 
     method op_def acc opdef =
       let cc = cc_peek acc in
@@ -249,17 +300,13 @@ class ['a] extract_obligations =
       | UMTA_user_defined_op uop ->
         [O_user_defined_op uop]
       | UMTA_module_instance mi ->
-        let mii = dereference_module_instance term_db mi in
+        let mii = Deref.module_instance term_db mi in
         failwith_msg mii.location
           "don't know what to do with module instance in BY DEF!"
-      | UMTA_theorem thm ->
-        let thmi = dereference_theorem term_db thm in
-        failwith_msg thmi.location
-          "don't know what to do with theorem in BY DEF!"
-      | UMTA_assume assume ->
-        let assi = dereference_assume term_db assume in
-        failwith_msg assi.location
-          "don't know what to do with assume in BY DEF!"
+      | UMTA_theorem_def thm ->
+        [O_thm_def thm]
+      | UMTA_assume_def assume_def ->
+        [O_assume_def assume_def]
 
     method private by acc (by : by) =
       let cc = cc_peek acc in
@@ -275,41 +322,33 @@ class ['a] extract_obligations =
         flat_map (self#parse_by_def cc.term_db) by.defs in
       let expanded_defs = append cc.expanded_defs additional_defs in
       (* parse by references to theorems *)
-      let thm_bys, expr_bys, other_bys =
-        split_theorem_expr_facts cc.term_db other_bys in
-      let extract_name ((thmi:theorem_),lst) = (thmi.name, lst) in
-      let cc_thm_stmts = map extract_name cc.thm_statements in
-      let thm_by_stmts =
-        map (fun (x : theorem_) ->
-            match mem_assoc x.name cc_thm_stmts with
-            | true -> assoc x.name cc_thm_stmts
-            | false -> (
-                let name = match x.name with
-                  | Some n -> n
-                  | None -> "(unknown)"
-                in
-                let tnames = mkString (function
-                    | (Some x,_) -> x
-                    | (None, _) -> "(none)"
-                  ) cc_thm_stmts in
-                let msg = sprintf "Could not find by theorem %s in %s"
-                    name tnames in
-                failwith_msg by.location msg
-              )
-          ) thm_bys
-      in
-      let thm_assumptions = flatten thm_by_stmts in
+      let by_facts_expanded =
+        expand_theorem_bodies cc.term_db acc cc.definitions other_bys in
       (* extend assumptions with usable facts *)
       let assumes = concat [
-          thm_assumptions;
+          by_facts_expanded;
           cc.usable_facts;
         ] in
       match cc.goal with
       | Some ccgoal ->
         (* printf "Obl %s" (format_location by.location); *)
+        (*
+        let goal = match ccgoal with
+          | N_expr e ->
+            let location = extract_location e in
+            let level = max (extract_level e) (extract_level e) in
+            let new_symbols = [] in
+            let suffices = false in
+            (* TODO: recompute boxed *)
+            let boxed = false in
+            { location; level; new_symbols; assumes;
+              prove = e; suffices; boxed; }
+        in
+        *)
+        let goal = ccgoal in
         let obligation = {
           id = generate_id acc;
-          goal = { ccgoal with assumes = append assumes ccgoal.assumes };
+          goal; (* = { ccgoal with assumes = append assumes ccgoal.assumes }; *)
           expanded_defs;
           location = by.location;
 
@@ -325,80 +364,123 @@ class ['a] extract_obligations =
         let acc0 = enqueue_obligation acc [obligation] in
         acc0
       | None ->
-        (* TODO : add error obligation *)
-        failwith_msg by.location "No goal for obligation!"
+        enqueue_failure acc (ObligationFail ("No goal for obligation!", by.location))
 
     (* this method is reused for the suffices and case steps. thmi may not be
        changed for that reason. *)
-    method private update_cc_formula acc (thmi:theorem_) assume_prove =
-      let cc = cc_peek acc in
-      (* TODO: boxed flag might be wrong *)
-      let (vs, cs, acs, ss, ts) =
-        fold_left (fun (vs,cs,acs,ss,ts) sym ->
-            let decl = sym.op_decl  in
-            let decli = dereference_op_decl cc.term_db decl in
-            match decli.kind with
-            | NewVariable -> (decl::vs,cs,acs,ss,ts)
-            | NewConstant -> (vs,decl::cs,acs,ss,ts)
-            | NewAction   -> (vs,cs,decl::acs,ss,ts)
-            | NewState    -> (vs,cs,acs,decl::ss,ts)
-            | NewTemporal -> (vs,cs,acs,ss,decl::ts)
-            | _ ->
-              let msg = "Unexpected operator kind in ASSUME NEW construct!"
-              in failwith_msg decli.location msg
-          ) ([],[],[],[],[]) assume_prove.new_symbols in
-      let constants = append cc.constants (rev cs) in
-      (* TODO: should we extend the context by action and temporal variables? *)
-      let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
-      (*    let goal = {assume_prove with assumes = []; } in *)
-      let inner_stmt =  (thmi, assume_prove.assumes) in
-      let inner_cc = { cc with goal = Some assume_prove;
-                               constants;
-                               variables;
-                               thm_statements = inner_stmt :: cc.thm_statements;
-                     }
-      in
-      let outer_stmt = (thmi, [assume_prove]) in
-      let theorems = match thmi.name with
-        | None -> cc.theorems
-        | _ -> (THM thmi) :: cc.theorems
-      in
-      (* move this to the use/hide statement
+    method private update_cc_formula acc (thmi:theorem_) = function
+      | N_assume_prove assume_prove ->
+        let cc = cc_peek acc in
+        (* TODO: boxed flag might be wrong *)
+        let (vs, cs, acs, ss, ts) =
+          fold_left (fun (vs,cs,acs,ss,ts) sym ->
+              let decl = sym.op_decl  in
+              let decli = Deref.op_decl cc.term_db decl in
+              match decli.kind with
+              | NewVariable -> (decl::vs,cs,acs,ss,ts)
+              | NewConstant -> (vs,decl::cs,acs,ss,ts)
+              | NewAction   -> (vs,cs,decl::acs,ss,ts)
+              | NewState    -> (vs,cs,acs,decl::ss,ts)
+              | NewTemporal -> (vs,cs,acs,ss,decl::ts)
+              | _ ->
+                let msg = "Unexpected operator kind in ASSUME NEW construct!"
+                in failwith_msg decli.location msg
+            ) ([],[],[],[],[]) assume_prove.new_symbols in
+        let constants = append cc.constants (rev cs) in
+        (* TODO: should we extend the context by action and temporal variables? *)
+        let variables = concat [cc.variables; (rev vs); (rev acs); (rev ts) ] in
+        let (inner_goal, inner_thm_statements) = match thmi.definition with
+          | Some td ->
+            (N_expr assume_prove.prove,  (td, assume_prove.assumes) :: cc.thm_statements)
+          | None ->
+            (N_assume_prove assume_prove, cc.thm_statements)
+        in
+        let inner_cc = { cc with goal = Some inner_goal;
+                                 constants;
+                                 variables;
+                                 thm_statements = inner_thm_statements;
+                       }
+        in
+        let (theorems, definitions, thm_statements) = match thmi.definition with
+          | None ->
+            (cc.theorems, cc.definitions, cc.thm_statements)
+          | Some d -> ((THM_ref thmi.id) :: cc.theorems,
+                       (O_thm_def d) :: cc.definitions,
+                       (d, [N_assume_prove assume_prove]) :: cc.thm_statements
+                      )
+        in
+        (* move this to the use/hide statement
          let usable_facts =  match (thmi.name, get_nesting acc) with
-         | None, InProof _ -> assume_prove :: cc.usable_facts
-         (* a lemma without name does not add its statement to the context *)
-         | None, Module -> cc.usable_facts
-         | Some _, _ -> cc.usable_facts
-         in *)
-      let outer_cc = { cc with theorems;
-                               thm_statements = outer_stmt :: cc.thm_statements;
-                     }
-      in
-      OuterInner (outer_cc, inner_cc)
+           | None, InProof _ -> assume_prove :: cc.usable_facts
+           (* a lemma without name does not add its statement to the context *)
+           | None, Module -> cc.usable_facts
+           | Some _, _ -> cc.usable_facts
+           in *)
+        let outer_cc = { cc with theorems;
+                                 definitions;
+                                 thm_statements;
+                       }
+        in
+        OuterInner (outer_cc, inner_cc)
+      | N_expr e ->
+        let cc = cc_peek acc in
+        let location = location_of_expr e in
+        let level = level_of_expr e in
+        (* TODO: check boxed flag in ap *)
+        let ap = {location; level; new_symbols = []; assumes = [];
+                  prove = e; suffices = false; boxed = true; } in
+        let (inner_goal, inner_thm_statements) = match thmi.definition with
+          | Some td ->
+            (N_expr ap.prove,  (td, ap.assumes) :: cc.thm_statements)
+          | None ->
+            (N_assume_prove ap, cc.thm_statements)
+        in
+        let inner_cc = { cc with goal = Some inner_goal;
+                       }
+        in
+        let (theorems, definitions, thm_statements) = match thmi.definition with
+          | None -> (cc.theorems, cc.definitions, cc.thm_statements)
+          | Some d -> ((THM_ref thmi.id) :: cc.theorems,
+                       (O_thm_def d) :: cc.definitions,
+                       (d, [N_assume_prove ap]) :: cc.thm_statements
+                      )
+        in
+        let outer_cc = { cc with theorems;
+                                 definitions;
+                                 thm_statements;
+                       } in
+        OuterInner (outer_cc, inner_cc)
+      | N_ap_subst_in n ->
+        failwith "ap subst in node is not yet handled"
 
     method private update_cc_case acc (thmi:theorem_) formula =
-      let cc = cc_peek acc in
-      (* TODO: boxed flag might be wrong *)
-      let toprove = match cc.goal with
-        | None -> failwith_msg thmi.location
-                    "Encountered case statement without active goal!"
-        | Some f -> f
-      in
-      let location = extract_location formula in
-      let flevel = extract_level formula in
-      let level = match toprove.level, flevel with
-        (* TODO: check if the level recomputation is correct *)
-        | Some l, Some f when l > f   -> Some l
-        | Some l, Some f (* l <= f *) -> Some f
-        | Some l, None   (* only l *) -> None
-        | None,   Some f (* only f *) -> None
-        | None,   None -> None
-      in
-      let assumes = append toprove.assumes [assume_prove_from_expr false formula] in
-      let suffices = false in
-      let boxed = false in (* TODO: need to recompute boxed flag *)
-      let ap = { toprove with location; level; assumes; suffices; boxed; } in
-      self#update_cc_formula acc thmi ap
+        let cc = cc_peek acc in
+        (* TODO: boxed flag might be wrong *)
+        let toprove = match cc.goal with
+          | None -> failwith_msg thmi.location
+                      "Encountered case statement without active goal!"
+          | Some f -> f
+        in
+        let location = location_of_expr formula in
+        let flevel = level_of_expr formula in
+        let level = match level_of_node toprove, flevel with
+          (* TODO: check if the level recomputation is correct *)
+          | Some l, Some f when l > f   -> Some l
+          | Some l, Some f (* l <= f *) -> Some f
+          | Some l, None   (* only l *) -> None
+          | None,   Some f (* only f *) -> None
+          | None,   None -> None
+        in
+        match toprove with
+        | N_expr prove ->
+          (* TODO: add theorem def to context *)
+          self#update_cc_formula acc thmi (N_expr prove)
+        | N_assume_prove tap ->
+          let assumes = append tap.assumes [N_expr formula] in
+          let ap = { tap with location; level; assumes; } in
+          self#update_cc_formula acc thmi (N_assume_prove ap)
+        | N_ap_subst_in _ ->
+          failwith "unhandled case node, where node is an ap subst"
 
     (* \sigma pick vars : F(vars) is translated into two steps:
        \rho \E vars : F(vars)
@@ -417,15 +499,15 @@ class ['a] extract_obligations =
     method private update_cc_pick acc (thmi : theorem_) {variables; formula} =
       let cc = cc_peek acc in
     (*
-  let fmt = Expr_formatter.expr_formatter in
-  let state = (Format.str_formatter, cc.term_db, false,
-               Expr_formatter.Expression, 0) in
-  let str = fmt#expr state formula in
-  Printf.printf "Pick formula starts with: %s\n"
-                (Format.flush_str_formatter ());
+       let fmt = Expr_formatter.expr_formatter in
+       let state = (Format.str_formatter, cc.term_db, false,
+                    Expr_formatter.Expression, 0) in
+       let str = fmt#expr state formula in
+       Printf.printf "Pick formula starts with: %s\n"
+                     (Format.flush_str_formatter ());
      *)
-      let location = extract_location formula in
-      let level = extract_level formula in
+      let location = location_of_expr formula in
+      let level = level_of_expr formula in
       let (bounded_qs, unbounded_qs) as qs =
         partition (function
             | B_bounded_bound_symbol _ -> true;
@@ -438,56 +520,44 @@ class ['a] extract_obligations =
           in
           failwith_msg thmi.location msg
       in
-      let (bounds, quantifier) =
+      let term_db = (get_cc acc |> hd).term_db in
+      let (bounds, ex_binder) =
         match qs with
-        | ([], uqs) -> ([], unbounded_exists)
+        | ([], uqs) ->
+          ([], Constr.quantifier ~term_db ~location ~level Builtin.EXISTS
+             variables (EO_expr formula))
         | (bqs, []) ->
-          (map get_bounds bqs, bounded_exists)
+          (map get_bounds bqs, Constr.bquantifier ~term_db ~location ~level
+             Builtin.BEXISTS variables (EO_expr formula))
         | _ -> failwith_msg thmi.location
                  "Pick mixes bounded and unbounded quantifiers!"
       in
-      let ex_formula =
-        E_binder { location; level;
-                   operator = FMOTA_op_def (O_builtin_op quantifier);
-                   operand  = EO_expr formula;
-                   bound_symbols = variables;
-                 } in
-      let bounds_formulas =
-        map (function
-            |  { params;
-                 tuple;
-                 domain;
-               } ->
-              ()
+      let ex_formula = E_binder ex_binder in
+      let term_db, bounds_formulas =
+        (* TODO: the bounds need to be converted to x \in S *)
+        List.fold_left (function _tdb, _bounds ->
+          function
+          |  { params; tuple = false; domain; } ->
+            let f = Constr.conj ~term_db:_tdb in
+            (_tdb, _bounds)
+          | { params; tuple = true; domain; } ->
+            (* TODO: fill in *)
+            (_tdb, _bounds)
           )
-          bounds in
-      let inner_statement =
-        { location;
-          level;
-          new_symbols = [];
-          assumes = [];
-          prove = ex_formula;
-          suffices = false;
-          boxed = true;
-        } in
-      let outer_statement =
-        { location;
-          level;
-          new_symbols = [];
-          assumes = [];
-          prove = formula;
-          suffices = true;
-          boxed = true;
-        } in
+          (term_db, []) bounds in
       let inner_cc =
         {cc with
-         goal = Some inner_statement;
+         goal = Some (N_expr ex_formula);
         } in
+      let thm_statements = match thmi.definition with
+        | Some td -> (td, [N_expr formula]) :: cc.thm_statements
+        | None -> cc.thm_statements;
+      in
       let outer_cc =
         {cc with
-         goal = Some outer_statement;
+         goal = Some (N_expr formula);
          (* check this *)
-         thm_statements = (thmi, [outer_statement]) :: cc.thm_statements;
+         thm_statements;
         } in
       OuterInner (outer_cc, inner_cc)
 
@@ -497,8 +567,9 @@ class ['a] extract_obligations =
 
     method theorem acc thm =
       let cc = cc_peek acc in
-      let thmi  = dereference_theorem cc.term_db thm in
-      (* we prepare one context for proving the statement and one for continuing *)
+      let thmi  = Deref.theorem cc.term_db thm in
+      (* we prepare one context for proving the statement and
+         one for continuing *)
       let step_ccs = match thmi.statement with
         | ST_FORMULA f ->
           self#update_cc_formula acc thmi f
@@ -526,19 +597,20 @@ class ['a] extract_obligations =
         | Inner inner_cc ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
-          let acc2 = self#proof acc1 thmi.proof in
+          let acc2 = increase_nesting acc1 thmi in
+          let acc3 = self#proof acc2 thmi.proof in
           (* we need to reset the current context, usable facts etc are not
              visible outside the sub-proof *)
           (* let inner_obs = get_obligations acc2 in
              (* we add the inner obligations to the outer context, but don't
              take over anything else *)
              update_obligations acc0 inner_obs *)
-          let (_, acc3) = cc_pop acc2 in
-          acc3
+          let (_, acc4) = cc_pop acc3 in
+          decrease_nesting acc4
         | OuterInner (outer_cc, inner_cc) ->
           (* extract inner proof *)
           let acc1 = cc_push inner_cc acc in
-          let acc2 = increase_nesting acc1 in
+          let acc2 = increase_nesting acc1 thmi in
           let acc3 = self#proof acc2 thmi.proof in
           (* we need to reset the current context, usable facts etc are not
              visible outside the sub-proof *)
@@ -547,7 +619,7 @@ class ['a] extract_obligations =
           *)
           let (_, acc4) = cc_pop acc3 in
           (* extract outer proof *)
-          cc_replace outer_cc acc4
+          cc_replace outer_cc acc4 |> decrease_nesting
       in
       (* assert that no obligations were lost*)
       let no_oldobs = length (get_obligations acc) in
@@ -558,7 +630,7 @@ class ['a] extract_obligations =
                         (length (cc_peek acc).usable_facts )
                         (length (cc_peek racc).usable_facts );
       *)
-      decrease_nesting racc
+      racc
 
 
     method proof acc0 = function
@@ -600,36 +672,51 @@ class ['a] extract_obligations =
 
     method use_or_hide acc0 {  location; level; facts; defs; only; hide } =
       let cc = cc_peek acc0 in
-      (* extract new facts *)
-      let (thm_facts, expr_facts, rest) =
-        split_theorem_expr_facts cc.term_db facts in
-      let ap_facts = map (assume_prove_from_expr false) expr_facts in
-      match hide with
-      | false -> (* USE *)
-        (* create obligations proving new facts *)
-        (* TODO *)
-        (* update context *)
-        let new_cc = { cc with usable_facts = concat [cc.usable_facts;
-                                                      ap_facts;
-                                                     ]} in
-        cc_replace new_cc acc0
-      | true -> (* HIDE *)
-        (* you cannot hide an asserted fact, i.e. expr_facts must be empty *)
-        (* TODO: hide theorem/step references and defs*)
-        acc0
+      let expr_facts = List.fold_left (fun acc -> function
+          | EMM_expr e -> (N_expr e)::acc
+          | EMM_module_instance mi ->
+            failwith_msg location "don't know how to handle USE module instance!"
+          | EMM_module m ->
+            failwith_msg location "don't know how to handle USE module!"
+        ) [] facts |> List.rev
+      in
+      let opdef_defs = List.fold_left (fun acc -> function
+          | UMTA_assume_def a -> (O_assume_def a) :: acc
+          | UMTA_theorem_def a -> (O_thm_def a) :: acc
+          | UMTA_user_defined_op a -> (O_user_defined_op a) :: acc
+          | UMTA_module_instance a -> (O_module_instance a) :: acc
+        ) [] defs |> List.rev
+      in
+      let usable_facts = match hide,only with
+        | false,true  -> expr_facts
+        | false,false -> List.append cc.usable_facts expr_facts
+        | true, false ->
+          List.filter (fun x -> List.mem x expr_facts) cc.usable_facts
+        | true, true -> failwith_msg location "HIDE ONLY does not make sense."
+      in
+      let expanded_defs = match hide,only with
+        | false,true  -> opdef_defs
+        | false,false -> List.append cc.expanded_defs opdef_defs
+        | true, false -> filter (fun x -> List.mem x opdef_defs) cc.expanded_defs
+        | true, true -> failwith_msg location "HIDE ONLY does not make sense."
+      in
+      let new_cc = { cc with usable_facts; expanded_defs } in
+      cc_replace new_cc acc0
 
     method instance acc _ =
       (* TODO *)
       acc
 
-    method mule acc0 = function
-      | MOD_ref i -> self#reference acc0 i
-      | MOD {name; location; module_entries } ->
-        let acc0a = self#name acc0 name in
-        let acc1 = self#location acc0a location in
-        let acc = List.fold_left self#mule_entry acc1 module_entries in
-        acc
+    method mule acc0 (mi:mule) =
+      let tdb = (get_cc acc0 |> List.hd).term_db in
+      let m = Deref.mule tdb mi in
+      self#mule_ acc0 m
 
+    method mule_ acc0 {name; location; module_entries } =
+      let acc0a = self#name acc0 name in
+      let acc1 = self#location acc0a location in
+      let acc = List.fold_left self#mule_entry acc1 module_entries in
+      acc
 
     method context acc { entries; modules; root_module; } =
       let old_cc = cc_peek acc in
@@ -638,7 +725,7 @@ class ['a] extract_obligations =
       (*    let acc1 = fold_left self#mule acc0 modules in *)
       let tdb = (get_cc acc0 |> hd).term_db in
       let root_ms = List.filter
-          (fun x -> (dereference_module tdb x).name = root_module )
+          (fun x -> (Deref.mule tdb x).name = root_module )
           modules
       in
       let acc1 = match root_ms with
@@ -653,7 +740,7 @@ class ['a] extract_obligations =
     fold_left (fun i cc ->
                Printf.printf "(%d) known theorems:\n" i;
                map (fun (t : theorem) ->
-                    let thmi = dereference_theorem cc.term_db t in
+                    let thmi = Deref.theorem cc.term_db t in
                     let name = match thmi.name with
                       | None -> "(none)"
                       | Some x -> x
@@ -673,7 +760,7 @@ class ['a] extract_obligations =
 
 let extract_obligations_context ({entries; root_module; _ } as context) =
   let instance = new extract_obligations in
-  let iacc = EOAcc ([emptyCurrentContext entries], [], Module, root_module, ())
+  let iacc = EOAcc ([emptyCurrentContext entries], [], [], Module, root_module, ())
   in
   let acc = instance#context iacc context in
   get_obligations acc

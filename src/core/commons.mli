@@ -26,8 +26,8 @@ type location = {
 
 type level =
   | ConstantLevel
-  | VariableLevel
-  | ActionLevel
+  | StateLevel
+  | TransitionLevel
   | TemporalLevel
 
 type op_decl_kind =
@@ -55,7 +55,11 @@ val mkDummyRange : int_range
 (** Creates a location at line 0 to 0, column 0 to 0. *)
 val mkDummyLocation : location
 
+val toplevel_loation : location
+(** Location for the toplevel *)
+
 val format_location : location -> string
+val fmt_location : formatter -> location -> unit
 
 val fmt_location  : formatter -> location -> unit
 val fmt_int_range : formatter -> int_range -> unit
@@ -63,3 +67,9 @@ val fmt_int_range : formatter -> int_range -> unit
 val format_prover : prover -> string
 
 val fmt_prover : formatter -> prover -> unit
+
+val format_op_decl_kind : op_decl_kind -> string
+
+val lmax : level -> level -> level
+
+val level_of_op_decl_kind : op_decl_kind -> (level, string) Result.result

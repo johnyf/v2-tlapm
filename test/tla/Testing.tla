@@ -3,9 +3,11 @@
 \* e.g.: LEMMA \A x: x # x BY ShouldFail
 
 ShouldFail == TRUE
-
+ShouldSucceed == TRUE
+IsTrue == TRUE
+IsFalse == TRUE
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Dec 07 15:16:49 CET 2015 by marty
+\* Last modified Wed Dec 14 15:50:39 CET 2016 by marty
 \* Created Wed Oct 07 12:12:00 CEST 2015 by marty

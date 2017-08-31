@@ -198,7 +198,6 @@ class ['a] visitor :
       | E_at x        -> self#at acc x
       | E_decimal x   -> self#decimal acc x
       | E_label x     -> self#label acc x
-      | E_lambda x    -> self#lambda acc x
       | E_let_in x    -> self#let_in acc x
       | E_numeral x   -> self#numeral acc x
       | E_op_appl x   -> self#op_appl acc x
@@ -226,5 +225,5 @@ class ['a] visitor :
       | FMOTA_formal_param x -> self#formal_param acc x
       | FMOTA_op_decl x -> self#op_decl acc x
       | FMOTA_op_def  x -> self#op_def acc x
-
+      | FMOTA_lambda x  -> self#lambda acc x
   end

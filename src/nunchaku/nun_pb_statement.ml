@@ -20,7 +20,7 @@ let newline_formatter channel =
   fprintf channel "@,";
   ()
 
-let sepatation_formatter channel =
+let separation_formatter channel =
   fprintf channel "%s@, " "\n# ---------------------------------------------\n";
   ()
 
@@ -48,31 +48,29 @@ let rec string_of_expr = function
     let sl = "" in
     "( "^s^"[ "^sl^"] )"
 
-let print_declaration ppf (Declaration v) = 
-  fprintf ppf "val %s. @." (string_of_var v)
+let print_declaration ppf (Declaration v) =
+  fprintf ppf "val %s. @," (string_of_var v)
 
 let print_axiom ppf (Axiom s) =
-  fprintf ppf "axiom : %s. @." (string_of_expr s) 
+  fprintf ppf "axiom : %s. @," (string_of_expr s)
 
 let print_goal ppf (Goal s) =
-  fprintf ppf "goal %s. @." (string_of_expr s)
+  fprintf ppf "goal %s. @," (string_of_expr s)
 
 let print_comment ppf (Comment s) =
-  fprintf ppf "# %s @." s
+  fprintf ppf "# %s @," s
 
 let print_include ppf (Include s) =
-  fprintf ppf "include \"%s\". @." s
+  fprintf ppf "include \"%s\". @," s
 
 let print_statement ppf (go, dec, ax, com, inc) =
   ppf_fold_with ppf print_comment com;
-  sepatation_formatter ppf; 
+  separation_formatter ppf;
   newline_formatter ppf;
   ppf_fold_with ppf print_include inc;
-  sepatation_formatter ppf; 
+  separation_formatter ppf;
   ppf_fold_with ppf print_declaration dec;
-  sepatation_formatter ppf; 
+  separation_formatter ppf;
   ppf_fold_with ppf print_axiom ax;
-  sepatation_formatter ppf; 
+  separation_formatter ppf;
   print_goal ppf go
-
-

@@ -7,7 +7,7 @@ open Format
 *)
 
 type toolbox_status = | ToBeProved | Proved | Failed | Trivial
-                      | BeingProved | Interrupted
+                      | BeingProved | Interrupted | Countermodel
 
 (* TODO: how many proofs actually use that? *)
 type toolbox_method = | Auto | Blast | Force | Fail | Sorry

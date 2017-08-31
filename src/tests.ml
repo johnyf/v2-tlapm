@@ -44,10 +44,10 @@ let files flt =
                  (*           "exec"; *)
                  "proofsteps";
                  "priming_stephan";
-                 (* "withsubmodule"; has incorrect use of theorem *)
+                 "withsubmodule";
                  "OneBit";
                  (* contains duplicates of multiple modules, takes long to load *)
-                 (*"pharos";  *)
+                 "pharos";
                  "obligation_bug1"; (* TODO: fix this bug! *)
                  "bug02";
                  "nunchaku";
@@ -61,6 +61,7 @@ let () =
      reference for I!T, but in reality is in an AP substitution. Remove the
      test case till this is fixed.
   *)
+(*
   let fmt_filter r = r.filename <> (addpath "withsubmodule") in
   let fmt_nun_filter r =
     not (mem r.filename
@@ -72,20 +73,21 @@ let () =
   in
   let without_broken = List.filter fmt_filter results in
   let without_nunchaku_broken = List.filter fmt_nun_filter without_broken in
+*)
   let tests =
     List.concat [
       Test_util.get_tests;
       Test_sany.get_tests results;
       Test_map.get_tests results;
-      Test_correct_lambda.get_tests without_broken;
-      Test_parse_theorems.get_tests without_broken;
-      Test_extract_obligations.get_tests without_broken;
-      Test_formatter.get_tests without_broken (* *);
-      Test_simple_expr.get_tests without_nunchaku_broken;
-      Test_nunchaku.get_tests without_nunchaku_broken;
-      Test_issue2.get_tests without_broken;
+      Test_correct_lambda.get_tests results;
+      Test_parse_theorems.get_tests results;
+      Test_extract_obligations.get_tests results;
+      Test_formatter.get_tests results;
+      Test_substitution.get_tests;
+      Test_simple_expr.get_tests results;
+      Test_nunchaku.get_tests results;
+      Test_issue2.get_tests results;
     ] in
-
   match check_xmloutput with
   | true  ->
     printf "Creating XML output\n";

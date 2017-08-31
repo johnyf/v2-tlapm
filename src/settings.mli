@@ -1,5 +1,5 @@
 open Commons
-open Format
+open CCFormat
 
 (** This module represents the global settings for the PM. *)
 
@@ -14,6 +14,7 @@ type settings = {
   verbose      : bool;
   overlord     : bool;
   toolbox      : int_range;
+  toolbox_output : bool;
   fingerprints : bool;
   input_file   : string;
   pm_path      : string;
@@ -25,4 +26,4 @@ type settings = {
 }
 
 val default_settings : settings
-val fmt_settings : formatter -> settings -> unit
+val fmt_settings : settings printer

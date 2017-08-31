@@ -218,8 +218,15 @@ let autodetect_executable_path =
   let lib_path = Str.global_replace (Str.regexp "/[^/]*$") "" bin_string in
   lib_path
 
- (*
-(* an (inefficient) implementation of flat_map *)
-let flat_map f =
-  List.fold_left (fun x y -> List.append x (f y)) []
- *)
+(* Maps for some types *)
+module IntOrdering =
+  struct
+    type t = int
+    let compare : t->t->t = Pervasives.compare
+  end
+
+module IntMap = CCMap.Make(IntOrdering)
+module IntSet = CCSet.Make(IntOrdering)
+
+module StringMap = CCMap.Make(String)
+module StringSet = CCSet.Make(String)

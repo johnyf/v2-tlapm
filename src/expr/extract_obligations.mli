@@ -6,14 +6,14 @@ open Obligation
 (* used to track the nesting level throughout a proof *)
 type nesting =
   | Module
-  | InProof of int
+  | InProof of int * theorem_ list
 
 type current_context = {
   (* the current goal *)
-  goal : assume_prove option;
+  goal : node option;
 
   (* the facts currently known *)
-  usable_facts : assume_prove list;
+  usable_facts : node list;
 
   (* the expanded definitions *)
   expanded_defs : op_def list;
@@ -30,11 +30,14 @@ type current_context = {
 
   (* we keep a list of the actual assume proves a theorem provides, because they
      may be different from the actual statement *)
-  thm_statements : (theorem_ * assume_prove list) list;
+  thm_statements : (theorem_def * node list) list;
 }
 
+type ofail = ObligationFail of string * location
+
 type 'a eoacc =
-    EOAcc of current_context list * obligation list * nesting * string *'a
+    EOAcc of current_context list * obligation list * ofail list
+             * nesting * string *'a
 
 val get_obligations : 'a eoacc -> obligation list
 

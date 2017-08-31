@@ -1,0 +1,41 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tlaops}
+
+\newcommand{\leibeq}[0]{\ensuremath{=}}
+%\newcommand{\lkproves}[0]{\ensuremath{\vdash}}
+\newcommand{\then}[0]{\ensuremath{\Rightarrow}}
+
+\newcommand{\goesto}{\leftarrow}                                % substitution arrow
+\newcommand{\subst}[1]{\ensuremath{\left[ #1 \right]}}          % substitution
+
+\def\tla@while{-\hspace{-.16em}\triangleright}
+\def\tlawhilep{\stackrel
+  {\mbox{\raisebox{-.3em}[0pt][0pt]{$\scriptscriptstyle+\;\,$}}}{\tla@while}}
+
+%\newcommand{\set}[1]{\ensuremath{\{ #1 \}}}
+\newcommand{\WF}{\textrm{WF}}
+\newcommand{\SF}{\textrm{SF}}
+\newcommand{\ALWAYS}{\ensuremath{\Box}}
+\newcommand{\POSSIBLE}{\ensuremath{\Diamond}}
+\newcommand{\ENABLED}{\textsc{enabled }}
+\newcommand{\CHOOSE}{\mbox{\sc choose }}
+\newcommand{\CONSTANTS}{\mbox{\sc constants }}
+\newcommand{\VARIABLES}{\mbox{\sc variables }}
+\newcommand{\SUFFICES}{\mbox{\sc suffices }}
+\newcommand{\ASSUME}{\mbox{\sc assume }}
+\newcommand{\PROVE}{\mbox{\,\sc prove }}
+\newcommand{\NEW}{\mbox{\sc new }}
+\newcommand{\E}{\ensuremath{\exists}}
+\newcommand{\A}{\ensuremath{\forall}}
+\renewcommand{\AA}{\makebox{$\raisebox{.05em}{\makebox[0pt][l]{%
+   $\forall\hspace{-.517em}\forall\hspace{-.517em}\forall$}}%
+   \forall\hspace{-.517em}\forall \hspace{-.517em}\forall\,$}}
+\newcommand{\EE}{\makebox{$\raisebox{.05em}{\makebox[0pt][l]{%
+   $\exists\hspace{-.517em}\exists\hspace{-.517em}\exists$}}%
+   \exists\hspace{-.517em}\exists\hspace{-.517em}\exists\,$}}
+\renewcommand{\implies}{\Rightarrow}
+\newcommand{\defeq}{\;\mathrel{\smash   %% keep this symbol from being too tall
+    {{\stackrel{\scriptscriptstyle\Delta}{=}}}}\;}
+\newcommand{\dif}[0]{\,\#\,}
+
+\endinput

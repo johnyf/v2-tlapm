@@ -26,11 +26,14 @@ class ['a] visitor :
     method op_decl         : 'a -> op_decl -> 'a
     method op_def          : 'a -> op_def -> 'a
     method theorem         : 'a -> theorem -> 'a
+    method theorem_def     : 'a -> theorem_def -> 'a
+    method assume_def      : 'a -> assume_def -> 'a
     method statement       : 'a -> statement -> 'a
     method assume          : 'a -> assume -> 'a
     method assume_prove    : 'a -> assume_prove -> 'a
     method new_symb        : 'a -> new_symb -> 'a
     method ap_subst_in     : 'a -> ap_subst_in -> 'a
+    method fp_subst_in     : 'a -> fp_subst_in -> 'a
     method module_instance : 'a -> module_instance -> 'a
     method builtin_op      : 'a -> builtin_op -> 'a
     method user_defined_op : 'a -> user_defined_op -> 'a
@@ -39,12 +42,27 @@ class ['a] visitor :
     method instance        : 'a -> instance -> 'a
     method use_or_hide     : 'a -> use_or_hide -> 'a
     method instantiation   : 'a -> instantiation -> 'a
+    method fp_assignment   : 'a -> fp_assignment -> 'a
     (*  method subst           : 'a -> subst -> 'a *)
     method label           : 'a -> label -> 'a
     method let_in          : 'a -> let_in -> 'a
     method subst_in        : 'a -> subst_in -> 'a
     method node            : 'a -> node -> 'a
     method def_step        : 'a -> def_step -> 'a
+
+    method formal_param_   : 'a -> formal_param_ -> 'a
+    method mule_           : 'a -> mule_ -> 'a
+    method op_decl_        : 'a -> op_decl_ -> 'a
+    method module_instance_  : 'a -> module_instance_ -> 'a
+    method user_defined_op_  : 'a -> user_defined_op_ -> 'a
+    method builtin_op_     : 'a -> builtin_op_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
+    method theorem_        : 'a -> theorem_ -> 'a
+    method assume_         : 'a -> assume_ -> 'a
+    method theorem_def_    : 'a -> theorem_def_ -> 'a
+    method assume_def_     : 'a -> assume_def_ -> 'a
+
     method reference       : 'a -> int -> 'a
 
     method entry           : 'a -> (int * entry) -> 'a
@@ -65,19 +83,7 @@ class ['a] visitor :
     method node acc = function
       | N_ap_subst_in x  -> self#ap_subst_in acc x
       | N_assume_prove x -> self#assume_prove acc x
-      | N_def_step x     -> self#def_step acc x
       | N_expr x         -> self#expr acc x
-      | N_op_arg x       -> self#op_arg acc x
-      | N_instance x     -> self#instance acc x
-      | N_new_symb x     -> self#new_symb acc x
-      | N_proof x        -> self#proof acc x
-      | N_formal_param x -> self#formal_param acc x
-      | N_module x       -> self#mule acc x
-      | N_op_decl x      -> self#op_decl acc x
-      | N_op_def x       -> self#op_def acc x
-      | N_assume x       -> self#assume acc x
-      | N_theorem x      -> self#theorem acc x
-      | N_use_or_hide x  -> self#use_or_hide acc x
 
     (* parts of expressions *)
     method location acc l : 'a = acc
@@ -103,7 +109,8 @@ class ['a] visitor :
       let acc = List.fold_left self#expr_or_op_arg acc3 operands in
       acc
 
-    method binder acc0 {location; level; operator; operand; bound_symbols} =
+    method binder acc0 { location; level; operator; operand;
+                         bound_symbols } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#operator acc2 operator in
@@ -123,26 +130,36 @@ class ['a] visitor :
       | B_bounded_bound_symbol s -> self#bounded_bound_symbol acc s
       | B_unbounded_bound_symbol s -> self#unbounded_bound_symbol acc s
 
-    method bounded_bound_symbol acc x = acc
-    method unbounded_bound_symbol acc x = acc
+    method bounded_bound_symbol acc0 { params; tuple; domain } =
+      let acc1 = List.fold_left self#formal_param acc0 params in
+      (* skip tuple *)
+      let acc2 = self#expr acc1 domain in
+      acc2
+
+    method unbounded_bound_symbol acc0 { param; tuple; } =
+      let acc1 = self#formal_param acc0 param in
+      acc1
 
 
-    method formal_param acc0 = function
-      | FP_ref i -> self#reference acc0 i
-      | FP { location; level; name; arity; } ->
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let acc3 = self#name acc2 name in
-        (* arity skipped *)
-        acc3
+    method formal_param acc0 (FP_ref i) =
+      self#reference acc0 i
 
-    method mule acc0 = function
-      | MOD_ref i -> self#reference acc0 i
-      | MOD {name; location; module_entries } ->
-        let acc0a = self#name acc0 name in
-        let acc1 = self#location acc0a location in
-        let acc = List.fold_left self#mule_entry acc1 module_entries in
-        acc
+    method formal_param_ acc0
+        ({ id; location; level; name; arity; } :formal_param_) =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = self#name acc2 name in
+      (* arity skipped *)
+      acc3
+
+    method mule acc0 (MOD_ref i) =
+      self#reference acc0 i
+
+    method mule_ acc {name; location; module_entries } =
+      let acc0a = self#name acc name in
+      let acc1 = self#location acc0a location in
+      let acc = List.fold_left self#mule_entry acc1 module_entries in
+      acc
 
     method op_arg acc0 {location; level; argument } =
       (* terminal node *)
@@ -154,34 +171,38 @@ class ['a] visitor :
 
     method op_decl acc0 = function
       | OPD_ref x -> self#reference acc0 x
-      | OPD  { location ; level ; name ; arity ; kind ; } ->
-        (* terminal node *)
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let acc3 = self#name acc2 name in
-        (* skip arity and kind *)
-        acc3
+
+    method op_decl_ acc0 { location ; level ; name ; arity ; kind ; } =
+      (* terminal node *)
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = self#name acc2 name in
+      (* skip arity and kind *)
+      acc3
 
     method op_def acc = function
       | O_module_instance x -> self#module_instance acc x
       | O_builtin_op x      -> self#builtin_op acc x
       | O_user_defined_op x -> self#user_defined_op acc x
+      | O_thm_def x         -> self#theorem_def acc x
+      | O_assume_def x      -> self#assume_def acc x
 
     method theorem acc0 = function
       | THM_ref x -> self#reference acc0 x
-      | THM { location; level; name; statement; proof; } ->
+
+    method theorem_ acc0 { id; location; level; definition; statement; proof; } =
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
-        let acc2a = match name with
+        let acc3 = match definition with
           | None -> acc2
-          | Some n -> self#name acc2 n in
-        let acc3 = self#statement acc2a statement in
-        let acc4 = self#proof acc3 proof  in
-        acc4
+          | Some d -> self#theorem_def acc2 d in
+        let acc4 = self#statement acc3 statement in
+        let acc5 = self#proof acc4 proof  in
+        acc5
 
     method statement acc0 = function
-      | ST_FORMULA f -> self#assume_prove acc0 f
-      | ST_SUFFICES f -> self#assume_prove acc0 f
+      | ST_FORMULA f -> self#node acc0 f
+      | ST_SUFFICES f -> self#node acc0 f
       | ST_CASE f -> self#expr acc0 f
       | ST_PICK {variables; formula} ->
         let acc1 = List.fold_left self#bound_symbol acc0 variables in
@@ -189,16 +210,41 @@ class ['a] visitor :
         acc2
       | ST_QED  -> acc0
       | ST_HAVE expr -> self#expr acc0 expr
-      | ST_TAKE expr -> self#expr acc0 expr
+      | ST_TAKE bound_symbols ->
+        List.fold_left self#bound_symbol acc0 bound_symbols
       | ST_WITNESS expr -> self#expr acc0 expr
 
-    method assume acc0  = function
-      | ASSUME_ref x -> self#reference acc0 x
-      | ASSUME {location; level; expr; } ->
+    method assume acc0 (ASSUME_ref x) =
+      self#reference acc0 x
+
+    method assume_ acc0 {location; level; expr; } =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc = self#expr acc2 expr in
+      acc
+
+    method theorem_def acc0 = function
+      | TDef_ref x -> self#reference acc0 x
+
+    method assume_def acc0 = function
+      | ADef_ref x -> self#reference acc0 x
+
+    method assume_def_ acc0 (a:assume_def_) = match a with
+      | {location; level; name; body }  ->
+       let acc1 = self#location acc0 location in
+       let acc2 = self#level acc1 level in
+       let acc3 = self#name acc2 name in
+       let acc4 = self#expr acc3 body in
+       acc4
+
+    method theorem_def_ acc0 (td:theorem_def_) =
+      match td with
+      | {location; level; name; body } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
-        let acc = self#expr acc2 expr in
-        acc
+        let acc3 = self#name acc2 name in
+        let acc4 = self#node acc3 body in
+        acc4
 
     method proof acc0 = function
       | P_omitted location -> acc0
@@ -243,8 +289,14 @@ class ['a] visitor :
       let acc = List.fold_left self#formal_param acc5 params in
       acc
 
-    method instantiation acc0 { op; expr } =
+    method instantiation acc0 { op; expr; next } =
       let acc1 = self#op_decl acc0 op in
+      let acc2 = self#expr_or_op_arg acc1 expr in
+      let acc = List.fold_left self#expr_or_op_arg acc2 next in
+      acc
+
+    method fp_assignment acc0 ({ param; expr } : fp_assignment) =
+      let acc1 = self#formal_param acc0 param in
       let acc = self#expr_or_op_arg acc1 expr in
       acc
 
@@ -255,7 +307,7 @@ class ['a] visitor :
       let acc3 = List.fold_left
           self#new_symb acc2 new_symbols in
       let acc4 = List.fold_left
-          self#assume_prove acc3 assumes in
+          self#node acc3 assumes in
       let acc = self#expr acc4 prove in
       (* suffices and boxed are boolean flags*)
       acc
@@ -283,12 +335,19 @@ class ['a] visitor :
       let acc = self#expr acc3 body in
       acc
 
+    method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = List.fold_left self#fp_assignment acc2 substs in
+      let acc = self#expr acc3 body in
+      acc
+
     method label acc0 ({location; level; name; arity; body; params } : label) =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
       (* skip arity *)
-      let acc4 = self#assume_prove acc3 body in
+      let acc4 = self#node acc3 body in
       let acc = List.fold_left self#formal_param acc4 params in
       acc
 
@@ -307,47 +366,55 @@ class ['a] visitor :
 
     method module_instance acc0 = function
       | MI_ref x -> self#reference acc0 x
-      | MI {location; level; name} ->
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let acc = self#name acc2 name in
-        acc
 
-    method builtin_op acc0 = function
-      | { level; name; arity; params } ->
-        let acc1 = self#level acc0 level in
-        let acc2 = self#name acc1 name in
-        (* skip arity *)
-        let acc = List.fold_left
-            (fun x (fp,_) -> self#formal_param x fp) acc2 params
-        in acc
+    method module_instance_ acc0
+        ({id; location; level; name} : module_instance_) =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc = self#name acc2 name in
+      acc
+
+    method builtin_op acc0 (BOP_ref r) =
+      self#reference acc0 r
+
+    method builtin_op_ acc0 { id; level; name; arity; params } =
+      let acc1 = self#level acc0 level in
+      let acc2 = self#name acc1 name in
+      (* skip arity *)
+      let acc = List.fold_left
+          (fun x (fp,_) -> self#formal_param x fp) acc2 params
+      in acc
 
     method user_defined_op acc0 = function
       | UOP_ref x -> self#reference acc0 x
-      | UOP { location; level ; name ; arity ;
-              body ; params ;  } ->
-        let acc1 = self#location acc0 location in
-        let acc2 = self#level acc1 level in
-        let acc3 = self#name acc2 name in
-        (* arity *)
-        let acc4 = self#expr acc3 body in
-        let acc = List.fold_left
-            (fun x (fp,_) -> self#formal_param x fp) acc4 params in
-        (* skip recursive flag *)
-        acc
+
+    method user_defined_op_ acc0
+        { id; location; level ; name ; arity ; body ; params ;  } =
+      let acc1 = self#location acc0 location in
+      let acc2 = self#level acc1 level in
+      let acc3 = self#name acc2 name in
+      (* arity *)
+      let acc4 = self#expr acc3 body in
+      let acc = List.fold_left
+          (fun x (fp,_) -> self#formal_param x fp) acc4 params in
+      (* skip recursive flag *)
+      acc
 
     method name acc x = acc
 
     method reference acc x = acc
 
     method entry acc (id, e) = match e with
-      | FP_entry x -> self#formal_param acc (FP x)
-      | MOD_entry x -> self#mule acc (MOD x)
-      | OPDef_entry x -> self#op_def acc x
-      | OPDec_entry x -> self#op_decl acc (OPD x)
-      | THM_entry x -> self#theorem acc (THM x)
-      | ASSUME_entry x -> self#assume acc (ASSUME x)
-      | APSUBST_entry x -> self#ap_subst_in acc x
+      | FP_entry x -> self#formal_param_ acc x
+      | BOP_entry x -> self#builtin_op_ acc x
+      | MOD_entry x -> self#mule_ acc x
+      | OPDec_entry x -> self#op_decl_ acc x
+      | MI_entry x -> self#module_instance_ acc x
+      | UOP_entry x -> self#user_defined_op_ acc x
+      | TDef_entry x -> self#theorem_def_ acc x
+      | ADef_entry x -> self#assume_def_ acc x
+      | THM_entry x -> self#theorem_ acc x
+      | ASSUME_entry x -> self#assume_ acc x
 
     method context acc {   entries; modules } =
       let acc1 = List.fold_left self#entry acc entries in
@@ -359,13 +426,13 @@ class ['a] visitor :
       | E_at x        -> self#at acc x
       | E_decimal x   -> self#decimal acc x
       | E_label x     -> self#label acc x
-      | E_lambda x    -> self#lambda acc x
       | E_let_in x    -> self#let_in acc x
       | E_numeral x   -> self#numeral acc x
       | E_op_appl x   -> self#op_appl acc x
       | E_string x    -> self#strng acc x
       | E_subst_in x  -> self#subst_in acc x
       | E_binder x    -> self#binder acc x
+      | E_fp_subst_in x -> self#fp_subst_in acc x
 
     method op_appl_or_binder acc0 = function
       | OB_op_appl x -> self#op_appl acc0 x
@@ -379,8 +446,8 @@ class ['a] visitor :
     method defined_expr acc = function
       | UMTA_user_defined_op x -> self#user_defined_op acc x
       | UMTA_module_instance x -> self#module_instance acc x
-      | UMTA_theorem x         -> self#theorem acc x
-      | UMTA_assume x          -> self#assume acc x
+      | UMTA_theorem_def x     -> self#theorem_def acc x
+      | UMTA_assume_def x      -> self#assume_def acc x
 
     method op_def_or_theorem_or_assume acc = function
       | OTA_op_def x -> self#op_def acc x
@@ -393,12 +460,13 @@ class ['a] visitor :
 
     method operator acc = function
       | FMOTA_formal_param x -> self#formal_param acc x
-      | FMOTA_module  x -> self#mule acc x
+      (*      | FMOTA_module  x -> self#mule acc x *)
       | FMOTA_op_decl x -> self#op_decl acc x
       | FMOTA_op_def  x -> self#op_def acc x
-      | FMOTA_theorem x -> self#theorem acc x
-      | FMOTA_assume  x -> self#assume acc x
+      (*      | FMOTA_theorem x -> self#theorem acc x *)
+      (*      | FMOTA_assume  x -> self#assume acc x *)
       | FMOTA_ap_subst_in x -> self#ap_subst_in acc x
+      | FMOTA_lambda x    -> self#lambda acc x
 
     method mule_entry acc = function
       | MODe_op_decl x     -> self#op_decl acc x
@@ -408,3 +476,31 @@ class ['a] visitor :
       | MODe_instance x    -> self#instance acc x
       | MODe_use_or_hide x -> self#use_or_hide acc x
   end
+
+let unsupported s =
+  let msg = CCFormat.sprintf "Term visitor forbids visiting of: %s" s in
+  failwith msg
+
+class ['a] term_visitor = object
+  inherit ['a] visitor
+
+  method node _ = unsupported "node"
+  method proof _ = unsupported "proof"
+  method ap_subst_in _ = unsupported "ap_subst_in"
+  method subst_in _ = unsupported "subst_in"
+  method instance _ = unsupported "instance"
+  method instantiation _ = unsupported "instantiation"
+  method assume _ = unsupported "assume"
+  method theorem _ = unsupported "theorem"
+  method statement _ = unsupported "statement"
+  method use_or_hide _ = unsupported "use or hide"
+  method step _ = unsupported "step"
+  method def_step _ = unsupported "def step"
+  method label _ = unsupported "label"
+  method entry _ = unsupported "entry"
+  method context _ = unsupported "context"
+  method mule _ = unsupported "module"
+  method mule_entry _ = unsupported "module"
+  method let_in _ = unsupported "let in"
+
+end

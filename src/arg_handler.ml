@@ -45,12 +45,14 @@ let handle_include_path state str =
 
 let handle_toolbox_lower state i =
   let toolbox = { state.settings.toolbox with rbegin = i } in
-  state.settings <- { state.settings with toolbox };
+  let toolbox_output = true in
+  state.settings <- { state.settings with toolbox; toolbox_output };
   ()
 
 let handle_toolbox_upper state i =
   let toolbox = { state.settings.toolbox with rend = i } in
-  state.settings <- { state.settings with toolbox };
+  let toolbox_output = true in
+  state.settings <- { state.settings with toolbox; toolbox_output };
   ()
 
 let handle_rest state s =

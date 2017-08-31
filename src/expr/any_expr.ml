@@ -15,10 +15,16 @@ type anyExpr =
   | Any_instance of instance
   | Any_instantiation of instantiation
   (*  | Any_subst of subst *)
+  | Any_fp_assignment of fp_assignment
+  | Any_fp_subst_in of fp_subst_in
   | Any_assume of assume
   | Any_assume_ of assume_
+  | Any_assume_def of assume_def
+  | Any_assume_def_ of assume_def_
   | Any_theorem of theorem
   | Any_theorem_ of theorem_
+  | Any_theorem_def of theorem_def
+  | Any_theorem_def_ of theorem_def_
   | Any_statement of statement
   | Any_assume_prove of assume_prove
   | Any_new_symb of new_symb
@@ -28,6 +34,7 @@ type anyExpr =
   | Any_user_defined_op of user_defined_op
   | Any_user_defined_op_ of user_defined_op_
   | Any_builtin_op of builtin_op
+  | Any_builtin_op_ of builtin_op_
   | Any_op_arg of op_arg
   | Any_formal_param of formal_param
   | Any_formal_param_ of formal_param_
@@ -80,10 +87,16 @@ let format_anyexpr = function
   | Any_subst_in _ -> "subst_in"
   | Any_instance _ -> "instance"
   | Any_instantiation _ -> "instantiation"
+  | Any_fp_assignment _ -> "fp assignment"
+  | Any_fp_subst_in _ -> "fp_subst_in"
   | Any_assume _ -> "assume"
   | Any_assume_ _ -> "assume_"
+  | Any_assume_def _ -> "assume_def"
+  | Any_assume_def_ _ -> "assume_def_"
   | Any_theorem _ -> "theorem"
   | Any_theorem_ _ -> "theorem_"
+  | Any_theorem_def _ -> "theorem_def"
+  | Any_theorem_def_ _ -> "theorem_def_"
   | Any_statement _ -> "statement"
   | Any_assume_prove _ -> "assume_prove"
   | Any_new_symb _ -> "new_symb"
@@ -93,6 +106,7 @@ let format_anyexpr = function
   | Any_user_defined_op _ -> "user_defined_op"
   | Any_user_defined_op_ _ -> "user_defined_op_"
   | Any_builtin_op _ -> "builtin_op"
+  | Any_builtin_op_ _ -> "builtin_op_"
   | Any_op_arg _ -> "op_arg"
   | Any_formal_param _ -> "formal_param"
   | Any_formal_param_ _ -> "formal_param_"
@@ -125,9 +139,10 @@ let format_anyexpr = function
   | Any_unbounded_bound_symbol _ -> "unbounded_bound_symbol"
   | Any_bounded_bound_symbol _ -> "bounded_bound_symbol"
   | Any_mule _ -> "mule"
-  | Any_mule_ _ -> " mule_"
+  | Any_mule_ _ -> "mule_"
+  | Any_mule_entry _ -> "mule_entry"
+  | Any_entry _ -> "context entry"
   | Any_context _ -> "context"
-  | Any_entry _ -> "(int * entry)"
 
 
 class ['a] any_extractor = object(self)
@@ -141,6 +156,15 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method assume acc =
     match self#extract acc with Any_assume x -> x
+                              | _ -> failwith (self#fmt acc)
+  method assume_ acc =
+    match self#extract acc with Any_assume_ x -> x
+                              | _ -> failwith (self#fmt acc)
+  method assume_def acc =
+    match self#extract acc with Any_assume_def x -> x
+                              | _ -> failwith (self#fmt acc)
+  method assume_def_ acc =
+    match self#extract acc with Any_assume_def_ x -> x
                               | _ -> failwith (self#fmt acc)
   method assume_prove acc =
     match self#extract acc with Any_assume_prove x -> x
@@ -159,6 +183,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method builtin_op acc =
     match self#extract acc with Any_builtin_op x -> x
+                              | _ -> failwith (self#fmt acc)
+  method builtin_op_ acc =
+    match self#extract acc with Any_builtin_op_ x -> x
                               | _ -> failwith (self#fmt acc)
   method context acc =
     match self#extract acc with Any_context x -> x
@@ -187,6 +214,15 @@ class ['a] any_extractor = object(self)
   method formal_param acc =
     match self#extract acc with Any_formal_param x -> x
                               | _ -> failwith (self#fmt acc)
+  method formal_param_ acc =
+    match self#extract acc with Any_formal_param_ x -> x
+                              | _ -> failwith (self#fmt acc)
+  method fp_subst_in acc =
+    match self#extract acc with Any_fp_subst_in x -> x
+                              | _ -> failwith (self#fmt acc)
+  method fp_assignment acc =
+    match self#extract acc with Any_fp_assignment x -> x
+                              | _ -> failwith (self#fmt acc)
   method instance acc =
     match self#extract acc with Any_instance x -> x
                               | _ -> failwith (self#fmt acc)
@@ -208,8 +244,14 @@ class ['a] any_extractor = object(self)
   method module_instance acc =
     match self#extract acc with Any_module_instance x -> x
                               | _ -> failwith (self#fmt acc)
+  method module_instance_ acc =
+    match self#extract acc with Any_module_instance_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method mule acc =
     match self#extract acc with Any_mule x -> x
+                              | _ -> failwith (self#fmt acc)
+  method mule_ acc =
+    match self#extract acc with Any_mule_ x -> x
                               | _ -> failwith (self#fmt acc)
   method mule_entry acc =
     match self#extract acc with Any_mule_entry x -> x
@@ -237,6 +279,9 @@ class ['a] any_extractor = object(self)
                               | _ -> failwith (self#fmt acc)
   method op_decl acc =
     match self#extract acc with Any_op_decl x -> x
+                              | _ -> failwith (self#fmt acc)
+  method op_decl_ acc =
+    match self#extract acc with Any_op_decl_ x -> x
                               | _ -> failwith (self#fmt acc)
   method op_def acc =
     match self#extract acc with Any_op_def x -> x
@@ -271,6 +316,15 @@ class ['a] any_extractor = object(self)
   method theorem acc =
     match self#extract acc with Any_theorem x -> x
                               | _ -> failwith (self#fmt acc)
+  method theorem_ acc =
+    match self#extract acc with Any_theorem_ x -> x
+                              | _ -> failwith (self#fmt acc)
+  method theorem_def acc =
+    match self#extract acc with Any_theorem_def x -> x
+                              | _ -> failwith (self#fmt acc)
+  method theorem_def_ acc =
+    match self#extract acc with Any_theorem_def_ x -> x
+                              | _ -> failwith (self#fmt acc)
   method unbounded_bound_symbol acc =
     match self#extract acc with Any_unbounded_bound_symbol x -> x
                               | _ -> failwith (self#fmt acc)
@@ -280,4 +334,8 @@ class ['a] any_extractor = object(self)
   method user_defined_op acc =
     match self#extract acc with Any_user_defined_op x -> x
                               | _ -> failwith (self#fmt acc)
+  method user_defined_op_ acc =
+    match self#extract acc with Any_user_defined_op_ x -> x
+                              | _ -> failwith (self#fmt acc)
+
 end
