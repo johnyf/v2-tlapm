@@ -192,16 +192,9 @@ module Constr = struct
           | B_bounded_bound_symbol _ -> true;
           | B_unbounded_bound_symbol _ -> false;
         ) bound_symbols in
-    match q with
-    | Builtin.BEXISTS
-    | Builtin.BFORALL when bound_symbols = [] ->
-      { location; level;
-        operator = FMOTA_op_def (O_builtin_op qop);
-        operand;
-        bound_symbols;
-      }
-    | Builtin.BEXISTS
-    | Builtin.BFORALL (* otherwise *) ->
+    match bounded_vars, q with
+    | _ :: _, _ ->
+      (* not all vars are bounded *)
       let msg = CCFormat.sprintf
           "Unbounded quantifier %a requires unbounded variables symbols %a"
           Builtin.pp q
@@ -209,8 +202,17 @@ module Constr = struct
           bounded_vars
       in
       failwith msg
-    | _ ->
-      let msg = CCFormat.sprintf "%a is not a quantifier!" Builtin.pp q in
+    | _, Builtin.EXISTS
+    | _, Builtin.FORALL
+    | _, Builtin.TEXISTS
+    | _, Builtin.TFORALL ->
+      { location; level;
+        operator = FMOTA_op_def (O_builtin_op qop);
+        operand;
+        bound_symbols;
+      }
+    | _, _ ->
+      let msg = CCFormat.sprintf "Operator %a is not an unbounded quantifier!" Builtin.pp q in
       failwith msg
 
   let bquantifier ~term_db:tdb ~location:location ~level:level q bound_symbols operand =
@@ -220,16 +222,8 @@ module Constr = struct
           | B_bounded_bound_symbol _ -> false;
           | B_unbounded_bound_symbol _ -> true;
         ) bound_symbols in
-    match q with
-    | Builtin.BEXISTS
-    | Builtin.BFORALL when bound_symbols = [] ->
-      { location; level;
-        operator = FMOTA_op_def (O_builtin_op qop);
-        operand;
-        bound_symbols;
-      }
-    | Builtin.BEXISTS
-    | Builtin.BFORALL (* otherwise *) ->
+    match unbounded_vars, q with
+    | _ :: _, _ ->
       let msg = CCFormat.sprintf
           "Bounded quantifier %a requires bounded variables symbols %a"
           Builtin.pp q
@@ -237,8 +231,15 @@ module Constr = struct
           unbounded_vars
       in
       failwith msg
-    | _ ->
-      let msg = CCFormat.sprintf "%a is not a quantifier!" Builtin.pp q in
+    | _, Builtin.BEXISTS
+    | _, Builtin.BFORALL ->
+      { location; level;
+        operator = FMOTA_op_def (O_builtin_op qop);
+        operand;
+        bound_symbols;
+      }
+    | _, _ ->
+      let msg = CCFormat.sprintf "Operator %a is not an unbounded quantifier!" Builtin.pp q in
       failwith msg
 
   let guard_of_binder ~term_db:tdb { location; level; operator;
