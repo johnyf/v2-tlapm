@@ -34,7 +34,8 @@ Document tlapm_api
                         Expr_formatter, Expr_utils, Expr_dereference,
                         Expr_substitution, Expr_termdb_utils,
                         Sany, Sany_ds, Sany_visitor, Sany_expr,
-                        Any_expr, Util, Test_common
+                        Any_expr, Util, Test_common, Expr_constructors,
+                        Expr_builtins, Extract_obligations
 
 Executable test
   Install: false
