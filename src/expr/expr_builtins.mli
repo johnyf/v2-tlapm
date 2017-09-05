@@ -35,6 +35,7 @@ module Builtin : sig
     | FUN_CONSTR
     | RCD_CONSTR
     | SET_ENUM
+    | SET_MEMBER
     | IF_THEN_ELSE
 
   val get : term_db -> builtin_symbol -> builtin_op

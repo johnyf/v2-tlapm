@@ -36,6 +36,7 @@ module Builtin = struct
     | FUN_CONSTR
     | RCD_CONSTR
     | SET_ENUM
+    | SET_MEMBER
     | IF_THEN_ELSE
 
   let builtin_location = {
@@ -93,6 +94,8 @@ module Builtin = struct
     let builtin_eq tdb = mk_builtin tdb ConstantLevel "=" 2 []
     let builtin_neq tdb = mk_builtin tdb ConstantLevel "/=" 2 []
 
+    let builtin_set_member tdb = mk_builtin tdb ConstantLevel "\\in" 1 []
+
     (* TODO: check if this is correct - in sany the quantifier has arity -1 *)
     let bounded_exists tdb =
       mk_builtin tdb ConstantLevel "$BoundedExists" 1 [(0,true)]
@@ -138,6 +141,7 @@ module Builtin = struct
     | SF -> "$SF"
     | FUN_APP -> ""
     | SET_ENUM -> "$SetEnumerate"
+    | SET_MEMBER -> "\\in"
     | SQ_BRACK -> "$SquareAct"
     | ANG_BRACK -> "$AngleAct"
     | IF_THEN_ELSE -> "$IfThenElse"
@@ -169,6 +173,7 @@ module Builtin = struct
     | "$FcnConstructor" -> FUN_CONSTR
     | "$RcdConstructor" -> RCD_CONSTR
     | "$Tuple"          -> TUPLE
+    | "\\in"            -> SET_MEMBER
     | "$SetEnumerate" ->  SET_ENUM
     | "$SquareAct" ->     SQ_BRACK
     | "$AngleAct" ->      ANG_BRACK
@@ -219,10 +224,12 @@ module Builtin = struct
     | IMPLIES -> ce Make.builtin_impl
     | EQ -> ce Make.builtin_eq
     | NEQ -> ce Make.builtin_neq
+    | SET_MEMBER -> ce Make.builtin_set_member
     | FORALL -> ce Make.unbounded_forall
     | EXISTS -> ce Make.unbounded_exists
     | BFORALL -> ce Make.bounded_forall
     | BEXISTS -> ce Make.bounded_exists
+    | TUPLE -> ce Make.tuple
     | _ ->
       let msg = CCFormat.sprintf "builtin symbol %a not yet supported" pp s in
       failwith msg
@@ -232,9 +239,10 @@ module Builtin = struct
     (*
     let ops = [ NOT; AND; OR; IMPLIES; FORALL; EXISTS; BFORALL; BEXISTS;
                 TFORALL; TEXISTS; TBFORALL; TBEXISTS; BOX; DIAMOND; WF; SF;
-                FUNAPP; SET_ENUM ] in
+                FUNAPP; SET_ENUM; SET_MEMBER ] in
     *)
-    let ops = [TRUE; FALSE; NOT; AND; OR; IMPLIES; EQ; NEQ;
-               FORALL; EXISTS; BFORALL; BEXISTS ] in
+    let ops = [TRUE; FALSE; NOT; AND; OR; IMPLIES; EQ; NEQ; SET_MEMBER;
+               FORALL; EXISTS; BFORALL; BEXISTS; TUPLE;
+              ] in
     List.fold_left (fun db op -> fetch db op |> fst) tdb ops
 end

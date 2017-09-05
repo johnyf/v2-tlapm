@@ -10,6 +10,113 @@ open Expr_termdb_utils
 open Util
 
 module Constr = struct
+  module OPD = struct
+    let mi x = O_module_instance x
+    let uop x = O_user_defined_op x
+    let bop x = O_builtin_op x
+    let thm_def x = O_thm_def x
+    let assume_def x = O_assume_def x
+
+    (* accessors for common fields *)
+    let level_of tdb = function
+      | O_user_defined_op op ->
+        (Deref.user_defined_op tdb op).level
+      | O_builtin_op op ->
+        (Deref.builtin_op tdb op).level
+      | O_module_instance op ->
+        (Deref.module_instance tdb op).level
+      | O_thm_def op ->
+        (Deref.theorem_def tdb op).level
+      | O_assume_def op ->
+        (Deref.assume_def tdb op).level
+
+    let location_of tdb = function
+      | O_user_defined_op op ->
+        (Deref.user_defined_op tdb op).location
+      | O_builtin_op op ->
+        Commons.mkDummyLocation
+      | O_module_instance op ->
+        (Deref.module_instance tdb op).location
+      | O_thm_def op ->
+        (Deref.theorem_def tdb op).location
+      | O_assume_def op ->
+        (Deref.assume_def tdb op).location
+
+    let arity_of tdb = function
+      | O_user_defined_op op ->
+        (Deref.user_defined_op tdb op).arity
+      | O_builtin_op op ->
+        (Deref.builtin_op tdb op).arity
+      | O_module_instance op -> -1 (* TODO: check arity of module instance *)
+      | O_thm_def op         ->  0
+      | O_assume_def op      ->  0
+  end
+
+  module Op = struct
+    let formal_param x = FMOTA_formal_param x
+    let op_def x = FMOTA_op_def x
+    let op_decl x = FMOTA_op_decl x
+    let ap_subst_in x = FMOTA_ap_subst_in x
+    let lamda x = FMOTA_lambda x
+
+    (* accessors for common fields *)
+    let level_of tdb = function
+      | FMOTA_formal_param op ->
+        (Deref.formal_param tdb op).level
+      | FMOTA_op_decl op ->
+        (Deref.op_decl tdb op).level
+      | FMOTA_op_def op ->
+        OPD.level_of tdb op
+      | FMOTA_ap_subst_in op ->
+        op.level
+      | FMOTA_lambda op ->
+        op.level
+
+    let location_of tdb = function
+      | FMOTA_formal_param op ->
+        (Deref.formal_param tdb op).location
+      | FMOTA_op_decl op ->
+        (Deref.op_decl tdb op).location
+      | FMOTA_op_def op ->
+        OPD.location_of tdb op
+      | FMOTA_ap_subst_in op ->
+        op.location
+      | FMOTA_lambda op ->
+        op.location
+
+    let arity_of tdb = function
+      | FMOTA_formal_param op ->
+        (Deref.formal_param tdb op).arity
+      | FMOTA_op_decl op ->
+        (Deref.op_decl tdb op).arity
+      | FMOTA_op_def op ->
+        OPD.arity_of tdb op
+      | FMOTA_ap_subst_in op -> -1 (* TODO: check arity of ap_subst_in *)
+      | FMOTA_lambda op ->
+        op.arity
+  end
+
+  module E = struct
+    let at x = E_at x
+    let decimal x = E_decimal x
+    let label x = E_label x
+    let let_in x = E_let_in x
+    let numeral x = E_numeral x
+    let op_appl x = E_op_appl x
+    let strng x = E_string x
+    let subst_in x = E_subst_in x
+    let fp_subst_in x = E_fp_subst_in x
+    let binder x = E_binder x
+
+    let level_of = Expr_utils.level_of_expr
+    let location_of = Expr_utils.location_of_expr
+  end
+
+  module EO = struct
+    let expr  x = EO_expr x
+    let op_arg x = EO_op_arg x
+  end
+
   let numeral ~location:location value =
     E_numeral { location;
                 level = Some ConstantLevel;
@@ -40,58 +147,15 @@ module Constr = struct
     | None, None ->
       None
 
-  (* TODO: find better place for that - can't go to expr_utils because of cyclic
-     dependencies *)
-  let level_of_op_def tdb = function
-    | O_user_defined_op op ->
-      (Deref.user_defined_op tdb op).level
-    | O_builtin_op op ->
-      (Deref.builtin_op tdb op).level
-    | O_module_instance op ->
-      (Deref.module_instance tdb op).level
-    | O_thm_def op ->
-      (Deref.theorem_def tdb op).level
-    | O_assume_def op ->
-      (Deref.assume_def tdb op).level
 
-  let level_of_operator tdb = function
-    | FMOTA_formal_param op ->
-      (Deref.formal_param tdb op).level
-    | FMOTA_op_decl op ->
-      (Deref.op_decl tdb op).level
-    | FMOTA_op_def op ->
-      level_of_op_def tdb op
-    | FMOTA_ap_subst_in op ->
-      op.level
-    | FMOTA_lambda op ->
-      op.level
 
-  let location_of_op_def tdb = function
-    | O_user_defined_op op ->
-      (Deref.user_defined_op tdb op).location
-    | O_builtin_op op ->
-      Commons.mkDummyLocation
-    | O_module_instance op ->
-      (Deref.module_instance tdb op).location
-    | O_thm_def op ->
-      (Deref.theorem_def tdb op).location
-    | O_assume_def op ->
-      (Deref.assume_def tdb op).location
-
-  let location_of_operator tdb = function
-    | FMOTA_formal_param op ->
-      (Deref.formal_param tdb op).location
-    | FMOTA_op_decl op ->
-      (Deref.op_decl tdb op).location
-    | FMOTA_op_def op ->
-      location_of_op_def tdb op
-    | FMOTA_ap_subst_in op ->
-      op.location
-    | FMOTA_lambda op ->
-      op.location
-
-  let apply ~location ~level operator operands =
-    { location; level; operator; operands; }
+  let apply ~term_db:term_db ~location ~level operator operands =
+    let arity = Op.arity_of term_db operator in
+    match List.length operands with
+    | n when arity < 0 || arity = n ->
+      { location; level; operator; operands; }
+    | _ ->
+      failwith "Arity of operator does not agree with number of params!"
 
   (*
   let leibniz_apply ~term_db:tdb ~location operator operands =
@@ -106,24 +170,24 @@ module Constr = struct
   *)
 
   let const_app ~term_db:tdb ~location operator =
-    let level = level_of_operator tdb operator in
+    let level = Op.level_of tdb operator in
     { location; level; operator; operands = [] }
 
-  let const_unop builtin ~term_db:tdb ~location
+  let const_unop builtin ~term_db:term_db ~location
       (op1:expr_or_op_arg) =
     let level = level_of_expr_or_op_arg op1 in
-    let and_op = Builtin.get tdb builtin in
+    let and_op = Builtin.get term_db builtin in
     let operator = FMOTA_op_def (O_builtin_op and_op) in
-    apply ~location ~level operator [op1]
+    apply ~term_db ~location ~level operator [op1]
 
-  let const_binop builtin ~term_db:tdb ~location
+  let const_binop builtin ~term_db:term_db ~location
       (op1:expr_or_op_arg) (op2:expr_or_op_arg) =
     let level = maxlevel
         (level_of_expr_or_op_arg op1)
         (level_of_expr_or_op_arg op2) in
-    let and_op = Builtin.get tdb builtin in
+    let and_op = Builtin.get term_db builtin in
     let operator = FMOTA_op_def (O_builtin_op and_op) in
-    apply ~location ~level operator [op1; op2]
+    apply ~term_db ~location ~level operator [op1; op2]
 
   let neg       = const_unop Builtin.NOT
   let conj      = const_binop Builtin.AND
@@ -133,20 +197,15 @@ module Constr = struct
   let nequality = const_binop Builtin.NEQ
 
   let binop_fold conj neutral ~term_db ~location =
-    let opd_uop x = O_user_defined_op x in
-    let opd_bop x = O_builtin_op x in
-    let e_op_appl x = E_op_appl x in
-    let eo_expr x = EO_expr x in
-    let fmota_op_def x = FMOTA_op_def x in
     let rec aux acc = function
       | [] ->
-        Builtin.get term_db neutral |> opd_bop |>
-        fmota_op_def |> const_app ~term_db ~location |> e_op_appl
+        Builtin.get term_db neutral |> OPD.bop |>
+        Op.op_def |> const_app ~term_db ~location |> E.op_appl
       | [x] ->
         acc x
       | x :: xs ->
-        aux (fun y -> conj ~term_db ~location (x |> eo_expr) (y |> eo_expr)
-                      |> e_op_appl |> acc ) xs
+        aux (fun y -> conj ~term_db ~location (x |> EO.expr) (y |> EO.expr)
+                      |> E.op_appl |> acc ) xs
     in
     aux (fun x -> x)
 
@@ -242,7 +301,7 @@ module Constr = struct
       let msg = CCFormat.sprintf "Operator %a is not an unbounded quantifier!" Builtin.pp q in
       failwith msg
 
-  let guard_of_binder ~term_db:tdb { location; level; operator;
+  let guards_of_binder ~term_db:tdb { location; level; operator;
                             operand; bound_symbols; } =
     let e_quants = List.map (Builtin.get tdb)
         [Builtin.EXISTS; Builtin.BEXISTS;
@@ -250,19 +309,46 @@ module Constr = struct
     match operator with
     | FMOTA_op_def (O_builtin_op bop)
       when List.mem bop e_quants ->
+      let b_in = Builtin.get tdb Builtin.SET_MEMBER
+                 |> OPD.bop |> Op.op_def in
+      let b_tuple = Builtin.get tdb Builtin.TUPLE
+                 |> OPD.bop |> Op.op_def in
+      let comp_level domain = List.fold_left
+          (fun l fp ->
+             let fpi = Deref.formal_param tdb fp in
+             max l fpi.level
+          ) (level_of_expr domain)
+      in
       List.fold_left (fun aux ->
           function
           | B_bounded_bound_symbol {params; tuple = false; domain; } ->
             let location =  location_of_expr domain in
-            let level = List.fold_left
-                (fun l fp ->
-                   let fpi = Deref.formal_param tdb fp in
-                   max l fpi.level
-                ) (level_of_expr domain)
-                params
+            let level = comp_level domain params in
+            let guards = List.map (fun b ->
+                apply ~term_db:tdb ~location ~level b_in
+                  [ Op.formal_param b |> const_app ~term_db:tdb ~location
+                    |> E.op_appl |> EO.expr ;
+                    domain |> EO.expr
+                  ]
+              |> E.op_appl
+              )
+                params in
+            guards
+          | B_bounded_bound_symbol {params; tuple = true; domain; } ->
+            let location =  location_of_expr domain in
+            let level = comp_level domain params in
+            let eo_params = List.map
+                (fun fp ->
+                   let op = Op.formal_param fp in
+                   let level = Op.level_of tdb op in
+                   apply ~term_db:tdb ~location ~level op []
+                   |> E.op_appl |> EO.expr
+                ) params
             in
-            let guard = apply ~location in
-            aux
+            let tuple = apply ~term_db:tdb ~location ~level b_tuple eo_params in
+            let guard = apply ~term_db:tdb ~location ~level b_in
+                [tuple |> E.op_appl |> EO.expr; domain |> EO.expr ] in
+            [guard |> E.op_appl ]
           | B_unbounded_bound_symbol ubs ->
             aux
         ) [] bound_symbols

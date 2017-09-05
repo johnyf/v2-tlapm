@@ -64,10 +64,53 @@ module Constr : sig
     -> Builtin.builtin_symbol -> bound_symbol list -> expr_or_op_arg -> binder
   (** Creates a bounded quantifier expression *)
 
-  val apply : location:location -> level:(level option) -> operator ->
-    expr_or_op_arg list -> op_appl
+  val apply : term_db:term_db -> location:location -> level:(level option) ->
+    operator -> expr_or_op_arg list -> op_appl
   (** Creates an operator application *)
 
   (*  val guard_of_binder : term_db -> bounded_bound_symbol -> expr *)
   (** Converts a bounded symbol  *)
+
+  module OPD : sig
+    val mi      : module_instance -> op_def
+    val uop     : user_defined_op -> op_def
+    val bop     : builtin_op -> op_def
+    val thm_def : theorem_def -> op_def
+    val assume_def : assume_def -> op_def
+
+    val location_of : term_db -> op_def -> location
+    val level_of    : term_db -> op_def -> level option
+    val arity_of    : term_db -> op_def -> int
+  end
+
+  module Op : sig
+    val formal_param : formal_param -> operator
+    val op_def       : op_def -> operator
+    val op_decl      : op_decl -> operator
+    val ap_subst_in  : ap_subst_in -> operator
+    val lamda        : lambda -> operator
+
+    val location_of : term_db -> operator -> location
+    val level_of    : term_db -> operator -> level option
+    val arity_of    : term_db -> operator -> int
+  end
+
+  module E : sig
+    val at : at -> expr
+    val decimal : decimal -> expr
+    val label : label -> expr
+    val let_in : let_in -> expr
+    val numeral : numeral -> expr
+    val op_appl : op_appl -> expr
+    val strng : strng -> expr
+    val subst_in : subst_in -> expr
+    val fp_subst_in : fp_subst_in -> expr
+    val binder : binder -> expr
+  end
+
+  module EO : sig
+    val expr   : expr -> expr_or_op_arg
+    val op_arg : op_arg -> expr_or_op_arg
+  end
+
 end
