@@ -36,11 +36,14 @@
 #load "sany_expr.cmo" ;;
 
 open Commons
+(*
 open Expr_ds
 open Expr_constructors
 open Expr_builtins
+*)
+open Expr
 open Obligation
 
 let location = toplevel_loation
-let term_db = Expr_termdb_utils.empty_term_db |> Builtin.complete_builtins
+let term_db = Tdb.empty_term_db |> B.complete_builtins
 ;;

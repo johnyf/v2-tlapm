@@ -1,21 +1,19 @@
 open Commons
 open Util
-open Sany
-open Format
+open CCFormat
 open Settings
 open Arg_handler
 open Result
 open Obligation
 open Obligation_formatter
 open Extract_obligations
-open Expr_substitution
-open Expr_termdb_utils
 open Toolbox
 open Scheduler
 open Backend_exceptions
 open Isabelle
+open Expr
 
-let  global_settings = ref default_settings
+let global_settings = ref default_settings
 
 (** Creates the command line string used to invoke the sany parser *)
 let java_cmd { check_schema; java_executable; include_paths;
@@ -24,7 +22,7 @@ let java_cmd { check_schema; java_executable; include_paths;
       ~back:""
       (fun fmt s -> fprintf fmt "-I \"%s\" " s) in
   let fmt_offline = if check_schema then "" else "-o" in
-  let cmd = asprintf "%s -jar %s/lib/sany.jar %s %a \"%s\""
+  let cmd = sprintf "%s -jar %s/lib/sany.jar %s %a \"%s\""
       java_executable pm_path fmt_offline  fmt_include include_paths
       input_file
   in
@@ -76,14 +74,14 @@ let load_sany settings =
   match (exit_code, sany_context) with
   | Unix.WEXITED 0,    Ok sc -> sc
   | Unix.WEXITED code, _ when code <> 0 ->
-    let msg = asprintf "%s: java return code is %d"
+    let msg = sprintf "%s: java return code is %d"
         tla_error code
     in
     failwith msg
   | _, Error e ->
     raise e
   | _, _ ->
-    let msg = asprintf "%s: unknown error calling java process."
+    let msg = sprintf "%s: unknown error calling java process."
         tla_error
     in
     failwith msg
@@ -133,7 +131,7 @@ let announce_obligations settings formatter obligations =
 
 let announce_results msgs =
   IntMap.fold (fun _ -> fun m -> fun _ ->
-      fmt_toolbox_msg err_formatter m) msgs ()
+      fmt_toolbox_msg Format.err_formatter m) msgs ()
 
 let announce_all_failed settings formatter obligations =
   (* print obligation fail messages to stdout *)
@@ -142,11 +140,11 @@ let announce_all_failed settings formatter obligations =
         (*      fprintf std_formatter "Obligation %d:\n%a\n\n" no
                 Obligation_formatter.fmt_obligation obl;*)
         let obligation_string =
-          Some (asprintf "%a" Obligation_formatter.fmt_obligation obl) in
+          Some (sprintf "%a" Obligation_formatter.fmt_obligation obl) in
         let r = {id=obl.id; location=obl.location; status = Failed;
                  prover = Some Tlaps; meth=None;
                  already_processed = Some false; obligation_string } in
-        fprintf err_formatter "%a@,@." fmt_toolbox_msg r;
+        fprintf Format.err_formatter "%a@,@." fmt_toolbox_msg r;
         no+1
       ) 1 obligations
   );
@@ -166,7 +164,7 @@ let init () =
     global_settings := settings;
     let sany_context = load_sany settings in
     let obligations = compute_obligations settings sany_context in
-    announce_obligations settings err_formatter obligations;
+    announce_obligations settings Format.err_formatter obligations;
     (* here goes the calling of backends *)
     prepare_backends settings (); (*TODO refactor *)
     let messages = scheduler settings obligations in
