@@ -1,0 +1,32 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tlaplus}
+
+\makeatletter
+\let\ltxxlabel\ltx@label
+\makeatother
+
+\newcommand{\assignment}[1]{\{#1\}}
+\newcommand{\inst}[2]{#1 {\leftarrow} #2}
+\newcommand{\einst}[3]{#1 \stackrel{#2}{\Leftarrow} #3}
+\newcommand{\tlaplus}[0]{{TLA+}}
+\newcommand{\tla}[1]{#1}
+
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\impl}[0]{\,\rightarrow\,}
+\newcommand{\liff}[0]{\,\Leftrightarrow\,}
+\newcommand{\dor}{\textbf{or}}
+\newcommand{\fpsubstin}[1]{\{#1\}}
+\newcommand{\fpscat}[0]{\circ}
+\newcommand{\substin}[2]{[#1:#2]}
+\newcommand{\fpwith}{\leftarrow}
+\newcommand{\fpwithout}[0]{\backslash}
+\newcommand{\fpwithoutset}[1]{\backslash\{#1\}}
+\newcommand{\iwith}{\leftarrow}
+\newcommand{\metavar}[1]{\mathbf{#1}}
+\newcommand{\rewrites}[0]{\;\rightarrow\;}
+\newcommand{\proofstep}[2]{\langle{#1}\rangle{#2}}
+
+\newcommand{\stshift}{\mbox{\sc shift}}
+\newcommand{\stfresh}[1]{\mbox{\sc fresh$_{#1}$}}
+
+\endinput
