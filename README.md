@@ -1,5 +1,7 @@
 # TLAPM
 
+[![Build Status](https://travis-ci.org/tlaplus/v2-tlapm.svg?branch=master)](https://travis-ci.org/tlaplus/v2-tlapm)
+
 This is the next version of the TLA proof manager, which is part of the
  TLA+ Tools [1]. Since is still under development, please also refer to the
  current version[2].
