@@ -27,7 +27,7 @@ The compilation requirements are:
 
 * a recent version of ocaml (at  least 4.02)
 * xmlm (http://erratique.ch/software/xmlm)
-* kaputt (http://kaputt.x9c.fr)
+* kaputt (http://kaputt.x9c.fr) (optional)
 * oasis (http://oasis.forge.ocamlcore.org)
 * result (if you are running ocaml < 4.03 )
 * sexplib
