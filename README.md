@@ -26,6 +26,7 @@ will suffice.
 The compilation requirements are:
 
 * a recent version of ocaml (at  least 4.02)
+* containers (https://github.com/c-cube/ocaml-containers)
 * xmlm (http://erratique.ch/software/xmlm)
 * kaputt (http://kaputt.x9c.fr) (optional)
 * oasis (http://oasis.forge.ocamlcore.org)
@@ -34,7 +35,7 @@ The compilation requirements are:
 
 The easiest way to install them is via opam (https://opam.ocaml.org):
 
-opam install oasis xmlm kaputt result sexplib
+opam install containers oasis xmlm kaputt result sexplib
 
 To initialize the configuration, call
 
