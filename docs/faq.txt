@@ -6,6 +6,10 @@ Q: How do I build sany.jar:
 A: in tlatoolbox call:
    mvn -P exporter -pl tlatools package
 
+Q: How do I build the jar without the unit tests:
+A: call:
+   mvn -P exporter -Dmaven.test.skip=true  -pl tlatools package
+
 Q: How do I strip signatures from sany.jar?
 A:  Call:
 
@@ -42,7 +46,7 @@ A: Since Assume - Prove proofs were defined later, the original datastructure is
 Q: What happens to multiple (unnamed) INSTANCE statments of the same module?
 A: If the module only contains declarations of variables, constants, etc it
    is accepted, but doesnt have an influence. As soon as definitions are added,
-   the second INSTANCE is not acceptable without giving in a name via
+   the second INSTANCE is not acceptable without giving it a name via
    I == INSTANCE ... . See also TLA book section 17.5.5 (p. 331 in version
    02-08-08)
 
