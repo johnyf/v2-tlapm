@@ -703,5 +703,30 @@ In this particular case, the user has control by choosing (not) to unfold $F$
 % contributes more.
 %
 
+\section{Some semantical definitions taken from ``Specifying Systems''}
+
+\subsection{Alpha-renaming during instantiation (ch. 17.5.8)}
+\todo[inline]{Fill in}
+
+\subsection{Parametrized Instance (ch. 17.5.5) }
+We consider the meaning of the statement
+
+$$I(p_1,\ldots,p_m) == \INSTANCE N\;\WITH q_1 \iwith e_1, \ldots,q_n \iwith
+  e_n$$
+
+where $N$ is a module, $q_1,\ldots,q_n$ are declared constants/variables in $N$
+ and $p_1,\ldots,p_m$ are fresh formal parameters\footnote{The book speaks of
+   constants not occcurring in $N$ instead.}. Let $Op(r_1,\ldots,r_p) = e$ be a
+ definition in $N$. Then its instance $I!Op$ is defined as
+
+$$I!Op(p_1,\ldots,p_m,r_1,\ldots,r_p) == \overline{e}$$
+
+where $\overline{e}$ has approriately alpha-renamed primed variables in the
+ context of $\ENABLED$.
+
+If the module has only constant declarations, no levels have to be checked.
+ Otherwise, the level of the instantiation term $e_i$ may not be larger than
+ the level of the declared operator $p_i$ it is replacing.
+
 
 \end{document}
