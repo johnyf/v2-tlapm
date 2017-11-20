@@ -231,7 +231,7 @@ module Constr = struct
       name arity VariableDecl
 
   let op_definition ~recursive:recursive ~term_db:tdb ~location:location
-      name body params =
+      name body params source =
     let level = List.fold_left
         (fun l -> function (fp, _) ->
             let fpi = Deref.formal_param tdb fp in
@@ -239,7 +239,7 @@ module Constr = struct
         (level_of_expr body) params in
     let arity = List.length params in
     let opd = {id = -1; location; level; name; arity;
-               body; params; recursive} in
+               body; params; source; recursive} in
     mkref_user_defined_op tdb opd
 
   let uop_def = op_definition ~recursive:false

@@ -642,14 +642,19 @@ class converter = object(self)
     let l = { location; level; body; op_defs } in
     (Any_let_in l, acc)
 
-  method subst_in acc0 ({ Sany_ds.location; level;
-                          substs; body } : Sany_ds.subst_in) =
+  method subst_in acc0 ({ Sany_ds.location; level; substs; body;
+                          instantiated_from; instantiated_into } : Sany_ds.subst_in) =
     let Any_location location, acc1 = self#location acc0 location in
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
     let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_instantiation in
-    let Any_expr body,         acc = self#expr (Nothing, acc3) body in
-    let s = ({ location; level; substs; body } : subst_in) in
-    (Any_subst_in s, acc)
+    let Any_expr body,         acc4 = self#expr (Nothing, acc3) body in
+    let Any_mule instantiated_from, acc5 =
+      self#mule (Nothing, acc4) instantiated_from in
+    let Any_mule instantiated_into, acc6 =
+      self#mule (Nothing, acc5) instantiated_into in
+    let s = ({ location; level; substs; body;
+               instantiated_from; instantiated_into } : subst_in) in
+    (Any_subst_in s, acc6)
 
   method label acc0 ({Sany_ds.location; level; name;
                       arity; body; params } : Sany_ds.label) =
@@ -666,14 +671,20 @@ class converter = object(self)
     let l = ({location; level; name; arity; body; params } : label) in
     (Any_label l, acc)
 
-  method ap_subst_in acc0 ({ Sany_ds.location;
-                             level; substs; body } : Sany_ds.ap_subst_in) =
+  method ap_subst_in acc0
+      ({ Sany_ds.location; level; substs; body;
+         instantiated_from; instantiated_into; } : Sany_ds.ap_subst_in) =
     let Any_location location, acc1 = self#location acc0 location in
     let Any_level level,       acc2 = self#level (Nothing, acc1) level in
     let substs, acc3 = fold self#subst (Nothing, acc2) substs unfold_instantiation in
-    let Any_node body, acc = self#node (Nothing, acc3) body in
-    let ap = ({ location; level; substs; body } : ap_subst_in) in
-    (Any_ap_subst_in ap, acc)
+    let Any_node body, acc4 = self#node (Nothing, acc3) body in
+    let Any_mule instantiated_from, acc5 =
+      self#mule (Nothing, acc4) instantiated_from in
+    let Any_mule instantiated_into, acc6 =
+      self#mule (Nothing, acc5) instantiated_into in
+    let ap = ({ location; level; substs; body;
+                instantiated_from; instantiated_into } : ap_subst_in) in
+    (Any_ap_subst_in ap, acc6)
 
   method def_step acc0 { Sany_ds.location; level; defs } =
     let Any_location location, acc1 = self#location acc0 location in
@@ -731,18 +742,24 @@ method private lambda acc0 { Sany_ds.location; level; name; arity;
         CCFormat.sprintf "Expected user defined op ref, not uop %s!" name in
       failwith msg
 
-  method user_defined_op_ acc0 { Sany_ds.location; level ; name ; arity ;
-                                         body ; params ; recursive ; } =
+  method user_defined_op_ acc0
+      { Sany_ds.location; level ; name ; arity ; body ;
+        params ; source; recursive ; } =
     let (Any_location location, acc1) = self#location acc0 location in
     let (Any_level level, acc2) = self#level (Nothing, acc1) level in
     let (id, acc2a) = get_id acc2 in
     let (Any_expr body, acc3) = self#expr (Nothing, acc2a) body in
     let handle_arg x (fp,_) = self#formal_param x fp in
-    let (args, acc) = fold handle_arg (Nothing, acc3)
+    let (args, acc4) = fold handle_arg (Nothing, acc3)
         params unfold_formal_param in
     let leibniz = List.map snd params in
     let params = List.combine args leibniz in
-    let op = { id; location; level; name; arity; body; params; recursive;  }
+    let source, acc = match source with
+      | Some s -> self#user_defined_op (Nothing, acc4) s
+                  |> (function | Any_user_defined_op op, acc_ -> (Some op, acc_))
+      | None -> (None, acc4)
+    in
+    let op = { id; location; level; name; arity; body; params; source; recursive;  }
     in
     (Any_user_defined_op_ op, acc)
 

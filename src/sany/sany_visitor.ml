@@ -122,7 +122,7 @@ class ['a] visitor :
     method mule acc0 = function
       | MOD_ref i -> self#reference acc0 i
       | MOD _ -> failwith "visiting module object instead of reference."
-    
+
     method mule_ acc0 = function
       | {name; location; module_entries } ->
         let acc0a = self#name acc0 name in
@@ -285,11 +285,14 @@ class ['a] visitor :
       let acc = List.fold_left self#op_def_or_theorem_or_assume acc3 op_defs in
       acc
 
-    method subst_in acc0 ({ location; level; substs; body } : subst_in) =
+    method subst_in acc0 ({ location; level; substs; body;
+                            instantiated_from; instantiated_into } : subst_in) =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = List.fold_left self#subst acc2 substs in
-      let acc = self#expr acc3 body in
+      let acc4 = self#mule acc3 instantiated_from in
+      let acc5 = self#mule acc4 instantiated_into in
+      let acc = self#expr acc5 body in
       acc
 
     method label acc0 ({location; level; name; arity; body; params } : label) =
@@ -301,11 +304,15 @@ class ['a] visitor :
       let acc = List.fold_left self#formal_param acc4 params in
       acc
 
-    method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
+    method ap_subst_in acc0 ({ location; level; substs; body;
+                               instantiated_from; instantiated_into;
+                             } : ap_subst_in) =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = List.fold_left self#subst acc2 substs in
-      let acc = self#node acc3 body in
+      let acc4 = self#mule acc3 instantiated_from in
+      let acc5 = self#mule acc4 instantiated_into in
+      let acc = self#node acc5 body in
       acc
 
     method def_step acc0 { location; level; defs } =
@@ -346,14 +353,16 @@ class ['a] visitor :
 
     method user_defined_op_ acc0 = function
       | { location; level ; name ; arity ;
-              body ; params ; recursive ; } ->
+              body ; params ; recursive ; source } ->
         let acc1 = self#location acc0 location in
         let acc2 = self#level acc1 level in
         let acc3 = self#name acc2 name in
         (* arity *)
         let acc4 = self#expr acc3 body in
-        let acc = List.fold_left
+        let acc5 = List.fold_left
             (fun x (fp,_) -> self#formal_param x fp) acc4 params in
+        let acc =
+          CCOpt.map_or ~default:acc5 (self#user_defined_op acc5) source in
         (* skip recursive flag *)
         acc
 

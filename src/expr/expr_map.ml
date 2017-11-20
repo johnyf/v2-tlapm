@@ -554,19 +554,24 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
-  method subst_in acc0 ({ location; level; substs; body } : subst_in) =
+  method subst_in acc0 ({ location; level; substs; body;
+                          instantiated_from; instantiated_into } : subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let substs, acc3 = unpack_fold id_extract#instantiation
         self#instantiation acc2 substs in
-    let acc = self#expr acc3 body in
+    let acc4 = self#expr acc3 body in
+    let acc5 = self#mule acc4 instantiated_from in
+    let acc6 = self#mule acc5 instantiated_into in
     let r = Any_subst_in {
         location = macc_extract#location acc1;
         level = macc_extract#level acc2;
         substs;
-        body = macc_extract#expr acc;
+        body = macc_extract#expr acc4;
+        instantiated_from = macc_extract#mule acc5;
+        instantiated_into = macc_extract#mule acc6;
       } in
-    set_anyexpr acc r
+    set_anyexpr acc6 r
 
   method fp_subst_in acc0 ({ location; level; substs; body } : fp_subst_in) =
     let acc1 = self#location acc0 location in
@@ -600,19 +605,24 @@ class ['a] expr_map = object(self)
       } in
     set_anyexpr acc r
 
-  method ap_subst_in acc0 ({ location; level; substs; body } : ap_subst_in) =
+  method ap_subst_in acc0 ({ location; level; substs; body;
+                             instantiated_from; instantiated_into; } : ap_subst_in) =
     let acc1 = self#location acc0 location in
     let acc2 = self#level acc1 level in
     let substs, acc3 = unpack_fold id_extract#instantiation
         self#instantiation acc2 substs in
-    let acc = self#node acc3 body in
+    let acc4 = self#node acc3 body in
+    let acc5 = self#mule acc4 instantiated_from in
+    let acc6 = self#mule acc5 instantiated_into in
     let r = Any_ap_subst_in {
         location = macc_extract#location acc1;
         level = macc_extract#level acc2;
         substs;
-        body = macc_extract#node acc;
+        body = macc_extract#node acc4;
+        instantiated_from = macc_extract#mule acc5;
+        instantiated_into = macc_extract#mule acc6;
       } in
-    set_anyexpr acc r
+    set_anyexpr acc6 r
 
   method def_step acc0 { location; level; defs } =
     let acc1 = self#location acc0 location in
@@ -675,16 +685,22 @@ class ['a] expr_map = object(self)
 
   method user_defined_op_ acc0
     { id; location; level ; name ; arity ;
-      body ; params ;  recursive; } =
+      body ; params ; source; recursive; } =
       let acc1 = self#location acc0 location in
       let acc2 = self#level acc1 level in
       let acc3 = self#name acc2 name in
       (* arity *)
       let acc4 = self#expr acc3 body in
       let fps, leibniz = List.split params in
-      let fparams, acc = unpack_fold id_extract#formal_param
+      let fparams, acc5 = unpack_fold id_extract#formal_param
           self#formal_param acc4 fps in
       let params = List.combine fparams leibniz in
+      let source, acc6 =
+        CCOpt.map_or ~default:(None,acc5)
+          (fun x -> self#user_defined_op acc5 x
+                    |> (fun acc_ -> Some (macc_extract#user_defined_op acc_), acc_))
+          source
+      in
       let r = Any_user_defined_op_ ({
           id;
           location = macc_extract#location acc1;
@@ -693,9 +709,10 @@ class ['a] expr_map = object(self)
           arity;
           body = macc_extract#expr acc4;
           params;
+          source;
           recursive;
         }) in
-      set_anyexpr acc r
+      set_anyexpr acc6 r
 
   method assume_def acc0 (ADef_ref x) =
     let acc = self#reference acc0 x in

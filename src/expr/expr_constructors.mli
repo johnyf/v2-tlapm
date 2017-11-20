@@ -23,11 +23,11 @@ module Constr : sig
   (** Constructs a variable declaration *)
 
   val uop_def : term_db:term_db -> location:location -> string -> expr ->
-    (formal_param * bool) list -> term_db * user_defined_op
+    (formal_param * bool) list -> user_defined_op option -> term_db * user_defined_op
   (** Constructs a non-recursive operator definition (recursiveness unchecked) *)
 
   val rec_uop_def : term_db:term_db -> location:location -> string -> expr ->
-    (formal_param * bool) list -> term_db * user_defined_op
+    (formal_param * bool) list -> user_defined_op option -> term_db * user_defined_op
   (** Constructs a recursive operator definition *)
 
   val neg  : term_db:term_db -> location:location -> expr_or_op_arg

@@ -109,7 +109,9 @@ and ap_subst_in = {
   location          : location;
   level             : level option;
   substs            : instantiation list;
-  body              : node
+  body              : node;
+  instantiated_from : mule;
+  instantiated_into : mule;
 }
 
 (** An instantiation of an expression. Could be expressed
@@ -120,7 +122,9 @@ and subst_in = {
   location          : location;
   level             : level option;
   substs            : instantiation list;
-  body              : expr
+  body              : expr;
+  instantiated_from : mule;
+  instantiated_into : mule;
 }
 
 (** A substitution of formal parameters in an expression. Unlike
@@ -368,6 +372,7 @@ and user_defined_op_ = {
   arity             : int;
   body              : expr;
   params            : (formal_param * bool (*is leibniz*)) list;
+  source            : user_defined_op option;
   recursive         : bool;
 }
 
