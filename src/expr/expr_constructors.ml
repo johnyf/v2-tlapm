@@ -57,6 +57,7 @@ module Constr = struct
     let op_def x = FMOTA_op_def x
     let op_decl x = FMOTA_op_decl x
     let ap_subst_in x = FMOTA_ap_subst_in x
+    let fp_subst_in x = FMOTA_ap_subst_in x
     let lamda x = FMOTA_lambda x
 
     (* accessors for common fields *)

@@ -62,15 +62,18 @@ let read_string i = match (input i) with
          No dereferencing for now?
 *)
 let rec get_children_choice ?context:(con=None) i tgs_funs =
-  let filter_by_name tag = List.filter (fun x ->
-      let p = (fst x) in let name = snd (fst tag) in p name) tgs_funs in
+  let filter_by_name tag =
+    List.filter (fun x ->
+        let p = (fst x) in
+        let name = snd (fst tag) in
+        p name) tgs_funs in
   match (peek i) with
   | `El_start tag -> (
-      match (filter_by_name tag) with (* check if one of the names applies       *)
-      | (_, f) :: _ ->              (* find the corresponding function         *)
+      match (filter_by_name tag) with (* check if one of the names applies    *)
+      | (_, f) :: _ ->             (* find the corresponding function        *)
         let child =  f i in
         child :: (get_children_choice ~context:con i tgs_funs)
-      | [] -> []                    (* if no predicate matches, return nothing *)
+      | [] -> []                   (* if no predicate matches, return nothing *)
     )
   | `El_end -> []
   | _ -> failwith ("Illegal XML element, expecting child nodes but got " ^

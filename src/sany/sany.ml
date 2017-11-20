@@ -362,12 +362,18 @@ and read_substinnode i : subst_in =
   open_tag i "body";
   let body = read_expr i in
   close_tag i "body";
+  let instantiated_from =
+    get_child_in i "instFrom" "ModuleNodeRef" read_module_ref in
+  let instantiated_into =
+    get_child_in i "instTo" "ModuleNodeRef" read_module_ref in
   close_tag i "SubstInNode";
   {
     location = location;
     level    = level;
     substs   = substs;
     body     = body;
+    instantiated_from;
+    instantiated_into;
   }
 
 (* untested *)
@@ -422,12 +428,18 @@ and read_apsubstinnode i : ap_subst_in =
   open_tag i "body";
   let body = get_child_choice i [(is_node, read_node)] in
   close_tag i "body";
+  let instantiated_from =
+    get_child_in i "instFrom" "ModuleNodeRef" read_module_ref in
+  let instantiated_into =
+    get_child_in i "instTo" "ModuleNodeRef" read_module_ref in
   close_tag i "APSubstInNode";
   {
     location = location;
     level    = level;
     substs   = substs;
     body = body;
+    instantiated_from;
+    instantiated_into;
   }
 
 and read_tuple i : bool = match (peek i) with
@@ -527,6 +539,13 @@ and read_userdefinedop_kind i  =
   let body = get_data_in i "body" read_expr in
   let params = List.flatten
       (get_optchild i "params" read_params) in
+  let source = match peek i with
+    | `El_start ((_,"source"), _) ->
+      get_child_in i "source" "UserDefinedOpKindRef"
+        (fun i -> read_ref i "UserDefinedOpKindRef" (fun x -> UOP_ref x))
+      |> CCOpt.return
+    | _ -> None
+  in
   let recursive = read_flag i "recursive" in
   let ret = UOP {
       location = loc;
@@ -535,6 +554,7 @@ and read_userdefinedop_kind i  =
       level = level;
       body = body;
       params = params;
+      source;
       recursive = recursive;
     } in
   close_tag i "UserDefinedOpKind";

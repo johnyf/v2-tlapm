@@ -495,10 +495,17 @@
             <xs:group ref="ExprNode"/>
           </xs:complexType>
         </xs:element>
-        <xs:element minOccurs="0" name="params">
+        <xs:element minOccurs="0" maxOccurs="unbounded" name="instanceparams">
           <xs:complexType>
             <xs:sequence>
                 <xs:element minOccurs="0" maxOccurs="unbounded" ref="leibnizparam"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element minOccurs="0" name="params">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element minOccurs="0" maxOccurs="unbounded" ref="leibnizparam"/>
             </xs:sequence>
           </xs:complexType>
         </xs:element>

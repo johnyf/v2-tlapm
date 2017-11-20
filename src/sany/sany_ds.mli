@@ -52,14 +52,18 @@ and ap_subst_in = {
   location          : location option;
   level             : level option;
   substs            : subst list;
-  body              : node
+  body              : node;
+  instantiated_from : mule;
+  instantiated_into : mule;
 }
 
 and subst_in = {
   location          : location option;
   level             : level option;
   substs            : subst list;
-  body              : expr
+  body              : expr;
+  instantiated_from : mule;
+  instantiated_into : mule;
 }
 
 and instance = {
@@ -172,6 +176,8 @@ and user_defined_op_ = {
   arity             : int;
   body              : expr;
   params            : (formal_param * bool (*is leibniz*)) list;
+  (* original source of definition if instantiated *)
+  source            : user_defined_op option;
   recursive         : bool
 }
 
