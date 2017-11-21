@@ -22,6 +22,7 @@ module Builtin = struct
     | BEXISTS
     (* temporal operators *)
     | PRIME
+    | ENABLED
     | TFORALL
     | TEXISTS
     | BOX
@@ -117,6 +118,12 @@ module Builtin = struct
 
     let if_then_else tdb =
       mk_builtin tdb ConstantLevel "$IfThenElse" 3 [(0,true);(0,true);(0,true)]
+
+    let prime tdb
+      = mk_builtin tdb ConstantLevel "'" 1 [(0,false)]
+
+    let enabled tdb
+      = mk_builtin tdb ConstantLevel "ENABLED" 1 [(0,false)]
   end
 
   let string_of_builtin = function
@@ -148,6 +155,7 @@ module Builtin = struct
     | TUPLE -> "$Tuple"
     | RCD_CONSTR -> "$RcdConstructor"
     | FUN_CONSTR -> "$FcnConstructor"
+    | ENABLED -> "ENABLED"
 
   let builtin_of_string = function
     | "TRUE" -> TRUE
@@ -178,6 +186,7 @@ module Builtin = struct
     | "$SquareAct" ->     SQ_BRACK
     | "$AngleAct" ->      ANG_BRACK
     | "$IfThenElse" ->    IF_THEN_ELSE
+    | "ENABLED" ->        ENABLED
     | str -> let msg = CCFormat.sprintf "Unknown builtin %s" str in
       failwith msg
 
@@ -230,6 +239,8 @@ module Builtin = struct
     | BFORALL -> ce Make.bounded_forall
     | BEXISTS -> ce Make.bounded_exists
     | TUPLE -> ce Make.tuple
+    | PRIME -> ce Make.prime
+    | ENABLED -> ce Make.enabled
     | _ ->
       let msg = CCFormat.sprintf "builtin symbol %a not yet supported" pp s in
       failwith msg

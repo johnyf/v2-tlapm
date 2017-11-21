@@ -21,6 +21,7 @@ module Builtin : sig
     | BEXISTS
     (* temporal operators *)
     | PRIME
+    | ENABLED
     | TFORALL
     | TEXISTS
     | BOX

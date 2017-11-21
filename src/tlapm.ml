@@ -12,6 +12,7 @@ open Scheduler
 open Backend_exceptions
 open Isabelle
 open Expr
+open Expr_normalize
 
 let global_settings = ref default_settings
 
