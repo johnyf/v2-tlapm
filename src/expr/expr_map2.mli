@@ -7,6 +7,10 @@ open Any_expr
 
 type ('a, 'b) macc =  'a * 'b
 
+val return  : 'b -> 'a -> ('a, 'b) macc
+val opt_map : ('a -> 'b -> 'c * 'a) -> 'a -> 'b option -> 'c option * 'a
+val fold    : ('a -> 'b -> 'c * 'a) -> 'a -> 'b list -> 'c list * 'a
+
 class ['a] expr_map : object
   method expr                   : 'a -> expr -> (expr, 'a) macc
   method name                   : 'a -> string -> (string,'a) macc

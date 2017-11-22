@@ -1,9 +1,9 @@
 open Expr_ds
 open Expr_constructors
-open Expr_map2
-open Expr_map
 open Expr_dereference
 (* open Expr_substitution *)
+
+module EMap = Expr_map2
 
 type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
@@ -17,9 +17,7 @@ let nacc_update_term_db  tdb (NAcc (_, stack, pl)) = NAcc (tdb,stack,pl)
 let nacc_update_sub_stack  stack (NAcc (tdb, _, pl)) = NAcc (tdb,stack,pl)
 
 let reset_sub_stack acc chain =
-  get_acc acc
-  |> nacc_update_sub_stack chain
-  |> set_acc acc
+  nacc_update_sub_stack chain acc
 
 let unsupported s =
   let msg = CCFormat.sprintf "Can't : %s" s in
@@ -50,16 +48,16 @@ let wrap_expr_in_subst_stack =
    while updates to the substitution chain are independent for each list
    element.
  *)
-let fold_resetting_chain_to chain handler extractor initial_acc list =
-  let (acc, rlist) =
+let fold_resetting_chain_to chain handler initial_acc list =
+  let (rlist, acc) =
     List.fold_left
-      (function (acc_, bss) ->
+      (function (bss, acc_) ->
        fun bs ->
-         handler acc_ bs
-         |> fun a -> (reset_sub_stack a chain, extractor a :: bss)
-      ) (initial_acc, []) list
+         let result, acc2 = handler acc_ bs in
+         (result :: bss, reset_sub_stack acc2 chain)
+      ) ([], initial_acc) list
   in
-  (reset_sub_stack acc chain, List.rev rlist)
+  ( List.rev rlist, reset_sub_stack acc chain)
 
 let remove_fps_from_chain fps =
   List.map (function
@@ -122,14 +120,14 @@ let is_leibniz_op tdb =
     check_params lambda.params
 
 class ['a] normalize_explicit_substs = object(self)
-  inherit ['a] expr_map
+  inherit ['a] EMap.expr_map
 
   method expr acc exp =
-    let subst_chain = get_acc acc |> get_sub_stack in
+    let subst_chain = get_sub_stack acc in
     match subst_chain with
     | [] ->
       (* nothing to do *)
-        set_anyexpr acc (Any_expr exp)
+        EMap.return acc exp
     | (OP_subst (from_module, into_module, op_subst)) :: rest_chain ->
       self#expr_op_subst acc from_module op_subst rest_chain exp
     | (FP_subst fp_subst) :: rest_chain ->
@@ -140,9 +138,7 @@ class ['a] normalize_explicit_substs = object(self)
     failwith "TODO"
 
   method private expr_fp_subst acc fp_subst rest_chain =
-    let me = self#get_macc_extractor in
-    let set_expr acc e = set_anyexpr acc (Any_expr e) in
-    let term_db = get_acc acc |> get_termdb in
+    let term_db = get_termdb acc in
     function
     (* unhandled statements *)
     | E_at _ -> failwith "unhandled at statement"
@@ -153,7 +149,7 @@ class ['a] normalize_explicit_substs = object(self)
     | E_decimal _
     | E_string _
     | E_numeral _ as exp ->
-      set_anyexpr acc (Any_expr exp)
+      EMap.return acc exp
     (* application and abstraction *)
     | E_op_appl {location; level;
                  operator = FMOTA_formal_param fp; operands = []} as e ->
@@ -165,47 +161,34 @@ class ['a] normalize_explicit_substs = object(self)
           failwith "Can't substitute an op_arg for an expression!"
       in
       (* recurse on remaining stack of substs *)
-      let nacc0 = get_acc acc |> nacc_update_sub_stack rest_chain in
-      let acc0 = set_acc acc nacc0 in
+      let acc0 = nacc_update_sub_stack rest_chain acc in
       self#expr acc0 expr
     | E_op_appl {location; level; operator; operands = []} ->
       (* operator without arguments, no fp operator *)
-      let acc0 = self#operator acc operator in
-      E_op_appl {location; level; operator; operands = []} |> set_expr acc0
+      let operator, acc0 = self#operator acc operator in
+      E_op_appl {location; level; operator; operands = []} |> EMap.return acc0
     | E_op_appl {location; level; operator; operands = []} ->
       (* operator without arguments *)
-      let acc0 = self#operator acc operator in
-      E_op_appl {location; level; operator; operands = []}  |> set_expr acc0
+      let operator, acc0 = self#operator acc operator in
+      E_op_appl {location; level; operator; operands = []}  |> EMap.return acc0
     | E_op_appl {location; level; operator; operands}
       when is_leibniz_op term_db operator ->
       (* safe first order operator *)
-      let chain = get_acc acc |> get_sub_stack in
-      let acc0 = self#operator acc operator in
+      let chain = get_sub_stack acc in
+      let operator, acc0 = self#operator acc operator in
       (* we need to apply the original substitution to every argument,
          not the modified one from the accumulator *)
       let iacc0 = reset_sub_stack acc0 chain in
-      let acc1, operands =
-        fold_resetting_chain_to
-          chain self#expr_or_op_arg me#expr_or_op_arg
-          iacc0 operands
-      (*
-        List.fold_left (fun (facc,ops) oa ->
-          let iacc = get_acc facc
-                     |> nacc_update_sub_stack chain
-                     |> set_acc facc in
-          let iacc0 = self#expr_or_op_arg iacc oa in
-          (iacc0, me#expr_or_op_arg iacc0 :: ops)
-        ) (acc0, []) operands
-      *)
+      let operands, acc1 =
+        fold_resetting_chain_to chain self#expr_or_op_arg iacc0 operands
       in
-      let operator = me#operator acc0 in
       let e = E_op_appl {location; level; operator; operands } in
-      set_anyexpr acc1 (Any_expr e)
+      EMap.return acc1 e
     | E_op_appl {location; level; operator; operands} as expr
       (* when not (is_leibniz_op term_db operator) *) ->
       (* unsafe first order operator *)
       let e = wrap_expr_in_subst_stack expr ((FP_subst fp_subst) :: rest_chain) in
-      set_anyexpr acc (Any_expr e)
+      EMap.return acc e
     | E_binder {location; level; operator; operand; bound_symbols } ->
       let bound_fps = List.fold_left (fun list -> function
           | B_bounded_bound_symbol {params; _} ->
@@ -213,44 +196,38 @@ class ['a] normalize_explicit_substs = object(self)
           | B_unbounded_bound_symbol {param; _} ->
             param::list
         ) [] bound_symbols in
-      let chain = get_acc acc |> get_sub_stack in
-      let new_chain = remove_fps_from_chain bound_fps chain
-      in
+      let chain = get_sub_stack acc in
+      let new_chain = remove_fps_from_chain bound_fps chain in
       (* TODO: rename if bound fp in range *)
-      let acc0 = self#operator acc operator in
+      let operator, acc0 = self#operator acc operator in
       (* we need to apply the original substitution to every argument,
          not the modified one from the accumulator *)
       let iacc0 = reset_sub_stack acc0 chain in
-      let acc1 =  self#expr_or_op_arg iacc0 operand in
-      let iacc1 = reset_sub_stack acc0 chain in
-      let acc2, bounded_symbols =
+      let operand, acc1 =  self#expr_or_op_arg iacc0 operand in
+      let iacc1 = reset_sub_stack acc1 chain in
+      let bounded_symbols, acc2 =
         fold_resetting_chain_to chain
-          self#bound_symbol me#bound_symbol iacc1 bound_symbols
+          self#bound_symbol iacc1 bound_symbols
       in
-      let operator = me#operator acc0 in
-      let operand =  me#expr_or_op_arg iacc0 in
       let e = E_binder {location; level; operator; operand; bound_symbols } in
-      set_anyexpr acc1 (Any_expr e)
+      EMap.return acc2 e
     (* conversion of explicit substs into the stack *)
     | E_subst_in {location; level; substs; body;
                   instantiated_from; instantiated_into; } ->
       (* convert instantiation into param *)
       let new_head = OP_subst (instantiated_from, instantiated_into, substs) in
       let new_chain = new_head :: (FP_subst fp_subst) :: rest_chain in
-      let inner_acc = get_acc acc |> nacc_update_sub_stack new_chain in
-      let acc0 = set_acc acc inner_acc in
+      let acc0 = nacc_update_sub_stack new_chain acc in
       (* recurse *)
       self#expr acc0 body
     | E_fp_subst_in { location; level; substs; body; } ->
       let new_rest_chain = (FP_subst fp_subst) :: rest_chain in
       let new_chain = (FP_subst substs) :: new_rest_chain in
-      let inner_acc = get_acc acc |> nacc_update_sub_stack new_chain in
-      let acc0 = set_acc acc inner_acc in
+      let acc0 = nacc_update_sub_stack new_chain acc in
       (* recurse, into expr fp case *)
       self#expr_fp_subst acc0 substs new_rest_chain body
 
-  method operator acc =
-    let (NAcc (termdb, subst_chain,_)) = Expr_map.get_acc acc in
+  method operator (NAcc (termdb, subst_chain,_)) =
     function
     | _ -> failwith "TODO"
 

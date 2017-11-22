@@ -6,42 +6,12 @@ open Util
 
 type ('a, 'b) macc =  'a * 'b
 
-(*
-let rec mfold ?first:(first=true) (up:anyExpr -> 'c)
-    (f:'a macc -> 'b -> 'a macc)
-    (start_acc:'a macc)
-    (list: 'b list) =
-  match list with
-  | x::xs ->
-    let nacc = f start_acc x in
-    let any = get_anyexpr nacc in
-    let result = mfold ~first:false up f nacc xs in
-    let rany, racc = result in
-    (up any :: rany, racc)
-  | [] ->
-    ([], start_acc)
-*)
-
-(*
-let fold f acc l =
-  let up x = x in
-  let anys, racc = mfold up f acc l in
-  (anys, racc)
-
-*)
-
 let fold f acc l =
   List.fold_left (function (rs,acc) -> fun x ->
       let r, acc_ = f acc x in (r::rs, acc_)) ([], acc) l
 
-(*
-let unpack_fold unpack f acc l =
-  let anys, racc = mfold unpack f acc l in
-  assert ((List.length l) = (List.length anys));
-  (anys, racc)
-*)
-
 let return acc x = (x, acc)
+
 let opt_map f acc = function
   | Some x -> let r, acc_ = f acc x in (Some r, acc_)
   | None -> (None, acc)
