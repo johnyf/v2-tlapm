@@ -14,11 +14,8 @@ let test_expr_map record () =
     | Some x -> x
     | None -> failwith ("No expression content for " ^ record.filename ^ "!")
   in
-  let me = mapper#get_macc_extractor in
-  let acc = mapper#context
-      (Nothing, (old_context.entries, IntMap.empty))
-      old_context in
-  let new_context = me#context acc  in
+  let new_context, acc =
+    mapper#context (old_context.entries, IntMap.empty) old_context in
   (*
   let mids = Expr_termdb_utils.mentioned_ids new_context.entries  in
   let eids = Expr_termdb_utils.entry_ids new_context.entries  in
