@@ -1,8 +1,9 @@
 open Expr_ds
 open Expr_constructors
+open Expr_map2
 open Expr_map
 open Expr_dereference
-open Expr_substitution
+(* open Expr_substitution *)
 
 type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
