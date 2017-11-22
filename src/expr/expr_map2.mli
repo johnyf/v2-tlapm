@@ -1,7 +1,5 @@
 open Commons
 open Expr_ds
-open Expr_visitor
-open Any_expr
 
 (** A stricter map than expr_map without using any_expr *)
 

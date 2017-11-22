@@ -1,7 +1,5 @@
 open Commons
 open Expr_ds
-open Expr_visitor
-open Any_expr
 open Util
 
 type ('a, 'b) macc =  'a * 'b

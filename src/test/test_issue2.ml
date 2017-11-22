@@ -1,16 +1,12 @@
 open Kaputt
 open Kaputt.Abbreviations
-open Any_expr
 open Expr_ds
-open Expr_map
 open Expr_formatter
 open Obligation
 open Obligation_formatter
 open Format
 open Util
 open Test_common
-
-
 
 let test_map record =
   Test.make_assert_test

@@ -1,14 +1,14 @@
-open Any_expr
 open List
 open Util
 open Expr_ds
-open Expr_map
 open Expr_utils
 open Expr_dereference
 open Expr_termdb_utils
 open Expr_termdb_utils.DeepTraversal
 open Expr_formatter
 open Format
+
+module EMap = Expr_map2
 
 let debug f = () (* ignore(f ()) *)
 
@@ -178,22 +178,21 @@ module SubFormat = struct
 end
 
 class ['a] expr_substitution = object(self)
-  inherit ['a subst_acc] expr_map as super
+  inherit ['a subst_acc] EMap.expr_map as super
 
   method expr acc = function
     (* formal param replaced by expression *)
     | E_op_appl { location; level;
                   operator = FMOTA_formal_param fp; operands = [] }  ->
-      let sacc = get_acc acc in
       begin
-        match Subst.find_subst sacc.term_db fp sacc.substs with
+        match Subst.find_subst acc.term_db fp acc.substs with
         | None ->
           let e = E_op_appl { location; level;
                               operator = FMOTA_formal_param fp;
                               operands = []; } in
-          set_anyexpr acc (Any_expr e)
+          EMap.return acc e
         | Some (EO_expr e) ->
-          set_anyexpr acc (Any_expr e)
+          EMap.return acc e
         | Some (EO_op_arg o) ->
           failwith "Tried to replace an expression by an operator."
       end
@@ -222,31 +221,30 @@ class ['a] expr_substitution = object(self)
     super#op_appl acc appl
 
   method unbounded_bound_symbol acc { param; tuple } =
-    let sacc = get_acc acc in
-    let free = Subst.range sacc.term_db sacc.substs in
+    let free = Subst.range acc.term_db acc.substs in
     let bound : formal_param list = concat
         [ (* [param]; *)
-          (Subst.formal_params_in_range sacc.term_db sacc.substs);
-          sacc.bound_context;
+          (Subst.formal_params_in_range acc.term_db acc.substs);
+          acc.bound_context;
         ]
     in
-    let (rterm_db, rparam) = Subst.rename sacc.term_db ~free ~bound param in
+    let (rterm_db, rparam) = Subst.rename acc.term_db ~free ~bound param in
     let (bound_context, bound_renaming) =
-      (rparam :: sacc.bound_context, (param, rparam) :: sacc.bound_renaming)
+      (rparam :: acc.bound_context, (param, rparam) :: acc.bound_renaming)
     in
-    let acc0 = set_acc acc { term_db = rterm_db;
-                             substs = sacc.substs;
-                             bound_context;
-                             bound_renaming;
-                             subclass_acc = ();
-                           } in
+    let acc0 = { term_db = rterm_db;
+                 substs = acc.substs;
+                 bound_context;
+                 bound_renaming;
+                 subclass_acc = ();
+               }
+    in
     let ubs = { param = rparam; tuple; } in
-    set_anyexpr acc0 (Any_unbounded_bound_symbol ubs)
+    EMap.return acc0 ubs
 
   method bounded_bound_symbol acc { params; tuple; domain } =
     (* recurse into domain first, SANY does not allow params
        in the domain *)
-    let sacc = get_acc acc in
     (*
     let acc0  = self#expr acc domain in
     let sacc0 = get_acc acc0 in
@@ -254,11 +252,11 @@ class ['a] expr_substitution = object(self)
      *)
     let bound = concat
         [ (* params; *)
-          (Subst.formal_params_in_range sacc.term_db sacc.substs);
-          sacc.bound_context;
+          (Subst.formal_params_in_range acc.term_db acc.substs);
+          acc.bound_context;
         ]
     in
-    let free = Subst.range sacc.term_db sacc.substs in
+    let free = Subst.range acc.term_db acc.substs in
     (* do renaming of symbols, if neccessary *)
     let (rterm_db, rparams_reverse, _blacklist) =
       fold_left (function
@@ -269,7 +267,7 @@ class ['a] expr_substitution = object(self)
               in
               (db, rp::rps, rp::bl)
         )
-        (sacc.term_db, [], bound) params
+        (acc.term_db, [], bound) params
     in
     (* restore parameter order *)
     let rparams = rev rparams_reverse in
@@ -284,7 +282,7 @@ class ['a] expr_substitution = object(self)
     in
     debug (fun () ->
         fprintf std_formatter "@[<v>Params : %a @,Rparams: %a@,@]"
-          (fmt_list (fmt_formal_param sacc.term_db)) params
+          (fmt_list (fmt_formal_param acc.term_db)) params
           (fmt_list (fmt_formal_param rterm_db)) rparams
         ;
         fprintf std_formatter "@[<v>Mapping: %a (bounded)@,@]"
@@ -293,28 +291,26 @@ class ['a] expr_substitution = object(self)
     (* add new symbols to bound context *)
     let bound_context =  append bound rparams
     in
-    let acc0 = set_acc acc { term_db = rterm_db;
-                             substs = sacc.substs;
-                             bound_context =
-                               append sacc.bound_context bound_context;
-                             bound_renaming =
-                               append sacc.bound_renaming bound_renaming;
-                             subclass_acc = ();
+    let acc0 = { term_db = rterm_db;
+                 substs = acc.substs;
+                 bound_context =
+                   append acc.bound_context bound_context;
+                 bound_renaming =
+                   append acc.bound_renaming bound_renaming;
+                 subclass_acc = ();
                            } in
-    let acc1  = self#expr acc0 domain in
-    let domain = self#get_macc_extractor#expr acc1 in
+    let domain, acc1  = self#expr acc0 domain in
     let ubs = { params = rparams; tuple; domain } in
-    set_anyexpr acc1 (Any_bounded_bound_symbol ubs)
+    EMap.return acc1 ubs
 
   method operator acc = function
     | FMOTA_formal_param fp as op ->
-      let sacc = get_acc acc in
       begin
-        match Subst.find_subst sacc.term_db fp sacc.substs with
+        match Subst.find_subst acc.term_db fp acc.substs with
         | None ->
-          set_anyexpr acc (Any_operator op)
+          EMap.return acc op
         | Some (EO_op_arg { location; level; argument }) ->
-          set_anyexpr acc (Any_operator argument)
+          EMap.return acc argument
         | Some (EO_expr e) ->
           failwith "Tried to replace an expression by an operator."
       end
@@ -324,20 +320,17 @@ class ['a] expr_substitution = object(self)
     | FMOTA_lambda lambda           as op -> super#operator acc op
 
   method binder acc { location; level; operator; operand; bound_symbols } =
-    let sacc = get_acc acc in
     debug
       (fun () -> fprintf std_formatter
-          "Binder acc: @.%a@." SubFormat.fmt_sacc sacc) ;
+          "Binder acc: @.%a@." SubFormat.fmt_sacc acc) ;
     (* process bound symbols to get the renaming *)
-    let ie = self#get_id_extractor in
     let bound_symbols, acc0 =
-      unpack_fold ie#bound_symbol self#bound_symbol acc bound_symbols in
+      EMap.fold self#bound_symbol acc bound_symbols in
     (* apply renaming to operand, the operator is always a built-in and
           doesn't need to be processed *)
-    let sacc0 = get_acc acc0 in
     debug (fun () ->
         fprintf std_formatter "After processing bound sybols:@.%a@."
-          SubFormat.fmt_sacc sacc0)
+          SubFormat.fmt_sacc acc0)
     ;
     let renaming_substs =
       map (function (param,y) ->
@@ -345,25 +338,24 @@ class ['a] expr_substitution = object(self)
           let expr = EO_op_arg { location; level; argument } in
           { param; expr; }
         )
-        sacc0.bound_renaming
+        acc0.bound_renaming
     in
     debug (fun () ->
         fprintf std_formatter "Bound vars #: %d (binder)@.Renamed #: %d (binder)@."
           (length bound_symbols) (length renaming_substs));
-    let sacc1 = { substs = renaming_substs;
-                  term_db = sacc0.term_db;
-                  bound_context = sacc0.bound_context;
-                  bound_renaming = sacc0.bound_renaming;
+    let acc1 = { substs = renaming_substs;
+                  term_db = acc0.term_db;
+                  bound_context = acc0.bound_context;
+                  bound_renaming = acc0.bound_renaming;
                   subclass_acc = ();
                 } in
-    let acc1 = set_acc acc0 sacc1  in
     debug (fun () ->
         fprintf std_formatter
           "Renaming acc: @.%a to %a@."
-          SubFormat.fmt_sacc sacc1
-          (fmt_expr_or_op_arg sacc1.term_db) operand)
+          SubFormat.fmt_sacc acc1
+          (fmt_expr_or_op_arg acc1.term_db) operand)
     ;
-    let any_renamed_operand, sacc2 = self#expr_or_op_arg acc1 operand in
+    let renamed_operand, acc2 = self#expr_or_op_arg acc1 operand in
     (* apply substitution to renamed operator *)
     (* TODO: the renaming assures that we don't need to remove the old
        bound variables from the substitution. Decide if we want to remove them
@@ -372,47 +364,43 @@ class ['a] expr_substitution = object(self)
        Right now, we also do not rename if there is a collision with a
        formal parameter bound in one of the domains in bound_symbols.
     *)
-    let sacc3 = { term_db = sacc2.term_db;
-                  substs = sacc.substs;
-                  bound_context = sacc2.bound_context;
+    let acc3 = { term_db = acc2.term_db;
+                  substs = acc.substs;
+                  bound_context = acc2.bound_context;
                   bound_renaming = [];
                   subclass_acc = ();
                 } in
-    let acc3 = (any_renamed_operand, sacc3) in
-    let any_substituted_operand, sacc4 =
-      ie#expr_or_op_arg any_renamed_operand
-      |> self#expr_or_op_arg acc3
+    let substituted_operand, sacc4 =
+      self#expr_or_op_arg acc3 renamed_operand
     in
     (* create binder for return value *)
     let binder = { location; level; operator;
-                   operand = ie#expr_or_op_arg any_substituted_operand;
+                   operand = substituted_operand;
                    bound_symbols }
     in
     (* create subst accumulator for passing up *)
     let bsacc = { term_db = sacc4.term_db;
-                  substs = sacc.substs;
-                  bound_context = sacc.bound_context;
-                  bound_renaming = sacc.bound_renaming;
+                  substs = acc.substs;
+                  bound_context = acc.bound_context;
+                  bound_renaming = acc.bound_renaming;
                   subclass_acc = ();
                 } in
-    (Any_binder binder, bsacc)
+    EMap.return bsacc binder
 
-  method user_defined_op acc = function
-    | UOP_ref uid as uop ->
-      set_anyexpr acc (Any_user_defined_op uop)
+  method user_defined_op acc uop =
+      EMap.return acc uop
 
   method user_defined_op_ acc uop =
       (* Don't recurse into the body, any substitution is applied
          to the arguments as soon as the operator is applied.
       *)
-      set_anyexpr acc (Any_user_defined_op_ uop)
+      EMap.return acc uop
 
   method bound_symbol acc b =
-    SubFormat.print_acc ~text:"Bound symbol before:" (get_acc acc) |> debug;
-    let acc0 = super#bound_symbol acc b in
-    SubFormat.print_acc ~text:"Bound symbol after:" (get_acc acc0) |> debug;
-    acc0
-
+    SubFormat.print_acc ~text:"Bound symbol before:" acc |> debug;
+    let bs, acc0 = super#bound_symbol acc b in
+    SubFormat.print_acc ~text:"Bound symbol after:" acc0 |> debug;
+    EMap.return acc0 bs
 
   method context acc _ =
     failwith "Can't apply a substitution to a context."
@@ -422,17 +410,15 @@ end
 let instance = new expr_substitution
 
 let subst_expr term_db substs expr =
-  instance#expr (Nothing, { term_db; substs;
-                            bound_context = []; bound_renaming = [];
-                            subclass_acc = ();
-                          }) expr
-  |> (function | (x, { term_db; _ }) ->
-      (instance#get_id_extractor#expr x,term_db))
+  instance#expr { term_db; substs;
+                  bound_context = []; bound_renaming = [];
+                  subclass_acc = ();
+                } expr
+  |> function (expr, {term_db; _}) -> (expr, term_db)
 
 let subst_op term_db substs op =
-  instance#operator (Nothing, { term_db; substs;
-                                bound_context = []; bound_renaming = [];
-                                subclass_acc = ();
-                              }) op
-  |> (function | (x, { term_db; _ }) ->
-      (instance#get_id_extractor#operator x,term_db))
+  instance#operator { term_db; substs;
+                      bound_context = []; bound_renaming = [];
+                      subclass_acc = ();
+                    } op
+  |> function (op, {term_db; _}) -> (op, term_db)
