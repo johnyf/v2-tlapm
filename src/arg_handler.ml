@@ -86,8 +86,8 @@ let handlers s =
   ]
 
 let use_string =
-  ("usage: tlapm [-fingerprints] [-xml-input] [-with-java path]" ^
-   "[-check-schema] [-toolbox from to] input_file")
+  ("usage: tlapm [--fingerprints] [--xml-input] [--with-java path]" ^
+   "[--check-schema] [--toolbox from to] input_file")
 
 let handle_arguments argv =
   let s = { settings = default_settings } in
