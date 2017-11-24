@@ -1,0 +1,8 @@
+__tlacache__
+*.tlaps
+_build/
+.aux
+*.pdf
+*.dvi
+*.swp
+*.log
