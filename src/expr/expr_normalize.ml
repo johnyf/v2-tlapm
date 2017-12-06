@@ -1,3 +1,4 @@
+open Util
 open Expr_ds
 open Expr_constructors
 open Expr_dereference
@@ -9,12 +10,13 @@ type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
   | OP_subst of Expr_ds.mule * Expr_ds.mule * Expr_ds.instantiation list
 
-type 'a nacc = NAcc of term_db * sub_stack list * 'a
+type 'a nacc = NAcc of term_db * sub_stack list * IntSet.t * 'a
 
-let get_termdb (NAcc (tdb,_,_)) = tdb
-let get_sub_stack (NAcc (_,stack,_)) = stack
-let nacc_update_term_db  tdb (NAcc (_, stack, pl)) = NAcc (tdb,stack,pl)
-let nacc_update_sub_stack  stack (NAcc (tdb, _, pl)) = NAcc (tdb,stack,pl)
+let get_termdb (NAcc (tdb,_,_,_)) = tdb
+let get_sub_stack (NAcc (_,stack,_,_)) = stack
+let get_unfolded_defs (NAcc (_,_,ids,_)) = ids
+let nacc_update_term_db  tdb (NAcc (_, stack, ids, pl)) = NAcc (tdb,stack,ids,pl)
+let nacc_update_sub_stack  stack (NAcc (tdb, _, ids, pl)) = NAcc (tdb,stack,ids,pl)
 
 let reset_sub_stack acc chain =
   nacc_update_sub_stack chain acc
@@ -30,6 +32,27 @@ let check_fpsubst fp_substs =
           Util.IntSet.add id set)
       Util.IntSet.empty fp_substs in
   Util.IntSet.cardinal ids = List.length fp_substs
+
+let fp_subst_lookup_or ~default:default narrow fp assignments =
+  CCList.find_pred (function {param; expr } -> param = fp) assignments
+  |> CCOpt.map_or ~default (function {param; expr } -> narrow expr)
+
+let fp_subst_lookup_or_op ~default:op =
+  let narrow = function
+    | EO_expr e -> failwith "implementation error"
+    | EO_op_arg {location; level; argument } ->
+      argument
+  in
+  fp_subst_lookup_or ~default:op narrow
+
+let fp_subst_lookup_or_expr ~default:op =
+  let narrow = function
+    | EO_expr e -> e
+    | EO_op_arg {location; level; argument } ->
+      failwith "implementation error"
+  in
+  fp_subst_lookup_or ~default:op narrow
+
 
 let wrap_expr_in_subst_stack =
   (* TODO: fix location and level, check order of substs applied *)
@@ -119,12 +142,24 @@ let is_leibniz_op tdb =
   | FMOTA_lambda lambda ->
     check_params lambda.params
 
+type node_type =
+  | Expr of expr * ap_subst_in list
+  | AssumeProve of assume_prove * ap_subst_in list
+
+(* returns the sequence of instantiations and the final expr / assume prove *)
+let node_type =
+  let rec aux acc = function
+    | N_expr e -> Expr (e, acc)
+    | N_assume_prove ap -> AssumeProve (ap, acc)
+    | N_ap_subst_in aps -> aux (aps::acc) aps.body
+  in aux []
+
+
 class ['a] normalize_explicit_substs = object(self)
   inherit ['a] EMap.expr_map
 
   method expr acc exp =
-    let subst_chain = get_sub_stack acc in
-    match subst_chain with
+    match get_sub_stack acc with
     | [] ->
       (* nothing to do *)
         EMap.return acc exp
@@ -139,6 +174,7 @@ class ['a] normalize_explicit_substs = object(self)
 
   method private expr_fp_subst acc fp_subst rest_chain =
     let term_db = get_termdb acc in
+    let unfolded_defs = get_unfolded_defs acc in
     function
     (* unhandled statements *)
     | E_at _ -> failwith "unhandled at statement"
@@ -153,16 +189,42 @@ class ['a] normalize_explicit_substs = object(self)
     (* application and abstraction *)
     | E_op_appl {location; level;
                  operator = FMOTA_formal_param fp; operands = []} as e ->
-      (* operator without arguments, direct fp application *)
-      let expr = match apply_fpsubst fp fp_subst with
-        | Some (EO_expr e) -> e (* subst applied *)
-        | None -> e             (* fp is not in subst *)
-        | Some (EO_op_arg _) ->
-          failwith "Can't substitute an op_arg for an expression!"
-      in
+      let expr = fp_subst_lookup_or_expr ~default:e fp fp_subst in
       (* recurse on remaining stack of substs *)
       let acc0 = nacc_update_sub_stack rest_chain acc in
       self#expr acc0 expr
+    | E_op_appl {location; level;
+                 operator = FMOTA_op_def (O_thm_def (TDef_ref id as td)) ;
+                 operands = []}
+        when IntSet.mem id unfolded_defs ->
+        (* use of an (instantiated) theorem definition inside an expression *)
+        let tdi = Deref.theorem_def term_db td in (
+          match node_type tdi.body with
+          | Expr (e, substs) ->
+            (* create new OP_subst elements for the chain *)
+            let new_chain = CCList.fold_left
+                (fun rest_substs ->
+                   function ({location; level; substs; body;
+                              instantiated_from; instantiated_into; }
+                             : ap_subst_in)  ->
+                     let ops =
+                       OP_subst (instantiated_from, instantiated_into, substs)
+                     in
+                     ops  :: rest_substs )
+                ((FP_subst fp_subst) :: rest_chain) substs in
+            let acc0 = nacc_update_sub_stack new_chain acc in
+            (* handle the inner expression with the new stack *)
+            self#expr acc0 e
+          | AssumeProve _ ->
+            failwith ("Implementation error: trying to unfold"^
+                      " an assume prove definition into an expression.")
+        )
+    | E_op_appl {location; level;
+                 operator = FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
+                 operands = []}
+      when IntSet.mem id unfolded_defs ->
+      let uopi = Deref.user_defined_op term_db uop in
+      ()
     | E_op_appl {location; level; operator; operands = []} ->
       (* operator without arguments, no fp operator *)
       let operator, acc0 = self#operator acc operator in
@@ -227,9 +289,45 @@ class ['a] normalize_explicit_substs = object(self)
       (* recurse, into expr fp case *)
       self#expr_fp_subst acc0 substs new_rest_chain body
 
-  method operator (NAcc (termdb, subst_chain,_)) =
+  method operator acc op =
+    match get_sub_stack acc with
+    | [] ->
+      (* nothing to do *)
+        EMap.return acc op
+    | (OP_subst (from_module, into_module, op_subst)) :: rest_chain ->
+      self#operator_op_subst acc from_module op_subst rest_chain op
+    | (FP_subst fp_subst) :: rest_chain ->
+      self#operator_fp_subst acc fp_subst rest_chain op
+
+
+  method private operator_fp_subst acc fp_subst rest_chain =
+    let NAcc (termdb, subst_chain, unfolded_defs, _) = acc in
     function
-    | _ -> failwith "TODO"
+    | (FMOTA_formal_param formal_param) as op ->
+      let op_ = fp_subst_lookup_or_op ~default:op formal_param fp_subst in
+      let acc1 = nacc_update_sub_stack rest_chain acc in
+      (* recurse remaining chains *)
+      self#operator acc1 op_
+    | (FMOTA_op_decl _) as op ->
+      let acc1 = nacc_update_sub_stack rest_chain acc in
+      EMap.return acc1 op
+    | FMOTA_ap_subst_in {location; level; substs; body;
+                         instantiated_from; instantiated_into; } ->
+      (*
+      let new_head = OP_subst (instantiated_from, instantiated_into, substs) in
+      let acc1 = nacc_update_sub_stack
+          (new_head :: (FP_subst fp_subst) :: rest_chain) acc in
+      self#node acc1 body
+      *)
+      failwith ("Implementation error:"^
+                "the ap_subst_in operator needs to be handled within expr")
+    | FMOTA_lambda lambda ->
+      failwith "TODO"
+    | FMOTA_op_def op_def ->
+      failwith "TODO"
+
+  method private operator_op_subst (NAcc (termdb, subst_chain,_)) =
+    failwith "TODO"
 
   method proof _ = unsupported "proof"
   method assume _ = unsupported "assume"
