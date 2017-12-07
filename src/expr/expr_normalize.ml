@@ -10,19 +10,40 @@ type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
   | OP_subst of Expr_ds.mule * Expr_ds.mule * Expr_ds.instantiation list
 
-type 'a nacc = NAcc of term_db * sub_stack list * int * int IntMap.t * 'a
+(* The accumulator holds:
+   * the term db (for dereferencing, may be updated)
+   * the current stack of substitutions / instantiations to apply
+   * the recursion limit (static)
+   * a mapping from user defined operator ids to the number of their unfolding.
+     ids not contained in the map will not be unfolded.
+   * a list of forbidden names during name generation (may be updated)
+   * a set of forbidden ids to generate, to speed up generation of new operators
+     (may be updated)
+   * a container to be filled by derived classes
+*)
+type 'a nacc = {
+  term_db : term_db;
+  current_chain : sub_stack list;
+  recursion_limit : int;
+  unfolded_uops : int IntMap.t;
+  forbidden_names : StringSet.t;
+  forbidden_ids   : IntSet.t;
+  inner_container : 'a;
+}
 
-let get_termdb (NAcc (tdb,_,_,_,_)) = tdb
-let get_sub_stack (NAcc (_,stack,_,_,_)) = stack
-let get_recursion_limit (NAcc (_,_,limit,_,_)) = limit
-let get_unfolded_defs (NAcc (_,_,_,ids,_)) = ids
-let nacc_update_term_db  tdb (NAcc (_, stack, limit, ids, pl)) = NAcc (tdb,stack,limit,ids,pl)
-let nacc_update_sub_stack  stack (NAcc (tdb, _, limit, ids, pl)) = NAcc (tdb,stack,limit,ids,pl)
-let nacc_update_unfolded_defs ids (NAcc (tdb, stack, limit, _, pl)) = NAcc (tdb,stack,limit,ids,pl)
+let get_termdb acc = acc.term_db
+let get_sub_stack acc = acc.current_chain
+let get_recursion_limit acc = acc.recursion_limit
+let get_unfolded_defs acc = acc.unfolded_uops
+
+let nacc_update_term_db term_db acc = { acc with term_db }
+let nacc_update_sub_stack current_chain acc = { acc with current_chain }
+let nacc_update_unfolded_defs unfolded_uops acc = { acc with unfolded_uops }
 
 let nacc_inc_id_counter id nacc =
   let map = get_unfolded_defs nacc in
-  let idcount = IntMap.get_or ~default:(failwith "Tried to increase untracked id count!") id map in
+  let idcount = IntMap.get_or
+      ~default:(failwith "Tried to increase untracked id count!") id map in
   let new_map = IntMap.add id (idcount+1) map in
   nacc_update_unfolded_defs new_map nacc
 
@@ -36,7 +57,6 @@ let within_recursion_limit uop nacc =
     let count = IntMap.get_or ~default:limit uopi.id unfolded_defs in
     count < limit
   end
-  
 
 let reset_sub_stack acc chain =
   nacc_update_sub_stack chain acc
@@ -324,7 +344,7 @@ class ['a] normalize_explicit_substs = object(self)
 
 
   method private operator_fp_subst acc fp_subst rest_chain =
-    let NAcc (termdb, subst_chain, _recursion_limit, _unfolded_defs, _) = acc in
+    let { term_db; current_chain; _ } = acc in
     function
     | (FMOTA_formal_param formal_param) as op ->
       let op_ = fp_subst_lookup_or_op ~default:op formal_param fp_subst in
@@ -349,7 +369,7 @@ class ['a] normalize_explicit_substs = object(self)
     | FMOTA_op_def op_def ->
       failwith "TODO"
 
-  method private operator_op_subst (NAcc (termdb, subst_chain,_,_,_)) =
+  method private operator_op_subst acc =
     failwith "TODO"
 
   method proof _ = unsupported "proof"
