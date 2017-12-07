@@ -10,13 +10,33 @@ type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
   | OP_subst of Expr_ds.mule * Expr_ds.mule * Expr_ds.instantiation list
 
-type 'a nacc = NAcc of term_db * sub_stack list * IntSet.t * 'a
+type 'a nacc = NAcc of term_db * sub_stack list * int * int IntMap.t * 'a
 
-let get_termdb (NAcc (tdb,_,_,_)) = tdb
-let get_sub_stack (NAcc (_,stack,_,_)) = stack
-let get_unfolded_defs (NAcc (_,_,ids,_)) = ids
-let nacc_update_term_db  tdb (NAcc (_, stack, ids, pl)) = NAcc (tdb,stack,ids,pl)
-let nacc_update_sub_stack  stack (NAcc (tdb, _, ids, pl)) = NAcc (tdb,stack,ids,pl)
+let get_termdb (NAcc (tdb,_,_,_,_)) = tdb
+let get_sub_stack (NAcc (_,stack,_,_,_)) = stack
+let get_recursion_limit (NAcc (_,_,limit,_,_)) = limit
+let get_unfolded_defs (NAcc (_,_,_,ids,_)) = ids
+let nacc_update_term_db  tdb (NAcc (_, stack, limit, ids, pl)) = NAcc (tdb,stack,limit,ids,pl)
+let nacc_update_sub_stack  stack (NAcc (tdb, _, limit, ids, pl)) = NAcc (tdb,stack,limit,ids,pl)
+let nacc_update_unfolded_defs ids (NAcc (tdb, stack, limit, _, pl)) = NAcc (tdb,stack,limit,ids,pl)
+
+let nacc_inc_id_counter id nacc =
+  let map = get_unfolded_defs nacc in
+  let idcount = IntMap.get_or ~default:(failwith "Tried to increase untracked id count!") id map in
+  let new_map = IntMap.add id (idcount+1) map in
+  nacc_update_unfolded_defs new_map nacc
+
+let within_recursion_limit uop nacc =
+  let term_db = get_termdb nacc in
+  let uopi = Deref.user_defined_op term_db uop in
+  (not uopi.recursive) ||
+  begin
+    let limit = get_recursion_limit nacc in
+    let unfolded_defs = get_unfolded_defs nacc in
+    let count = IntMap.get_or ~default:limit uopi.id unfolded_defs in
+    count < limit
+  end
+  
 
 let reset_sub_stack acc chain =
   nacc_update_sub_stack chain acc
@@ -196,35 +216,37 @@ class ['a] normalize_explicit_substs = object(self)
     | E_op_appl {location; level;
                  operator = FMOTA_op_def (O_thm_def (TDef_ref id as td)) ;
                  operands = []}
-        when IntSet.mem id unfolded_defs ->
-        (* use of an (instantiated) theorem definition inside an expression *)
-        let tdi = Deref.theorem_def term_db td in (
-          match node_type tdi.body with
-          | Expr (e, substs) ->
-            (* create new OP_subst elements for the chain *)
-            let new_chain = CCList.fold_left
-                (fun rest_substs ->
-                   function ({location; level; substs; body;
-                              instantiated_from; instantiated_into; }
-                             : ap_subst_in)  ->
-                     let ops =
-                       OP_subst (instantiated_from, instantiated_into, substs)
-                     in
-                     ops  :: rest_substs )
-                ((FP_subst fp_subst) :: rest_chain) substs in
-            let acc0 = nacc_update_sub_stack new_chain acc in
-            (* handle the inner expression with the new stack *)
-            self#expr acc0 e
-          | AssumeProve _ ->
-            failwith ("Implementation error: trying to unfold"^
-                      " an assume prove definition into an expression.")
-        )
+      when IntMap.mem id unfolded_defs ->
+      (* use of an (instantiated) theorem definition inside an expression *)
+      let tdi = Deref.theorem_def term_db td in (
+        match node_type tdi.body with
+        | Expr (e, substs) ->
+          (* create new OP_subst elements for the chain *)
+          let new_chain = CCList.fold_left
+              (fun rest_substs ->
+                 function ({location; level; substs; body;
+                            instantiated_from; instantiated_into; }
+                           : ap_subst_in)  ->
+                   let ops =
+                     OP_subst (instantiated_from, instantiated_into, substs)
+                   in
+                   ops  :: rest_substs )
+              ((FP_subst fp_subst) :: rest_chain) substs in
+          let acc0 = nacc_update_sub_stack new_chain acc in
+          (* handle the inner expression with the new stack *)
+          self#expr acc0 e
+        | AssumeProve _ ->
+          failwith ("Implementation error: trying to unfold"^
+                    " an assume prove definition into an expression.")
+      )
     | E_op_appl {location; level;
                  operator = FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
                  operands = []}
-      when IntSet.mem id unfolded_defs ->
+      when within_recursion_limit uop acc ->
+      (* increase recursive unfolding counter *)
+      let acc0 = nacc_inc_id_counter id acc in
       let uopi = Deref.user_defined_op term_db uop in
-      ()
+      self#expr acc0 uopi.body
     | E_op_appl {location; level; operator; operands = []} ->
       (* operator without arguments, no fp operator *)
       let operator, acc0 = self#operator acc operator in
@@ -236,6 +258,7 @@ class ['a] normalize_explicit_substs = object(self)
     | E_op_appl {location; level; operator; operands}
       when is_leibniz_op term_db operator ->
       (* safe first order operator *)
+      (* TODO: unfold definitions *)
       let chain = get_sub_stack acc in
       let operator, acc0 = self#operator acc operator in
       (* we need to apply the original substitution to every argument,
@@ -301,7 +324,7 @@ class ['a] normalize_explicit_substs = object(self)
 
 
   method private operator_fp_subst acc fp_subst rest_chain =
-    let NAcc (termdb, subst_chain, unfolded_defs, _) = acc in
+    let NAcc (termdb, subst_chain, _recursion_limit, _unfolded_defs, _) = acc in
     function
     | (FMOTA_formal_param formal_param) as op ->
       let op_ = fp_subst_lookup_or_op ~default:op formal_param fp_subst in
@@ -326,7 +349,7 @@ class ['a] normalize_explicit_substs = object(self)
     | FMOTA_op_def op_def ->
       failwith "TODO"
 
-  method private operator_op_subst (NAcc (termdb, subst_chain,_)) =
+  method private operator_op_subst (NAcc (termdb, subst_chain,_,_,_)) =
     failwith "TODO"
 
   method proof _ = unsupported "proof"
