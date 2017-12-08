@@ -36,16 +36,16 @@ let get_sub_stack acc = acc.current_chain
 let get_recursion_limit acc = acc.recursion_limit
 let get_unfolded_defs acc = acc.unfolded_uops
 
-let nacc_update_term_db term_db acc = { acc with term_db }
-let nacc_update_sub_stack current_chain acc = { acc with current_chain }
-let nacc_update_unfolded_defs unfolded_uops acc = { acc with unfolded_uops }
+let update_term_db term_db acc = { acc with term_db }
+let update_sub_stack current_chain acc = { acc with current_chain }
+let update_unfolded_defs unfolded_uops acc = { acc with unfolded_uops }
 
-let nacc_inc_id_counter id nacc =
+let inc_id_counter id nacc =
   let map = get_unfolded_defs nacc in
   let idcount = IntMap.get_or
       ~default:(failwith "Tried to increase untracked id count!") id map in
   let new_map = IntMap.add id (idcount+1) map in
-  nacc_update_unfolded_defs new_map nacc
+  update_unfolded_defs new_map nacc
 
 let within_recursion_limit uop nacc =
   let term_db = get_termdb nacc in
@@ -59,11 +59,16 @@ let within_recursion_limit uop nacc =
   end
 
 let reset_sub_stack acc chain =
-  nacc_update_sub_stack chain acc
+  update_sub_stack chain acc
 
 let unsupported s =
-  let msg = CCFormat.sprintf "Can't : %s" s in
+  let msg = CCFormat.sprintf "Unsupported construct: %s" s in
   failwith msg
+
+let implementation_error s =
+  let msg = CCFormat.sprintf "Implementation error: %s" s in
+  failwith msg
+
 
 let check_fpsubst fp_substs =
   (* checks if all formal parameter references are unique *)
@@ -79,7 +84,8 @@ let fp_subst_lookup_or ~default:default narrow fp assignments =
 
 let fp_subst_lookup_or_op ~default:op =
   let narrow = function
-    | EO_expr e -> failwith "implementation error"
+    | EO_expr e ->
+      implementation_error "Expecting op arg, not expression!"
     | EO_op_arg {location; level; argument } ->
       argument
   in
@@ -89,7 +95,7 @@ let fp_subst_lookup_or_expr ~default:op =
   let narrow = function
     | EO_expr e -> e
     | EO_op_arg {location; level; argument } ->
-      failwith "implementation error"
+      implementation_error "Expecting expression, not op arg!"
   in
   fp_subst_lookup_or ~default:op narrow
 
@@ -198,24 +204,7 @@ let node_type =
 class ['a] normalize_explicit_substs = object(self)
   inherit ['a] EMap.expr_map
 
-  method expr acc exp =
-    match get_sub_stack acc with
-    | [] ->
-      (* nothing to do *)
-        EMap.return acc exp
-    | (OP_subst (from_module, into_module, op_subst)) :: rest_chain ->
-      self#expr_op_subst acc from_module op_subst rest_chain exp
-    | (FP_subst fp_subst) :: rest_chain ->
-      self#expr_fp_subst acc fp_subst rest_chain exp
-
-
-  method private expr_op_subst acc mule op_subst rest_chain expr =
-    failwith "TODO"
-
-  method private expr_fp_subst acc fp_subst rest_chain =
-    let term_db = get_termdb acc in
-    let unfolded_defs = get_unfolded_defs acc in
-    function
+  method expr ({term_db; current_chain; unfolded_uops; _ } as acc) = function
     (* unhandled statements *)
     | E_at _ -> failwith "unhandled at statement"
     | E_label _ -> failwith "unhandled label statement"
@@ -226,18 +215,20 @@ class ['a] normalize_explicit_substs = object(self)
     | E_string _
     | E_numeral _ as exp ->
       EMap.return acc exp
-    (* application and abstraction *)
+    (* unfolding a (recursive) definition *)
     | E_op_appl {location; level;
-                 operator = FMOTA_formal_param fp; operands = []} as e ->
-      let expr = fp_subst_lookup_or_expr ~default:e fp fp_subst in
-      (* recurse on remaining stack of substs *)
-      let acc0 = nacc_update_sub_stack rest_chain acc in
-      self#expr acc0 expr
+                 operator = FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
+                 operands = []}
+      when within_recursion_limit uop acc ->
+      (* increase recursive unfolding counter *)
+      let acc0 = inc_id_counter id acc in
+      let uopi = Deref.user_defined_op term_db uop in
+      self#expr acc0 uopi.body
+    (* use of an (instantiated) theorem definition inside an expression *)
     | E_op_appl {location; level;
                  operator = FMOTA_op_def (O_thm_def (TDef_ref id as td)) ;
                  operands = []}
-      when IntMap.mem id unfolded_defs ->
-      (* use of an (instantiated) theorem definition inside an expression *)
+      when IntMap.mem id unfolded_uops ->
       let tdi = Deref.theorem_def term_db td in (
         match node_type tdi.body with
         | Expr (e, substs) ->
@@ -251,30 +242,20 @@ class ['a] normalize_explicit_substs = object(self)
                      OP_subst (instantiated_from, instantiated_into, substs)
                    in
                    ops  :: rest_substs )
-              ((FP_subst fp_subst) :: rest_chain) substs in
-          let acc0 = nacc_update_sub_stack new_chain acc in
+              current_chain substs in
+          let acc0 = update_sub_stack new_chain acc in
           (* handle the inner expression with the new stack *)
           self#expr acc0 e
         | AssumeProve _ ->
-          failwith ("Implementation error: trying to unfold"^
-                    " an assume prove definition into an expression.")
+          implementation_error
+            "trying to unfold an assume prove definition into an expression."
       )
-    | E_op_appl {location; level;
-                 operator = FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
-                 operands = []}
-      when within_recursion_limit uop acc ->
-      (* increase recursive unfolding counter *)
-      let acc0 = nacc_inc_id_counter id acc in
-      let uopi = Deref.user_defined_op term_db uop in
-      self#expr acc0 uopi.body
-    | E_op_appl {location; level; operator; operands = []} ->
-      (* operator without arguments, no fp operator *)
-      let operator, acc0 = self#operator acc operator in
-      E_op_appl {location; level; operator; operands = []} |> EMap.return acc0
+    (* application without arguments *)
     | E_op_appl {location; level; operator; operands = []} ->
       (* operator without arguments *)
       let operator, acc0 = self#operator acc operator in
       E_op_appl {location; level; operator; operands = []}  |> EMap.return acc0
+    (* application to a leibniz oparator *)
     | E_op_appl {location; level; operator; operands}
       when is_leibniz_op term_db operator ->
       (* safe first order operator *)
@@ -289,6 +270,34 @@ class ['a] normalize_explicit_substs = object(self)
       in
       let e = E_op_appl {location; level; operator; operands } in
       EMap.return acc1 e
+    | exp -> (
+      match current_chain with
+      | [] ->
+        (* nothing to do *)
+        EMap.return acc exp
+      | (OP_subst (from_module, into_module, op_subst)) :: rest_chain ->
+        self#expr_op_subst acc from_module op_subst rest_chain exp
+      | (FP_subst fp_subst) :: rest_chain ->
+        self#expr_fp_subst acc fp_subst rest_chain exp
+    )
+
+
+  method private expr_op_subst acc mule op_subst rest_chain expr =
+    failwith "TODO"
+
+  method private expr_fp_subst acc fp_subst rest_chain =
+    function
+    (* application and abstraction *)
+    | E_op_appl {location; level;
+                 operator = FMOTA_formal_param fp; operands = []} as e ->
+      let expr = fp_subst_lookup_or_expr ~default:e fp fp_subst in
+      (* recurse on remaining stack of substs *)
+      let acc0 = update_sub_stack rest_chain acc in
+      self#expr acc0 expr
+    | E_op_appl {location; level; operator; operands = []} ->
+      (* operator without arguments, no fp operator *)
+      let operator, acc0 = self#operator acc operator in
+      E_op_appl {location; level; operator; operands = []} |> EMap.return acc0
     | E_op_appl {location; level; operator; operands} as expr
       (* when not (is_leibniz_op term_db operator) *) ->
       (* unsafe first order operator *)
@@ -322,15 +331,17 @@ class ['a] normalize_explicit_substs = object(self)
       (* convert instantiation into param *)
       let new_head = OP_subst (instantiated_from, instantiated_into, substs) in
       let new_chain = new_head :: (FP_subst fp_subst) :: rest_chain in
-      let acc0 = nacc_update_sub_stack new_chain acc in
+      let acc0 = update_sub_stack new_chain acc in
       (* recurse *)
       self#expr acc0 body
     | E_fp_subst_in { location; level; substs; body; } ->
       let new_rest_chain = (FP_subst fp_subst) :: rest_chain in
       let new_chain = (FP_subst substs) :: new_rest_chain in
-      let acc0 = nacc_update_sub_stack new_chain acc in
+      let acc0 = update_sub_stack new_chain acc in
       (* recurse, into expr fp case *)
       self#expr_fp_subst acc0 substs new_rest_chain body
+    | E_at _ | E_decimal _ | E_label _ | E_let_in _| E_numeral _| E_string _ ->
+      implementation_error "This case should have been covered further outside!"
 
   method operator acc op =
     match get_sub_stack acc with
@@ -348,22 +359,22 @@ class ['a] normalize_explicit_substs = object(self)
     function
     | (FMOTA_formal_param formal_param) as op ->
       let op_ = fp_subst_lookup_or_op ~default:op formal_param fp_subst in
-      let acc1 = nacc_update_sub_stack rest_chain acc in
+      let acc1 = update_sub_stack rest_chain acc in
       (* recurse remaining chains *)
       self#operator acc1 op_
     | (FMOTA_op_decl _) as op ->
-      let acc1 = nacc_update_sub_stack rest_chain acc in
+      let acc1 = update_sub_stack rest_chain acc in
       EMap.return acc1 op
     | FMOTA_ap_subst_in {location; level; substs; body;
                          instantiated_from; instantiated_into; } ->
       (*
       let new_head = OP_subst (instantiated_from, instantiated_into, substs) in
-      let acc1 = nacc_update_sub_stack
+      let acc1 = update_sub_stack
           (new_head :: (FP_subst fp_subst) :: rest_chain) acc in
       self#node acc1 body
       *)
-      failwith ("Implementation error:"^
-                "the ap_subst_in operator needs to be handled within expr")
+      implementation_error
+        "the ap_subst_in operator needs to be handled within expr"
     | FMOTA_lambda lambda ->
       failwith "TODO"
     | FMOTA_op_def op_def ->
