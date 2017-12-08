@@ -6,6 +6,8 @@ open Expr_dereference
 
 module EMap = Expr_map2
 
+let where = "expr_normalize"
+
 type sub_stack =
   | FP_subst of Expr_ds.fp_assignment list
   | OP_subst of Expr_ds.mule * Expr_ds.mule * Expr_ds.instantiation list
@@ -61,13 +63,6 @@ let within_recursion_limit uop nacc =
 let reset_sub_stack acc chain =
   update_sub_stack chain acc
 
-let unsupported s =
-  let msg = CCFormat.sprintf "Unsupported construct: %s" s in
-  failwith msg
-
-let implementation_error s =
-  let msg = CCFormat.sprintf "Implementation error: %s" s in
-  failwith msg
 
 
 let check_fpsubst fp_substs =
@@ -85,7 +80,7 @@ let fp_subst_lookup_or ~default:default narrow fp assignments =
 let fp_subst_lookup_or_op ~default:op =
   let narrow = function
     | EO_expr e ->
-      implementation_error "Expecting op arg, not expression!"
+      implementation_error ~where "Expecting op arg, not expression!"
     | EO_op_arg {location; level; argument } ->
       argument
   in
@@ -95,7 +90,7 @@ let fp_subst_lookup_or_expr ~default:op =
   let narrow = function
     | EO_expr e -> e
     | EO_op_arg {location; level; argument } ->
-      implementation_error "Expecting expression, not op arg!"
+      implementation_error ~where "Expecting expression, not op arg!"
   in
   fp_subst_lookup_or ~default:op narrow
 
@@ -247,7 +242,7 @@ class ['a] normalize_explicit_substs = object(self)
           (* handle the inner expression with the new stack *)
           self#expr acc0 e
         | AssumeProve _ ->
-          implementation_error
+          implementation_error ~where
             "trying to unfold an assume prove definition into an expression."
       )
     (* application without arguments *)
@@ -341,7 +336,7 @@ class ['a] normalize_explicit_substs = object(self)
       (* recurse, into expr fp case *)
       self#expr_fp_subst acc0 substs new_rest_chain body
     | E_at _ | E_decimal _ | E_label _ | E_let_in _| E_numeral _| E_string _ ->
-      implementation_error "This case should have been covered further outside!"
+      implementation_error ~where "This case should have been covered further outside!"
 
   method operator acc op =
     match get_sub_stack acc with
@@ -373,7 +368,7 @@ class ['a] normalize_explicit_substs = object(self)
           (new_head :: (FP_subst fp_subst) :: rest_chain) acc in
       self#node acc1 body
       *)
-      implementation_error
+      implementation_error ~where
         "the ap_subst_in operator needs to be handled within expr"
     | FMOTA_lambda lambda ->
       failwith "TODO"
@@ -383,17 +378,17 @@ class ['a] normalize_explicit_substs = object(self)
   method private operator_op_subst acc =
     failwith "TODO"
 
-  method proof _ = unsupported "proof"
-  method assume _ = unsupported "assume"
-  method theorem _ = unsupported "theorem"
-  method statement _ = unsupported "statement"
-  method use_or_hide _ = unsupported "use or hide"
-  method step _ = unsupported "step"
-  method def_step _ = unsupported "def step"
-  method label _ = unsupported "label"
-  method entry _ = unsupported "entry"
-  method context _ = unsupported "context"
-  method mule _ = unsupported "module"
-  method mule_entry _ = unsupported "module"
+  method proof _ = unsupported ~where "proof"
+  method assume _ = unsupported ~where "assume"
+  method theorem _ = unsupported ~where "theorem"
+  method statement _ = unsupported ~where "statement"
+  method use_or_hide _ = unsupported ~where "use or hide"
+  method step _ = unsupported ~where "step"
+  method def_step _ = unsupported ~where "def step"
+  method label _ = unsupported ~where "label"
+  method entry _ = unsupported ~where "entry"
+  method context _ = unsupported ~where "context"
+  method mule _ = unsupported ~where "module"
+  method mule_entry _ = unsupported ~where "module"
 
 end

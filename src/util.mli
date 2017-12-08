@@ -15,6 +15,9 @@ type 'a fmt = formatter -> 'a -> unit
 exception Bug
 (* val bug : ?at:('a wrapped) -> string -> 'failure *)
 
+val unsupported : where:string -> string -> 'a
+val implementation_error : where:string -> string -> 'a
+
 (** {3 File and object checksumming} *)
 
 type csum

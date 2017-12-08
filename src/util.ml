@@ -230,3 +230,13 @@ module IntSet = CCSet.Make(IntOrdering)
 
 module StringMap = CCMap.Make(String)
 module StringSet = CCSet.Make(String)
+
+let create_failure tp ~where:where s =
+  let msg = CCFormat.sprintf "%s in %s: %s" tp where s in
+  failwith msg
+
+let unsupported =
+  create_failure "Unsupported construct:"
+
+let implementation_error =
+  create_failure "Implementation error: %s"
