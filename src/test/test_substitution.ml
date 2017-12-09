@@ -1,9 +1,7 @@
 open Kaputt.Abbreviations
 open Commons
-open Any_expr
 open Expr_ds
 open Expr_builtins
-open Expr_map
 open Expr_formatter
 open Expr_builtins
 open Expr_substitution

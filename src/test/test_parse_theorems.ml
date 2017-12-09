@@ -1,5 +1,4 @@
 open Kaputt.Abbreviations
-open Any_expr
 open Expr_ds
 open Expr_parse_theorems
 open Expr_formatter

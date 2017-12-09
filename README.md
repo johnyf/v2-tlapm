@@ -6,7 +6,7 @@ This is the next version of the TLA proof manager, which is part of the
  TLA+ Tools [1]. Since is still under development, please also refer to the
  current version[2].
 
-[1] https://tlaplus.codeplex.com
+[1] https://github.com/tlaplus/tlaplus
 
 [2] https://tlaps.codeplex.com
 

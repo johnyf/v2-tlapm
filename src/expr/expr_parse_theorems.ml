@@ -1,11 +1,12 @@
 open Util
 open Commons
 open Expr_ds
-open Expr_map
 open Expr_utils
 open Expr_prover_parser
 open Expr_dereference
-open Any_expr
+
+module EMap = Expr_map2
+
 
 let step_names = ["$Pfcase"; "$Have"; "$Pick"; "$Suffices"; "$Witness"]
 
@@ -15,20 +16,17 @@ let get_ptacc_tdb (PTacc (db,_,_)) = db
 let get_ptacc_thm_map (PTacc (_,map,_)) = map
 
 let tdb macc =
-  match get_ptacc_tdb (get_acc macc) with
+  match get_ptacc_tdb macc with
   | Some db -> db
   | _ -> failwith "Accumulator does not contain the term database!"
 
-let get_thm_map macc = get_acc macc |> get_ptacc_thm_map
+let get_thm_map = get_ptacc_thm_map
 
+let set_tdb (PTacc (_, map, rest)) db =
+  PTacc (db, map, rest)
 
-let set_tdb macc db =
-  let PTacc (_, map, rest) = get_acc macc in
-  set_acc macc (PTacc (db, map, rest))
-
-let set_thm_map macc map =
-  let PTacc (db, _, rest) = get_acc macc in
-  set_acc macc (PTacc (db, map, rest))
+let set_thm_map (PTacc (db, _, rest)) map =
+  PTacc (db, map, rest)
 
 let add_statement  acc id node def =
   let map = get_thm_map acc in
@@ -38,7 +36,7 @@ let add_statement  acc id node def =
 (* TODO: check if theorem and def rewriting agrees, handle WITNESS *)
 class ['a] expr_parse_theorems =
   object(self)
-    inherit ['a ptacc] expr_map as super
+    inherit ['a ptacc] EMap.expr_map as super
 
     (* Because TAKE x \in Nat is a SANY op appl with bound variable x but no
        body, it is rewritten in sany_exp *)
@@ -49,11 +47,8 @@ class ['a] expr_parse_theorems =
         super#theorem_ acc thm
       | N_expr expr ->
         (* recurse on subterms (for the subproofs) *)
-        let acc1 = super#theorem_ acc thm in
-        let extract = self#get_macc_extractor in
-        let {id; location; level; definition; statement; proof } =
-          extract#theorem_ acc1
-        in
+        let thm, acc1 = super#theorem_ acc thm in
+        let {id; location; level; definition; statement; proof } = thm in
         let term_db = tdb acc1 in
         match expr, match_function (tdb acc) expr with
         |  _, Some ("$Pfcase", args) ->
@@ -71,7 +66,7 @@ class ['a] expr_parse_theorems =
               failwith "Step case operator expects exactly one argument!"
         in
         let thm = {id; location; level; definition; statement; proof } in
-        set_anyexpr acc2 (Any_theorem_ thm)
+        EMap.return acc2 thm
         |  _, Some ("$Have", args) ->
           (* HAVE proof step *)
           (* create new theorem and update accumulator *)
@@ -86,7 +81,7 @@ class ['a] expr_parse_theorems =
               failwith "Step case operator expects exactly one argument!"
           in
           let thm = {id; location; level; definition; statement; proof } in
-          set_anyexpr acc2 (Any_theorem_ thm)
+          EMap.return acc2 thm
         |  _, Some ("$Witness", args) ->
           (* HAVE proof step *)
           (* create new theorem and update accumulator *)
@@ -101,7 +96,7 @@ class ['a] expr_parse_theorems =
               failwith "Step case operator expects exactly one argument!"
           in
           let thm = {id; location; level; definition; statement; proof } in
-          set_anyexpr acc2 (Any_theorem_ thm)
+          EMap.return acc2 thm
         |  E_binder { operator = FMOTA_op_def opd ;
                       operand;
                       bound_symbols; _ }, None ->
@@ -126,7 +121,7 @@ class ['a] expr_parse_theorems =
                 let acc2 = CCOpt.map_or
                     ~default:acc1
                     (add_statement acc1 id (N_expr expr)) definition in
-                set_anyexpr acc2 (Any_theorem_ thm)
+                EMap.return acc2 thm
               )
             | _ -> super#theorem_ acc thm
           )
@@ -139,7 +134,7 @@ class ['a] expr_parse_theorems =
           let acc2 = CCOpt.map_or
               ~default:acc1
               (add_statement acc1 id (N_expr expr)) definition in
-          set_anyexpr acc2 (Any_theorem_ thm)
+          EMap.return acc2 thm
         | _ ->
           super#theorem_ acc thm
 
@@ -150,20 +145,18 @@ class ['a] expr_parse_theorems =
         super#theorem_ acc t
       | N_expr expr ->
         (* recurse on subterms (for the subproofs) *)
-        let acc1 = super#theorem_ acc t in
-        let extract = self#get_macc_extractor in
-        let {id; location; level; definition; statement; proof } =
-          extract#theorem_ acc1
+        let theorem, acc1 = super#theorem_ acc t in
+        let {id; location; level; definition; statement; proof } = theorem
         in
         (* SUFFICES F still has the operator we need to strip *)
         match match_function (tdb acc) expr with
         | None -> failwith "Expected suffices as prove operator!"
         | Some ("$Suffices", [EO_expr expr]) ->
-          let acc2= self#expr acc expr in
-          let statement = ST_SUFFICES (N_expr (extract#expr acc2)) in
+          let expr, acc2= self#expr acc expr in
+          let statement = ST_SUFFICES (N_expr expr) in
           let thm = {id; location; level; definition;
                      statement; proof; } in
-          set_anyexpr acc (Any_theorem_ thm)
+          EMap.return acc thm
         | Some ("$Suffices", [EO_op_arg oa]) ->
           failwith "suffices found, but has an op arg, not an expr as argument!";
         | Some ("$Suffices", args) ->
@@ -194,10 +187,9 @@ class ['a] expr_parse_theorems =
           | "$Pick", [EO_expr e]
           | "$Witness", [EO_expr e]
           | "$Suffices", [EO_expr e] ->
-            let acc1 = super#theorem_def_ acc td in
-            let td1 = self#get_macc_extractor#theorem_def_ acc1 in
+            let td1, acc1 = super#theorem_def_ acc td in
             let body = N_expr e in
-            set_anyexpr acc1 (Any_theorem_def_ {td1 with body})
+            EMap.return acc1 {td1 with body}
           | name, _ when List.mem name step_names ->
             let msg = CCFormat.sprintf "Unhandled proof step %s at %a"
                 name Commons.fmt_location location in
@@ -216,9 +208,6 @@ class ['a] expr_parse_theorems =
 let instance = new expr_parse_theorems
 
 let expr_parse_theorems_context context =
-  let me = instance#get_macc_extractor in
-  let init_acc = (Any_context context,
-                  PTacc (Some context.entries,IntMap.empty,())) in
-  let acc = instance#context init_acc context in
-  let context = me#context acc in
+  let init_acc = PTacc (Some context.entries,IntMap.empty,()) in
+  let context, acc = instance#context init_acc context in
   context
