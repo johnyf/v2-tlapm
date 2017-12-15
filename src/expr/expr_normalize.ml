@@ -1,7 +1,9 @@
+open Commons
 open Util
 open Expr_ds
 open Expr_constructors
 open Expr_dereference
+open Expr_builtins
 (* open Expr_substitution *)
 
 module EMap = Expr_map2
@@ -62,8 +64,6 @@ let within_recursion_limit uop nacc =
 
 let reset_sub_stack acc chain =
   update_sub_stack chain acc
-
-
 
 let check_fpsubst fp_substs =
   (* checks if all formal parameter references are unique *)
@@ -183,6 +183,110 @@ let is_leibniz_op tdb =
   | FMOTA_lambda lambda ->
     check_params lambda.params
 
+
+let rec is_constant_expr term_db = function
+  | E_decimal _
+  | E_string _
+  | E_numeral _ -> true
+  | E_op_appl {level = Some ConstantLevel; _ } -> true
+  | E_op_appl {level = Some _; _ } -> false
+  | E_op_appl {operator; operands; } -> (* level = None *)
+    let op_lvl = is_constant_operator term_db operator in
+    List.fold_left (fun v op ->  v && is_constant_operand term_db op )
+      op_lvl operands
+  | E_fp_subst_in _ -> false (* TODO: better approximation *)
+  | E_subst_in si -> is_constant_subst_in term_db si
+  | E_binder _ -> failwith "TODO"
+  | E_let_in _ -> failwith "TODO"
+  | E_at _
+  | E_label _ ->
+    unsupported ~where "labels and at are unsupported"
+
+and is_constant_operator term_db = function
+  | FMOTA_op_decl id -> (
+      match Deref.op_decl term_db id with
+      | { kind = NewConstant; _ }
+      | { kind = ConstantDecl; _ } ->
+        true
+      | _ ->
+        false
+    )
+  | FMOTA_op_def opd ->
+    is_constant_op_def term_db opd
+  | FMOTA_lambda { level = Some ConstantLevel; _ } ->
+    true
+  | FMOTA_lambda { level = Some _other; _ } ->
+    false
+  | FMOTA_lambda { body; _ } -> (* level = None *)
+    is_constant_expr term_db body
+  | FMOTA_formal_param _ ->
+    false (* TODO: narrow this down *)
+  | FMOTA_ap_subst_in ap ->
+    is_constant_ap_subst_in term_db ap
+
+and is_constant_ap_subst_in term_db (ap : ap_subst_in) =
+  match ap with
+  | { level = Some ConstantLevel; _ } ->  true
+  | { level = Some _other; _ } ->  false
+  | { substs; body; _ } -> (* level = None *)
+    let init_l = is_constant_node term_db body in
+    List.fold_left (fun a inst -> a && is_constant_instantiation term_db inst)
+      init_l substs
+
+and is_constant_subst_in term_db (si : subst_in) =
+  match si with
+  | { level = Some ConstantLevel; _ } ->  true
+  | { level = Some _other; _ } ->  false
+  | { substs; body; _ } -> (* level = None *)
+    let init_l = is_constant_expr term_db body in
+    List.fold_left (fun a inst -> a && is_constant_instantiation term_db inst)
+      init_l substs
+
+and is_constant_instantiation term_db { op; expr; next; } =
+  let opd = Deref.op_decl term_db op in
+  let init_l = opd.level = Some ConstantLevel &&
+               is_constant_operand term_db expr
+  in
+  List.fold_left (fun a op -> a && is_constant_operand term_db op) init_l next
+
+and is_constant_node term_db = function
+  | N_expr e -> is_constant_expr term_db e
+  | _ -> failwith "TODO"
+
+and is_constant_op_def term_db = function
+  | O_module_instance _ ->
+    implementation_error ~where
+      "should never query a module instance for const-ness"
+  | O_builtin_op id -> (
+      let bop = Deref.builtin_op term_db id in
+      bop.level = Some ConstantLevel
+    )
+  | O_user_defined_op id -> (
+      match Deref.user_defined_op term_db id with
+      | { level = Some ConstantLevel; _ } -> true
+      | { level = Some _other; _ } -> false
+      | { body; _ } -> is_constant_expr term_db body
+    )
+  | O_thm_def id -> (
+      match Deref.theorem_def term_db id with
+      | { level = Some ConstantLevel; _ } -> true
+      | { level = Some _other; _ } -> false
+      | { body } -> is_constant_node term_db body
+    )
+  | O_assume_def id  -> (
+      match Deref.assume_def term_db id with
+      | { level = Some ConstantLevel; _ } -> true
+      | { level = Some _other; _ } -> false
+      | { body } -> is_constant_expr term_db body
+    )
+
+and is_constant_operand term_db = function
+  | EO_expr e -> is_constant_expr term_db e
+  | EO_op_arg {level = Some ConstantLevel; _ } -> true
+  | EO_op_arg {level = Some _ ; _ } -> false
+  | EO_op_arg {level = None; argument; } ->
+    is_constant_operator term_db argument
+
 type node_type =
   | Expr of expr * ap_subst_in list
   | AssumeProve of assume_prove * ap_subst_in list
@@ -196,10 +300,29 @@ let node_type =
   in aux []
 
 
+(* cases distinguished:
+   * trivial cases (constants)
+   * shift prime over leibniz applications
+   * remove prime applied to constants
+
+   * instantiate declared op constant w/o args
+   * instantiate declared op constant with args
+   * instantiate declared op variable (always w/o args)
+
+   * substitute formal param w/o args
+   * substitute formal param with args
+   
+   * distribute over leibniz application
+
+   * unfold definitions
+ *)
+
 class ['a] normalize_explicit_substs = object(self)
   inherit ['a] EMap.expr_map
 
-  method expr ({term_db; current_chain; unfolded_uops; _ } as acc) = function
+  method expr ({term_db; current_chain; unfolded_uops; _ } as acc) =
+    let prime = Builtin.get term_db Builtin.PRIME in
+    function
     (* unhandled statements *)
     | E_at _ -> failwith "unhandled at statement"
     | E_label _ -> failwith "unhandled label statement"
@@ -211,14 +334,27 @@ class ['a] normalize_explicit_substs = object(self)
     | E_numeral _ as exp ->
       EMap.return acc exp
     (* unfolding a (recursive) definition *)
-    | E_op_appl {location; level;
-                 operator = FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
-                 operands = []}
+    | E_op_appl { location; level;
+                  operator =
+                    FMOTA_op_def (O_user_defined_op (UOP_ref id as uop));
+                  operands = [] }
       when within_recursion_limit uop acc ->
       (* increase recursive unfolding counter *)
       let acc0 = inc_id_counter id acc in
       let uopi = Deref.user_defined_op term_db uop in
       self#expr acc0 uopi.body
+    (* remove prime applied to constant expressions *)
+    | E_op_appl { location; level;
+                  operator = FMOTA_op_def (O_builtin_op bop) ;
+                  operands = [operand] }
+      when bop = prime ->
+      failwith "TODO"
+    (* try to shift prime inside *)
+    | E_op_appl { location; level;
+                  operator = FMOTA_op_def (O_builtin_op bop) ;
+                  operands = [operand] }
+      when bop = prime ->
+      failwith "TODO"
     (* use of an (instantiated) theorem definition inside an expression *)
     | E_op_appl {location; level;
                  operator = FMOTA_op_def (O_thm_def (TDef_ref id as td)) ;
