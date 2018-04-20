@@ -152,7 +152,7 @@ LEMMA TypeOK_inv == Spec => []TypeOK
         PROVE TypeOK' \*DEF PassToken, Next, System, NAssumption
         PROOF
           <3>1. active' \in [0..N - 1 -> BOOLEAN] 
-             BY DEF Next, System, PassToken 
+             BY <2>2 DEF Next, System, PassToken 
           <3>2. color' \in [0..N - 1 -> {"white", "black"}]
           <3>3. tpos' \in 0..N - 1
           <3>4. tcolor' \in {"white", "black"}
@@ -229,6 +229,6 @@ LEMMA Inv => TerminationDetection
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 14:35:34 CEST 2018 by merz
 \* Last modified Thu Jan 08 09:08:24 CET 2015 by marty
-\* Last modified Thu Oct 02 18:40:18 CEST 2014 by merz
 \* Created Mon Sep 09 11:33:10 CEST 2013 by merz

@@ -10,6 +10,11 @@ THEOREM DeductionPrinciple == ASSUME NEW ACTION A,
 THEOREM AddBox == ASSUME NEW STATE P, P PROVE []P
 THEOREM RemoveBoxPrime == ASSUME NEW STATE P, []P PROVE P'
 
+(***************************************************************************)
+(* The temporal proof steps in the following lemmas are expected to fail   *)
+(* because they do not follow the semantics of temporal reasoning in TLA+2.*)
+(***************************************************************************)
+
 VARIABLE x
 
 THEOREM (x=1) => (x=1)' 
@@ -28,5 +33,6 @@ THEOREM []F => [][]F
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 15:50:32 CEST 2018 by merz
 \* Last modified Fri Jan 16 11:12:28 CET 2015 by marty
 \* Created Thu Jan 15 16:04:57 CET 2015 by marty

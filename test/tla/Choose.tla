@@ -38,11 +38,17 @@ LEMMA (\E u : u=(CHOOSE x \in {0,1} : (x=0 /\ x /= 0))) => (\E x \in {0,1} : (x=
 
 LEMMA (\E u : u=(CHOOSE x \in {0,1} : (x=0 /\ x /= 0))) /\ \neg (\E x \in {0,1} : (x=0 /\ x /= 0)) OBVIOUS \* .. actually, in this case it is contradictory
 
+(***************************************************************************)
+(* sm: The current version of TLAPM does not handle quantification over    *)
+(* tuples. It raises a syntax errors if the following lemmas are visible,  *)
+(* i.e. even when attempting to prove the preceding lemmas.                *)
+(***************************************************************************)
 (* choose with tuples *)
 LEMMA \E t : t = CHOOSE <<x,y>> : x = y OMITTED \* not supported by tlapm v1 
 LEMMA ASSUME NEW S PROVE \E t : t = CHOOSE <<x,y>> \in S : x = y OMITTED \* not supported by tlapm v1 
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 14:21:09 CEST 2018 by merz
 \* Last modified Wed Feb 18 16:25:25 CET 2015 by marty
 \* Created Tue Jan 20 10:40:06 CET 2015 by marty

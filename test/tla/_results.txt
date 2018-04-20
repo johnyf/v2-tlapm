@@ -1,0 +1,347 @@
+assume_prove.tla
+
+. elementary logic and set theory
+. handled correctly by v1-tlapm (2018-04-20)
+
+at.tla
+
+. elementary reasoning about records
+. handled correctly by v1-tlapm (2018-04-20)
+
+baseball.tla
+
+. TLA+ specification of "algorithmic baseball"
+. the module does not contain any theorems or proofs
+
+basic_equality.tla
+
+. 3 different formulas that hold because the TLA+ universe contains two distinct values (e.g., TRUE and FALSE)
+. handled correctly by v1-tlapm (2018-04-20): all three formulas are proved (only) by Isabelle
+
+builtins.tla
+
+. statements of theorems mixing various built-in operators
+. the module does not contain any proofs
+
+case_take_use_hide.tla
+
+. combinations of TAKE, USE, and HIDE, also with non-existing facts
+. handled correctly by v1-tlapm (2018-04-20)
+
+Choose.tla
+
+. various formulas involving CHOOSE
+. the lemmas involving ordinary CHOOSE expressions are handled correctly by v1-tlapm (2018-04-20)
+. The final lemmas involve expressions of the form CHOOSE <<x,y>> : ..., which are not supported by v1-tlapm. Unless these lemmas are commented out, v1-tlapm will raise a syntax error even when attempting to prove the lemmas that it can handle.
+
+cyclic.tla
+
+. refer to the assumption of the step one is currently proving
+. handled correctly by v1-tlapm (2018-04-20)
+
+empty.tla
+
+. an empty TLA+ module: check if the PM gets confused
+. handled correctly by v1-tlapm (2018-04-20)
+
+enabled.tla
+
+. lemmas about ENABLED
+. not handled by v1-tlapm (2018-04-20), as expected
+
+enabled2.tla
+
+. mixing ENABLED and module instantiation
+. exhibits soundness bugs in v1-tlapm (2018-04-20)
+
+enabled3.tla
+
+. again mixing ENABLED and module instantiation
+. fails, but the generated proof obligation exhibits soundness bugs in v1-tlapm (2018-04-20)
+
+enabled4.tla
+
+. mixing ENABLED and parameterized module instantiation
+. fails, but the generated proof obligation exhibits soundness bugs in v1-tlapm (2018-04-20)
+
+Euclid.tla
+
+. standard TLAPS example from the Web page
+. handled correctly by v1-tlapm (2018-04-20)
+
+EWD840_.tla
+
+. proofs about Dijkstra's distributed termination detection algorithm, plus some seemingly arbitrary stuff
+. proofs are incomplete, but handled correctly by v1-tlapm (2018-04-20)
+
+expr.tla
+
+. various expressions, including tuples and big integers
+. no theorems or proofs, but v1-tlapm cannot parse the module due to quantification over tuples
+
+extends_use_def_inner.tla
+
+. test of the USE construct
+. handled correctly by v1-tlapm (2018-04-20)
+
+extends_use_def_outer.tla
+
+. expands definition coming from an EXTENDed module
+. handled correctly by v1-tlapm (2018-04-20)
+
+extends_use_def.tla
+
+. module containing two inner modules, the second one EXTENDing the first one
+. v1-tlapm throws a syntax error (2018-04-20)
+
+false_proves_false.tla
+
+. trivial tautology
+. handled correctly by v1-tlapm (2018-04-20)
+
+fuel.tla
+
+. a module with an inner module, plus \EE
+. attempting to prove the theorem of the inner module with v1-tlapm throws a syntax error (2018-04-20)
+. attempting to prove the theorem of the outer module failse because \EE is not supported by v1-tlapm (2018-04-20)
+
+functions.tla
+
+. simple statements about functions
+. handled correctly by v1-tlapm (2018-04-20)
+
+globaluse.tla
+
+. USE construct at the outer level
+. handled correctly by v1-tlapm (2018-04-20)
+
+homepage.tla
+
+. various proof constructs
+. handled correctly by v1-tlapm (2018-04-20)
+
+instance.tla / instanceA.tla
+
+. mixing module instantiation and ENABLED
+. exhibits soundness bug in v1-tlapm (2018-04-20)
+
+lambda.tla
+
+. higher-order operators and module instantiation
+. handled correctly by v1-tlapm (2018-04-20)
+
+minilambda.tla
+
+. higher-order operator, self-application
+. handled correctly by v1-tlapm (2018-04-20)
+
+multi_obligations.tla
+
+. simple formulas about arithmetic and sequences
+. handled correctly by v1-tlapm (2018-04-20)
+
+NameClashes.tla
+
+. a module with two inner modules
+. v1-tlapm reports a spurious syntax error (2018-04-20)
+
+New.tla
+
+. propositional reasoning, including nested sequents
+. handled correctly by v1-tlapm (2018-04-20)
+
+nonleibniz.tla
+
+. operators ENABLED, -+->, and \cdot
+. no proofs to be checked, but of course these operators are unsupported
+
+NTape1.tla, NTape2.tla
+
+. reasoning about permutations
+. handled correctly by v1-tlapm (2018-04-20)
+
+NTape3.tla
+
+. more elaborate / obscure version of NTape2.tla, coded up as a TLA+ spec
+. some proof obligations fail, but I don't know if they are supposed to hold
+
+nunchaku_tests_negative.tla
+
+. simple TLA+ facts, including elementary set theory and arithmetic
+. handled correctly by v1-tlapm (2018-04-20)
+
+nunchaku_tests_positive.tla
+
+. non-facts in elementary logic
+. handled correctly by v1-tlapm (2018-04-20)
+
+nunchaku.tla
+
+. mix of facts and non-facts in TLA+
+. some obligations fail (2018-04-20), but no bug in TLAPM
+
+obligation_bug1.tla
+
+. non-facts in TLA+
+. handled correctly by v1-tlapm (2018-04-20)
+
+OneBit.tla
+
+. example from the HyperBook
+. lemmas involving ENABLED are not handled by v1-tlapm
+. the remaining lemmas are handled correctly by v1-tlapm (2018-04-20)
+
+overbinding.tla, overbinding2.tla
+
+. shadowing of bound variables etc.
+. appears to be handled correctly by v1-tlapm (2018-04-20)
+
+pd.tla
+
+. incomplete specification of prisoner's dilemma
+. v1-tlapm behaves as expected (2018-04-20): the temporal proof obligations are clearly unsound, for another failing PO I don't know if it is valid or not
+
+pick.tla
+
+. applications of PICK
+. handled correctly by v1-tlapm (2018-04-20)
+
+priming_stephan.tla
+
+. priming and recursive function definitions
+. handled correctly by v1-tlapm (2018-04-20)
+
+priming.tla
+
+. priming and recursive function definitions
+. handled correctly by v1-tlapm (2018-04-20), i.e. some nonsensical proof obligations fail
+
+proofsteps.tla
+
+. various proof constructs
+. appears to be handled correctly by v1-tlapm (2018-04-20), i.e. some nonsensical proof obligations fail
+
+PTL_bug.tla
+
+. appears to illustrate a bug in handling temporal obligations
+. handled correctly by v1-tlapm (2018-04-20), i.e. if there was a bug it has been fixed
+
+qed.tla, qed2.tla
+
+. focuses on QED proofs, including structured proofs of QED steps
+. handled correctly by v1-tlapm (2018-04-20)
+
+recursiveop.tla
+
+. recursive operator definitions
+. not handled by v1-tlapm (2018-04-20), unsupported construct
+
+SetsAndTuples.tla
+
+. sets and set products
+. does not contain proofs
+
+simple_substitution.tla
+
+. substitute parameter names in proof obligations
+. handled correctly by v1-tlapm (2018-04-20)
+
+SimpleImport2.tla (depends on SimpleImport1.tla, SimpleImport1a.tla)
+
+. module instantiation with substitution
+. handled correctly by v1-tlapm (2018-04-20)
+
+smt2test.tla, smt2test2.tla
+
+. obligations expected to be proved by SMT solvers
+. handled correctly by v1-tlapm (2018-04-20), but veriT fails (expectedly?)
+
+string.tla
+
+. trying to prove that "a" \in STRING
+. not proved, but appears to be handled correctly by v1-tlapm (2018-04-20)
+
+substitution.tla
+
+. higher-order operators, lambdas, and shadowing of bound variables
+. handled correctly by v1-tlapm (2018-04-20)
+
+Temporal1.tla
+
+. attempting application of temporal proof rules
+. the temporal steps fail as expected
+
+Testing.tla
+
+. auxiliary module imported in various other modules of this directory
+. does not contain theorems or proofs
+
+tuples.tla
+
+. tuple construction, including quantification over tuples
+. v1-tlapm throws a syntax error due to unsupported construct
+
+UserDefOp.tla
+
+. simple operator definition
+. handled correctly by v1-tlapm (2018-04-20)
+
+withsubmodule.tla
+
+. submodule and instantiation
+. handled correctly by v1-tlapm (2018-04-20), appears to exhibit a bug in the XML export
+
+bugs/TestBug120116.tla
+
+. v1-tlapm raises a syntax error due to unsupported tuple construct in set comprehension
+
+bugs/TestBug121005B.tla, bugs/TestBug121005A.tla
+
+. v1-tlapm raises a syntax error when trying to prove the theorem in ...B.tla
+
+bugs/TestBug130604.tla
+
+. the definition of the Print operator is not (correctly) expanded
+
+bugs/TestBug130619.tla
+
+. the first theorem exhibits a soundness bug in the SMT backend
+. the second theorem raises a syntax error due to unsupported tuple construct in set comprehension
+
+bugs/TestBug130813.tla
+
+. multiple overrides of the same function component
+. points to bad expansion by v1-tlapm (2018-04-20)
+
+bugs/TestBug131103.tla
+
+. priming an ENABLED expression
+. it is not clear what the bug is supposed to be, v1-tlapm (of course) fails to prove the theorem
+
+bugs/TestBug131128.tla
+
+. illustrates a limitation of Isabelle's auto method ("blast" proves it)
+. not a bug in v1-tlapm
+
+bugs/TestBug131129.tla
+
+. correctly raises a warning about using a step without assumptions within its proof
+. not a bug in v1-tlapm
+
+bugs/TestBug140130.tla
+
+. correctly fails
+. not a bug in v1-tlapm
+
+bugs/TestBug140131B.tla, bugs/TestBug140131A.tla
+
+. v1-tlapm doesn't support module instantiation within a proof step
+
+bugs/TestBug140521.tla
+
+. illustrates that v1-tlapm doesn't unfold definitions to determine if an assumption is boxed
+. I don't consider this a bug (but perhaps a limitation)
+
+
+
+

@@ -21,6 +21,7 @@ THEOREM MP3 == \A p,q : (p /\ (p => q)) => q
 <1>7 (C /\ (C => D)) => D BY Isa
 <1> QED OBVIOUS
 
+\* sm: this one fails, as it should (e.g. consider p <=> q)
 THEOREM INTER == \A p, q : (p => q) => (\E i : (p => i) /\ (i => q) /\ ~(i => p) /\ ~(p => i) )
 <1> QED BY Zenon
 
@@ -36,11 +37,13 @@ LEMMA ~ (0 \in {TRUE, FALSE}) BY Isa, Zenon
 LEMMA 0 \/ ~ 0 OBVIOUS
 LEMMA 1+1 \/ ~ 2 BY Isa
 
+\* sm: no proof provided, but this one is actually false in ZF set theory
 LEMMA \E p : p \in p 
 
 LEMMA ASSUME NEW P, NEW Q, P # Q PROVE P => ~Q OBVIOUS  
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 13:59:40 CEST 2018 by merz
 \* Last modified Thu Sep 03 18:31:38 CEST 2015 by marty
 \* Created Thu Sep 03 14:16:58 CEST 2015 by marty

@@ -85,7 +85,7 @@ Spec == /\ Init /\ [][Next]_vars
 
 TypeOK == x \in [ProcSet -> {TRUE,FALSE}] /\ pc \in [ProcSet -> {"nc", "e1", "e2", "e3", "e4", "cs", "f"}]
 
-THEOREM TypeOK /\ pc[0] = "e1" => ENABLED <<e1(0)>>_vars BY DEF e1, vars
+THEOREM TypeOK /\ pc[0] = "e1" => ENABLED <<e1(0)>>_vars BY DEF e1, vars  \* fails because ENABLED is unsupported
 
 THEOREM TypeOK /\ pc[0] = "e1" => \E pcp, xp:
                     /\ pc[0] = "e1"
@@ -94,7 +94,7 @@ THEOREM TypeOK /\ pc[0] = "e1" => \E pcp, xp:
 \*                    /\ <<xp, pcp>> # <<x, pc>> 
 BY DEF TypeOK, ProcSet
 
-THEOREM TypeOK /\ pc[0] = "e2" => ENABLED <<e2(0)>>_vars BY DEF e2, vars
+THEOREM TypeOK /\ pc[0] = "e2" => ENABLED <<e2(0)>>_vars BY DEF e2, vars  \* fails because ENABLED is unsupported
 
 THEOREM TypeOK /\ pc[0] = "e2" /\ ~x[1]
        => \E pcp, xp : /\ pc[0] = "e2"
@@ -137,5 +137,6 @@ BY DEF TypeOK, ProcSet
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 15:20:50 CEST 2018 by merz
 \* Last modified Thu Mar 12 17:10:47 CET 2015 by marty
 \* Created Thu Mar 12 10:13:20 CET 2015 by marty
