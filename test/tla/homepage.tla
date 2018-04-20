@@ -25,14 +25,12 @@ THEOREM Inv /\ Next => Inv'
 <1>1. ASSUME Inv, Next PROVE Inv' 
  <2>1. ASSUME A PROVE Inv' 
  <2>2. ASSUME B PROVE Inv' 
- <2>3. QED BY <2>1, <2>2 DEF Next 
+ <2>3. QED BY <1>1, <2>1, <2>2 DEF Next 
 <1>2. QED BY <1>1
 
 THEOREM Inv /\ Next => Inv' 
-<1>1. SUFFICES /\ Inv 
-               /\ A => Inv' 
-               /\ Inv 
-               /\ B => Inv' 
+<1>1. SUFFICES /\ Inv /\ A => Inv' 
+               /\ Inv /\ B => Inv' 
                BY DEF Next 
 <1>2. ASSUME Inv, A PROVE Inv' 
 <1>3. ASSUME Inv, B PROVE Inv' 
@@ -43,5 +41,6 @@ THEOREM Inv /\ Next => Inv'
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 14:51:57 CEST 2018 by merz
 \* Last modified Wed Apr 12 15:54:09 CEST 2017 by marty
 \* Created Mon Mar 16 14:18:20 CET 2015 by marty

@@ -62,7 +62,7 @@ Init == /\ pscore = 0
 THEOREM Ineq == Init => [](T >R /\ R > P /\ P > S)
 <1> SUFFICES ASSUME Init PROVE [](T >R /\ R > P /\ P > S) OBVIOUS
 <1>1 Init => T >R /\ R > P /\ P > S BY DEF Init
-<1> QED BY PTL, <1>1
+<1> QED BY PTL, <1>1   \* expected to fail (?!)
 
 (* The next state relation parametrized by the moves x and y of P and Q, where the score
    is updated according to the payoff matrix above. *)
@@ -80,7 +80,7 @@ THEOREM Init /\ [][\E x,y \in Move: Next(x,y)]_vars => []TypeOK
   <2> (\A x \in Move \X Move: f[x] \in Move ) => f \in [(Move \X Move) -> Move] BY Isa, ExtAssumption DEF Ext
   <2> QED BY DEF Init, TypeOK
 <1>2 (TypeOK /\ \Ex,y \in Move : Next(x,y)) => TypeOK' BY DEF Init, TypeOK, Next
-<1> QED BY PTL, <1>1, <1>2
+<1> QED BY PTL, <1>1, <1>2  \* expected to fail (?!)
 
 (* Template for proving a property -- so far it is unclear how to compare two moves with different strategies *)
 THEOREM TypeOK /\ Init /\ [][\E x,y \in Move : Next(x,y)]_vars => TRUE
@@ -90,5 +90,6 @@ THEOREM TypeOK /\ Init /\ [][\E x,y \in Move : Next(x,y)]_vars => TRUE
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 15:28:12 CEST 2018 by merz
 \* Last modified Wed Dec 02 18:02:24 CET 2015 by marty
 \* Created Mon Nov 30 08:09:16 CET 2015 by marty

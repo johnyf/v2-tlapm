@@ -20,7 +20,7 @@ IbT == 0' = 0
 
 THEOREM T2 == ASSUME NEW CONSTANT x PROVE x'=x
 
-THEOREM ASSUME IbT PROVE TRUE \* this is not accepted by the toolbox
+THEOREM ASSUME IbT PROVE TRUE \* this is not accepted by the toolbox (sm: 20180420 - ??? it should be and is accepted)
 
 THEOREM ASSUME I!T PROVE TRUE \* should not be accepted by the toolbox too, but it is. leads to malformed xml export. 
 
@@ -31,5 +31,6 @@ THEOREM ASSUME I!T PROVE TRUE \* should not be accepted by the toolbox too, but 
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 15:54:15 CEST 2018 by merz
 \* Last modified Thu Mar 30 15:09:20 CEST 2017 by marty
 \* Created Tue Mar 03 10:57:30 CET 2015 by marty

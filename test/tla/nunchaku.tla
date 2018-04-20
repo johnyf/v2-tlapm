@@ -23,15 +23,15 @@ LEMMA \A f \in [S3 -> S2]  : \E x, y \in S3 : x # y => f[x] = f[y] BY DEF S2, S3
 
 
 LEMMA \A f \in [S3 -> S3]  : \A x,y \in S3 : x # y => f[x] # f[y] BY DEF S2, S3 \* sat
-LEMMA \E f \in [S3 -> S3]  : \A x,y \in S3 : x # y => f[x] # f[y] BY DEF S2, S3 \* valid
+LEMMA \E f \in [S3 -> S3]  : \A x,y \in S3 : x # y => f[x] # f[y] BY DEF S2, S3 \* valid -- sm: fails (2018-04-20)
 
 LEMMA \E f \in [{0} -> {0}] : f[0] # 0 OBVIOUS \* false
-LEMMA \E f \in [{0} -> {0}] : f[0] = 0 BY Z3 \* true
+LEMMA \E f \in [{0} -> {0}] : f[0] = 0 BY Z3 \* true  -- sm: fails (2018-04-20)
 LEMMA \A f \in [{0} -> {0}] : f[0] = 0 OBVIOUS \* true
 
 LEMMA \E f \in [{0} -> {0}] : f[0] = 0
 <1> \A f \in [{0} -> {0}] : f[0] = 0 OBVIOUS
-<1> QED BY Z3
+<1> QED BY Z3  \* sm: fails (2018-04-20)
 
 
 VARIABLE pc
@@ -60,5 +60,6 @@ LEMMA \neg  \E x,y,z : x # y /\ x # z /\ y # z OBVIOUS \* counter-sat (contradic
 
 =============================================================================
 \* Modification History
+\* Last modified Fri Apr 20 15:18:25 CEST 2018 by merz
 \* Last modified Thu Mar 03 16:09:36 CET 2016 by marty
 \* Created Wed Mar 02 16:32:32 CET 2016 by marty
